@@ -1,0 +1,583 @@
+C:\laragon\www
+λ mysql -u root
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 42
+Server version: 8.0.40 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2024, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> create database ranah_db
+    -> ;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> use ranah_db
+Database changed
+mysql> show tables;
+Empty set (0.00 sec)
+
+mysql> show tables;
++-----------------------+
+| Tables_in_ranah_db    |
++-----------------------+
+| cache                 |
+| cache_locks           |
+| failed_jobs           |
+| job_batches           |
+| jobs                  |
+| migrations            |
+| password_reset_tokens |
+| sessions              |
+| users                 |
++-----------------------+
+9 rows in set (0.00 sec)
+
+mysql> show tables;
++-----------------------+
+| Tables_in_ranah_db    |
++-----------------------+
+| cache                 |
+| cache_locks           |
+| failed_jobs           |
+| gunung                |
+| job_batches           |
+| jobs                  |
+| migrations            |
+| password_reset_tokens |
+| sessions              |
+| users                 |
++-----------------------+
+10 rows in set (0.00 sec)
+
+mysql> select * from  gunung;
+Empty set (0.00 sec)
+
+mysql> DESC gunung;
++---------------------+-----------------+------+-----+---------+----------------+
+| Field               | Type            | Null | Key | Default | Extra          |
++---------------------+-----------------+------+-----+---------+----------------+
+| id                  | bigint unsigned | NO   | PRI | NULL    | auto_increment |
+| nama                | varchar(150)    | NO   |     | NULL    |                |
+| provinsi            | varchar(100)    | NO   |     | NULL    |                |
+| kabupaten           | varchar(150)    | YES  |     | NULL    |                |
+| latitude            | decimal(10,7)   | YES  |     | NULL    |                |
+| longitude           | decimal(10,7)   | YES  |     | NULL    |                |
+| status_aktivitas    | varchar(50)     | YES  |     | NULL    |                |
+| radius_perkiraan_km | decimal(8,2)    | YES  |     | NULL    |                |
+| sumber_data         | varchar(255)    | YES  |     | NULL    |                |
+| aktif               | tinyint(1)      | NO   |     | 1       |                |
+| created_at          | timestamp       | YES  |     | NULL    |                |
+| updated_at          | timestamp       | YES  |     | NULL    |                |
++---------------------+-----------------+------+-----+---------+----------------+
+12 rows in set (0.01 sec)
+
+mysql> show tables;
++-----------------------+
+| Tables_in_ranah_db    |
++-----------------------+
+| cache                 |
+| cache_locks           |
+| failed_jobs           |
+| gunung                |
+| job_batches           |
+| jobs                  |
+| laporan_gunung        |
+| migrations            |
+| password_reset_tokens |
+| sessions              |
+| users                 |
++-----------------------+
+11 rows in set (0.01 sec)
+
+mysql> DESC laporan_gunung;
++-------------------+-----------------+------+-----+---------+----------------+
+| Field             | Type            | Null | Key | Default | Extra          |
++-------------------+-----------------+------+-----+---------+----------------+
+| id                | bigint unsigned | NO   | PRI | NULL    | auto_increment |
+| gunung_id         | bigint unsigned | NO   | MUL | NULL    |                |
+| periode_mulai     | date            | YES  |     | NULL    |                |
+| periode_selesai   | date            | YES  |     | NULL    |                |
+| data_klimatologi  | text            | YES  |     | NULL    |                |
+| pengamatan_visual | text            | YES  |     | NULL    |                |
+| rekomendasi       | text            | YES  |     | NULL    |                |
+| foto              | varchar(255)    | YES  |     | NULL    |                |
+| sumber            | varchar(255)    | NO   |     | NULL    |                |
+| waktu_publikasi   | datetime        | YES  |     | NULL    |                |
+| created_at        | timestamp       | YES  |     | NULL    |                |
+| updated_at        | timestamp       | YES  |     | NULL    |                |
++-------------------+-----------------+------+-----+---------+----------------+
+12 rows in set (0.00 sec)
+
+mysql> SHOW CREATE TABLE laporan_gunung;
++----------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Table          | Create Table
+
+
+                                                                                                                                                                                   |
++----------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| laporan_gunung | CREATE TABLE `laporan_gunung` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `gunung_id` bigint unsigned NOT NULL,
+  `periode_mulai` date DEFAULT NULL,
+  `periode_selesai` date DEFAULT NULL,
+  `data_klimatologi` text COLLATE utf8mb4_unicode_ci,
+  `pengamatan_visual` text COLLATE utf8mb4_unicode_ci,
+  `rekomendasi` text COLLATE utf8mb4_unicode_ci,
+  `foto` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `sumber` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `waktu_publikasi` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `laporan_gunung_gunung_id_foreign` (`gunung_id`),
+  CONSTRAINT `laporan_gunung_gunung_id_foreign` FOREIGN KEY (`gunung_id`) REFERENCES `gunung` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci |
++----------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> show tables;
++-----------------------+
+| Tables_in_ranah_db    |
++-----------------------+
+| cache                 |
+| cache_locks           |
+| failed_jobs           |
+| gunung                |
+| job_batches           |
+| jobs                  |
+| kategori_mitigasi     |
+| laporan_gunung        |
+| migrations            |
+| password_reset_tokens |
+| sessions              |
+| users                 |
++-----------------------+
+12 rows in set (0.00 sec)
+
+mysql> DESC kategori_mitigasi;
++------------+-------------------+------+-----+---------+----------------+
+| Field      | Type              | Null | Key | Default | Extra          |
++------------+-------------------+------+-----+---------+----------------+
+| id         | bigint unsigned   | NO   | PRI | NULL    | auto_increment |
+| nama       | varchar(100)      | NO   |     | NULL    |                |
+| deskripsi  | text              | YES  |     | NULL    |                |
+| urutan     | smallint unsigned | NO   |     | NULL    |                |
+| aktif      | tinyint(1)        | NO   |     | 1       |                |
+| created_at | timestamp         | YES  |     | NULL    |                |
+| updated_at | timestamp         | YES  |     | NULL    |                |
++------------+-------------------+------+-----+---------+----------------+
+7 rows in set (0.00 sec)
+
+mysql> show tables;
++-----------------------+
+| Tables_in_ranah_db    |
++-----------------------+
+| cache                 |
+| cache_locks           |
+| failed_jobs           |
+| gunung                |
+| job_batches           |
+| jobs                  |
+| kategori_mitigasi     |
+| langkah_mitigasi      |
+| laporan_gunung        |
+| migrations            |
+| password_reset_tokens |
+| sessions              |
+| users                 |
++-----------------------+
+13 rows in set (0.00 sec)
+
+mysql> DESC langkah_mitigasi;
++----------------------+-------------------+------+-----+---------+----------------+
+| Field                | Type              | Null | Key | Default | Extra          |
++----------------------+-------------------+------+-----+---------+----------------+
+| id                   | bigint unsigned   | NO   | PRI | NULL    | auto_increment |
+| kategori_mitigasi_id | bigint unsigned   | NO   | MUL | NULL    |                |
+| judul                | varchar(200)      | NO   |     | NULL    |                |
+| isi                  | text              | NO   |     | NULL    |                |
+| urutan               | smallint unsigned | NO   |     | NULL    |                |
+| created_at           | timestamp         | YES  |     | NULL    |                |
+| updated_at           | timestamp         | YES  |     | NULL    |                |
++----------------------+-------------------+------+-----+---------+----------------+
+7 rows in set (0.00 sec)
+
+mysql> SHOW CREATE TABLE langkah_mitigasi;
++------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Table            | Create Table
+
+
+ |
++------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| langkah_mitigasi | CREATE TABLE `langkah_mitigasi` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `kategori_mitigasi_id` bigint unsigned NOT NULL,
+  `judul` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `isi` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `urutan` smallint unsigned NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `langkah_mitigasi_kategori_mitigasi_id_foreign` (`kategori_mitigasi_id`),
+  CONSTRAINT `langkah_mitigasi_kategori_mitigasi_id_foreign` FOREIGN KEY (`kategori_mitigasi_id`) REFERENCES `kategori_mitigasi` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci |
++------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> show tables;
++-----------------------+
+| Tables_in_ranah_db    |
++-----------------------+
+| berita                |
+| cache                 |
+| cache_locks           |
+| failed_jobs           |
+| gunung                |
+| job_batches           |
+| jobs                  |
+| kategori_mitigasi     |
+| langkah_mitigasi      |
+| laporan_gunung        |
+| migrations            |
+| password_reset_tokens |
+| sessions              |
+| users                 |
++-----------------------+
+14 rows in set (0.00 sec)
+
+mysql> DESC berita;
++------------------+-----------------+------+-----+---------+----------------+
+| Field            | Type            | Null | Key | Default | Extra          |
++------------------+-----------------+------+-----+---------+----------------+
+| id               | bigint unsigned | NO   | PRI | NULL    | auto_increment |
+| judul            | varchar(200)    | NO   |     | NULL    |                |
+| kategori         | varchar(50)     | NO   |     | NULL    |                |
+| isi              | longtext        | NO   |     | NULL    |                |
+| gambar           | varchar(255)    | YES  |     | NULL    |                |
+| sumber           | varchar(255)    | YES  |     | NULL    |                |
+| waktu_publikasi  | datetime        | YES  |     | NULL    |                |
+| status_publikasi | varchar(20)     | NO   |     | draft   |                |
+| created_at       | timestamp       | YES  |     | NULL    |                |
+| updated_at       | timestamp       | YES  |     | NULL    |                |
++------------------+-----------------+------+-----+---------+----------------+
+10 rows in set (0.00 sec)
+
+mysql> show tables;
++-----------------------+
+| Tables_in_ranah_db    |
++-----------------------+
+| berita                |
+| cache                 |
+| cache_locks           |
+| failed_jobs           |
+| gunung                |
+| job_batches           |
+| jobs                  |
+| kategori_mitigasi     |
+| kontak_darurat        |
+| langkah_mitigasi      |
+| laporan_gunung        |
+| migrations            |
+| password_reset_tokens |
+| sessions              |
+| users                 |
++-----------------------+
+15 rows in set (0.00 sec)
+
+mysql> DESC kontak_darurat;
++---------------+-------------------+------+-----+---------+----------------+
+| Field         | Type              | Null | Key | Default | Extra          |
++---------------+-------------------+------+-----+---------+----------------+
+| id            | bigint unsigned   | NO   | PRI | NULL    | auto_increment |
+| nama_layanan  | varchar(150)      | NO   |     | NULL    |                |
+| nomor_telepon | varchar(30)       | NO   |     | NULL    |                |
+| kategori      | varchar(50)       | YES  |     | NULL    |                |
+| urutan        | smallint unsigned | NO   |     | 0       |                |
+| aktif         | tinyint(1)        | NO   |     | 1       |                |
+| created_at    | timestamp         | YES  |     | NULL    |                |
+| updated_at    | timestamp         | YES  |     | NULL    |                |
++---------------+-------------------+------+-----+---------+----------------+
+8 rows in set (0.00 sec)
+
+mysql> show tables;
++-----------------------+
+| Tables_in_ranah_db    |
++-----------------------+
+| berita                |
+| cache                 |
+| cache_locks           |
+| data_gempa            |
+| failed_jobs           |
+| gunung                |
+| job_batches           |
+| jobs                  |
+| kategori_mitigasi     |
+| kontak_darurat        |
+| langkah_mitigasi      |
+| laporan_gunung        |
+| migrations            |
+| password_reset_tokens |
+| sessions              |
+| users                 |
++-----------------------+
+16 rows in set (0.00 sec)
+
+mysql> DESC data_gempa;
++--------------+-----------------+------+-----+---------+----------------+
+| Field        | Type            | Null | Key | Default | Extra          |
++--------------+-----------------+------+-----+---------+----------------+
+| id           | bigint unsigned | NO   | PRI | NULL    | auto_increment |
+| id_bmkg      | varchar(100)    | NO   | UNI | NULL    |                |
+| magnitudo    | decimal(4,1)    | YES  |     | NULL    |                |
+| kedalaman_km | decimal(7,2)    | YES  |     | NULL    |                |
+| lokasi       | varchar(255)    | NO   |     | NULL    |                |
+| latitude     | decimal(10,7)   | YES  |     | NULL    |                |
+| longitude    | decimal(10,7)   | YES  |     | NULL    |                |
+| waktu_gempa  | datetime        | NO   |     | NULL    |                |
+| sumber_data  | varchar(100)    | NO   |     | BMKG    |                |
+| data_asli    | json            | YES  |     | NULL    |                |
+| created_at   | timestamp       | YES  |     | NULL    |                |
+| updated_at   | timestamp       | YES  |     | NULL    |                |
++--------------+-----------------+------+-----+---------+----------------+
+12 rows in set (0.00 sec)
+
+mysql> SHOW INDEX FROM data_gempa;
++------------+------------+---------------------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| Table      | Non_unique | Key_name                  | Seq_in_index | Column_name | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
++------------+------------+---------------------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| data_gempa |          0 | PRIMARY                   |            1 | id          | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| data_gempa |          0 | data_gempa_id_bmkg_unique |            1 | id_bmkg     | A         |           0 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
++------------+------------+---------------------------+--------------+-------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+2 rows in set (0.01 sec)
+
+mysql> DESC notifikasi
+    -> SHOW CREATE TABLE notifikasi;
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'SHOW CREATE TABLE notifikasi' at line 2
+mysql> DESC notifikasi;
++-------------------+-----------------+------+-----+---------+----------------+
+| Field             | Type            | Null | Key | Default | Extra          |
++-------------------+-----------------+------+-----+---------+----------------+
+| id                | bigint unsigned | NO   | PRI | NULL    | auto_increment |
+| judul             | varchar(200)    | NO   |     | NULL    |                |
+| isi               | text            | NO   |     | NULL    |                |
+| jenis_bencana     | varchar(50)     | NO   |     | NULL    |                |
+| tingkat_keparahan | varchar(30)     | YES  |     | NULL    |                |
+| wilayah_tujuan    | varchar(150)    | YES  |     | NULL    |                |
+| topik_fcm         | varchar(150)    | YES  |     | NULL    |                |
+| data_gempa_id     | bigint unsigned | YES  | MUL | NULL    |                |
+| laporan_gunung_id | bigint unsigned | YES  | MUL | NULL    |                |
+| waktu_publikasi   | datetime        | YES  |     | NULL    |                |
+| status            | varchar(20)     | NO   |     | draft   |                |
+| created_at        | timestamp       | YES  |     | NULL    |                |
+| updated_at        | timestamp       | YES  |     | NULL    |                |
++-------------------+-----------------+------+-----+---------+----------------+
+13 rows in set (0.00 sec)
+
+mysql> SHOW CREATE TABLE notifikasi;
++------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Table      | Create Table
+
+
+
+                                                                                        |
++------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| notifikasi | CREATE TABLE `notifikasi` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `judul` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `isi` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `jenis_bencana` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `tingkat_keparahan` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `wilayah_tujuan` varchar(150) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `topik_fcm` varchar(150) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `data_gempa_id` bigint unsigned DEFAULT NULL,
+  `laporan_gunung_id` bigint unsigned DEFAULT NULL,
+  `waktu_publikasi` datetime DEFAULT NULL,
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'draft',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `notifikasi_data_gempa_id_foreign` (`data_gempa_id`),
+  KEY `notifikasi_laporan_gunung_id_foreign` (`laporan_gunung_id`),
+  CONSTRAINT `notifikasi_data_gempa_id_foreign` FOREIGN KEY (`data_gempa_id`) REFERENCES `data_gempa` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `notifikasi_laporan_gunung_id_foreign` FOREIGN KEY (`laporan_gunung_id`) REFERENCES `laporan_gunung` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci |
++------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> DESC log_pengiriman_notifikasi;
++-------------------+-----------------+------+-----+---------+----------------+
+| Field             | Type            | Null | Key | Default | Extra          |
++-------------------+-----------------+------+-----+---------+----------------+
+| id                | bigint unsigned | NO   | PRI | NULL    | auto_increment |
+| notifikasi_id     | bigint unsigned | NO   | MUL | NULL    |                |
+| tujuan            | varchar(255)    | NO   |     | NULL    |                |
+| status_pengiriman | varchar(30)     | NO   |     | NULL    |                |
+| id_pesan_fcm      | varchar(255)    | YES  |     | NULL    |                |
+| pesan_kesalahan   | text            | YES  |     | NULL    |                |
+| waktu_pengiriman  | datetime        | YES  |     | NULL    |                |
+| created_at        | timestamp       | YES  |     | NULL    |                |
+| updated_at        | timestamp       | YES  |     | NULL    |                |
++-------------------+-----------------+------+-----+---------+----------------+
+9 rows in set (0.00 sec)
+
+mysql> SHOW CREATE TABLE log_pengiriman_notifikasi;
++---------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Table                     | Create Table
+
+
+                                                                                                                                                  |
++---------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| log_pengiriman_notifikasi | CREATE TABLE `log_pengiriman_notifikasi` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `notifikasi_id` bigint unsigned NOT NULL,
+  `tujuan` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status_pengiriman` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `id_pesan_fcm` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `pesan_kesalahan` text COLLATE utf8mb4_unicode_ci,
+  `waktu_pengiriman` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `log_pengiriman_notifikasi_notifikasi_id_foreign` (`notifikasi_id`),
+  CONSTRAINT `log_pengiriman_notifikasi_notifikasi_id_foreign` FOREIGN KEY (`notifikasi_id`) REFERENCES `notifikasi` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci |
++---------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> DESC titik_evakuasi;
++--------------------+-----------------+------+-----+---------+----------------+
+| Field              | Type            | Null | Key | Default | Extra          |
++--------------------+-----------------+------+-----+---------+----------------+
+| id                 | bigint unsigned | NO   | PRI | NULL    | auto_increment |
+| nama               | varchar(150)    | NO   |     | NULL    |                |
+| jenis              | varchar(50)     | NO   |     | NULL    |                |
+| alamat             | varchar(255)    | YES  |     | NULL    |                |
+| latitude           | decimal(10,7)   | NO   |     | NULL    |                |
+| longitude          | decimal(10,7)   | NO   |     | NULL    |                |
+| terverifikasi_pada | datetime        | YES  |     | NULL    |                |
+| aktif              | tinyint(1)      | NO   |     | 1       |                |
+| created_at         | timestamp       | YES  |     | NULL    |                |
+| updated_at         | timestamp       | YES  |     | NULL    |                |
++--------------------+-----------------+------+-----+---------+----------------+
+10 rows in set (0.00 sec)
+
+mysql> DESC rute_evakuasi;
++--------------------+-------------------+------+-----+---------+----------------+
+| Field              | Type              | Null | Key | Default | Extra          |
++--------------------+-------------------+------+-----+---------+----------------+
+| id                 | bigint unsigned   | NO   | PRI | NULL    | auto_increment |
+| nama               | varchar(150)      | NO   |     | NULL    |                |
+| titik_awal_id      | bigint unsigned   | NO   | MUL | NULL    |                |
+| titik_tujuan_id    | bigint unsigned   | NO   | MUL | NULL    |                |
+| jenis_bencana      | varchar(50)       | NO   |     | NULL    |                |
+| geometri           | json              | NO   |     | NULL    |                |
+| jarak_km           | decimal(8,2)      | YES  |     | NULL    |                |
+| estimasi_menit     | smallint unsigned | YES  |     | NULL    |                |
+| terverifikasi_pada | datetime          | YES  |     | NULL    |                |
+| aktif              | tinyint(1)        | NO   |     | 1       |                |
+| created_at         | timestamp         | YES  |     | NULL    |                |
+| updated_at         | timestamp         | YES  |     | NULL    |                |
++--------------------+-------------------+------+-----+---------+----------------+
+12 rows in set (0.00 sec)
+
+mysql> SHOW CREATE TABLE rute_evakuasi;
++---------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Table         | Create Table
+
+
+
+                                                                                           |
++---------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| rute_evakuasi | CREATE TABLE `rute_evakuasi` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `nama` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `titik_awal_id` bigint unsigned NOT NULL,
+  `titik_tujuan_id` bigint unsigned NOT NULL,
+  `jenis_bencana` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `geometri` json NOT NULL,
+  `jarak_km` decimal(8,2) DEFAULT NULL,
+  `estimasi_menit` smallint unsigned DEFAULT NULL,
+  `terverifikasi_pada` datetime DEFAULT NULL,
+  `aktif` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `rute_evakuasi_titik_awal_id_foreign` (`titik_awal_id`),
+  KEY `rute_evakuasi_titik_tujuan_id_foreign` (`titik_tujuan_id`),
+  CONSTRAINT `rute_evakuasi_titik_awal_id_foreign` FOREIGN KEY (`titik_awal_id`) REFERENCES `titik_evakuasi` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `rute_evakuasi_titik_tujuan_id_foreign` FOREIGN KEY (`titik_tujuan_id`) REFERENCES `titik_evakuasi` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci |
++---------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+mysql> DESC zona_bencana;
++-----------------+-----------------+------+-----+---------+----------------+
+| Field           | Type            | Null | Key | Default | Extra          |
++-----------------+-----------------+------+-----+---------+----------------+
+| id              | bigint unsigned | NO   | PRI | NULL    | auto_increment |
+| nama            | varchar(150)    | NO   |     | NULL    |                |
+| jenis_bencana   | varchar(50)     | NO   |     | NULL    |                |
+| geometri        | json            | NO   |     | NULL    |                |
+| sumber_data     | varchar(255)    | NO   |     | NULL    |                |
+| keterangan      | text            | YES  |     | NULL    |                |
+| diperbarui_pada | datetime        | YES  |     | NULL    |                |
+| aktif           | tinyint(1)      | NO   |     | 1       |                |
+| created_at      | timestamp       | YES  |     | NULL    |                |
+| updated_at      | timestamp       | YES  |     | NULL    |                |
++-----------------+-----------------+------+-----+---------+----------------+
+10 rows in set (0.00 sec)
+
+mysql> DESC pengaduan;
++-----------------+-----------------+------+-----+---------+----------------+
+| Field           | Type            | Null | Key | Default | Extra          |
++-----------------+-----------------+------+-----+---------+----------------+
+| id              | bigint unsigned | NO   | PRI | NULL    | auto_increment |
+| nama_pelapor    | varchar(150)    | NO   |     | NULL    |                |
+| nomor_telepon   | varchar(30)     | NO   |     | NULL    |                |
+| kategori        | varchar(50)     | NO   |     | NULL    |                |
+| lokasi_kejadian | varchar(255)    | NO   |     | NULL    |                |
+| latitude        | decimal(10,7)   | YES  |     | NULL    |                |
+| longitude       | decimal(10,7)   | YES  |     | NULL    |                |
+| deskripsi       | text            | NO   |     | NULL    |                |
+| media           | json            | YES  |     | NULL    |                |
+| waktu_pengaduan | datetime        | NO   |     | NULL    |                |
+| created_at      | timestamp       | YES  |     | NULL    |                |
+| updated_at      | timestamp       | YES  |     | NULL    |                |
++-----------------+-----------------+------+-----+---------+----------------+
+12 rows in set (0.00 sec)
+
+mysql> SHOW TABLES;
++---------------------------+
+| Tables_in_ranah_db        |
++---------------------------+
+| berita                    |
+| cache                     |
+| cache_locks               |
+| data_gempa                |
+| failed_jobs               |
+| gunung                    |
+| job_batches               |
+| jobs                      |
+| kategori_mitigasi         |
+| kontak_darurat            |
+| langkah_mitigasi          |
+| laporan_gunung            |
+| log_pengiriman_notifikasi |
+| migrations                |
+| notifikasi                |
+| password_reset_tokens     |
+| pengaduan                 |
+| rute_evakuasi             |
+| sessions                  |
+| titik_evakuasi            |
+| users                     |
+| zona_bencana              |
++---------------------------+
+22 rows in set (0.00 sec)
+
+mysql>
