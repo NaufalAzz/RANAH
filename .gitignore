@@ -1,0 +1,25 @@
+# Environment dan rahasia
+**/.env
+**/.env.*
+!**/.env.example
+
+# Laravel
+**/vendor/
+**/storage/logs/*
+**/storage/framework/cache/*
+**/storage/framework/sessions/*
+**/storage/framework/views/*
+**/bootstrap/cache/*.php
+
+# Flutter dan Dart
+**/.dart_tool/
+**/build/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/android/local.properties
+
+# Editor dan sistem operasi
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
