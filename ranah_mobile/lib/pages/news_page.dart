@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/sample_news.dart';
 import '../models/news_item.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_background.dart';
 import '../widgets/news_artwork.dart';
 
 class NewsPage extends StatefulWidget {
@@ -71,13 +72,7 @@ class _NewsPageState extends State<NewsPage> {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF12385B), Color(0xFF0B314F)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
+      decoration: AppBackground.decoration,
       child: Stack(
         children: [
           const Positioned(

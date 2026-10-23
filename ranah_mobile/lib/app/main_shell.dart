@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../data/sample_news.dart';
 import '../models/notification_item.dart';
+import '../models/news_item.dart';
 import '../pages/home_page.dart';
 import '../pages/map_page.dart';
 import '../pages/menu_page.dart';
 import '../pages/news_page.dart';
 import '../pages/notifications_page.dart';
+import '../pages/volcanic_activity_page.dart';
 import '../widgets/brand_header.dart';
 
 class MainShell extends StatefulWidget {
@@ -22,23 +24,37 @@ class _MainShellState extends State<MainShell> {
   String? _notificationNewsId;
   int _notificationSelectionRevision = 0;
 
-  void _openTab(int index) => setState(() {
-    _selectedIndex = index;
-    _showingNotifications = false;
-  });
+  void _openTab(int index) {
+    setState(() {
+      _selectedIndex = index;
+      _showingNotifications = false;
+    });
+  }
 
-  void _toggleNotifications() =>
-      setState(() => _showingNotifications = !_showingNotifications);
+  void _toggleNotifications() {
+    setState(() => _showingNotifications = !_showingNotifications);
+  }
+
+  void _openNews(NewsItem item) {
+    setState(() {
+      _notificationNewsId = item.id;
+      _notificationSelectionRevision++;
+      _selectedIndex = 2;
+      _showingNotifications = false;
+    });
+  }
 
   void _openNotificationDestination(NotificationItem item) {
     switch (item.kind) {
       case NotificationKind.latestNews:
         final newsId = item.targetId;
         final exists = sampleNews.any((news) => news.id == newsId);
+
         if (newsId == null || !exists) {
           _showDestinationUnavailable('Artikel berita terkait tidak tersedia.');
           return;
         }
+
         setState(() {
           _notificationNewsId = newsId;
           _notificationSelectionRevision++;
@@ -46,24 +62,30 @@ class _MainShellState extends State<MainShell> {
           _showingNotifications = false;
         });
         return;
+
       case NotificationKind.earthquake:
       case NotificationKind.evacuation:
         setState(() {
           _selectedIndex = 1;
           _showingNotifications = false;
         });
+
         _showDestinationUnavailable(
           item.kind == NotificationKind.earthquake
               ? 'Peta masih berupa ilustrasi; rincian gempa resmi belum tersedia.'
               : 'Peta masih berupa ilustrasi; rute dan titik aman resmi belum tersedia.',
         );
         return;
+
       case NotificationKind.volcanoActivity:
       case NotificationKind.volcanoStatus:
-        _showDestinationUnavailable(
-          item.kind == NotificationKind.volcanoActivity
-              ? 'Detail laporan aktivitas gunung api belum tersedia.'
-              : 'Informasi status gunung api belum tersedia.',
+        setState(() => _showingNotifications = false);
+
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                VolcanicActivityPage(onBack: () => Navigator.of(context).pop()),
+          ),
         );
         return;
     }
@@ -78,7 +100,7 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
-      HomePage(onOpenNews: () => _openTab(2)),
+      HomePage(onOpenNews: _openNews),
       const MapPage(),
       NewsPage(
         initialNewsId: _notificationNewsId,
@@ -102,9 +124,6 @@ class _MainShellState extends State<MainShell> {
                   ? constraints.maxWidth
                   : 560.0;
 
-              // Keep a tight, finite height around the shell so the tab viewport
-              // and its ListView children receive valid layout constraints on web
-              // as well as on compact mobile screens.
               return Center(
                 child: SizedBox(
                   width: contentWidth,
@@ -144,6 +163,7 @@ class _MainShellState extends State<MainShell> {
               final contentWidth = constraints.maxWidth < 560
                   ? constraints.maxWidth
                   : 560.0;
+
               return Center(
                 child: SizedBox(
                   width: contentWidth,

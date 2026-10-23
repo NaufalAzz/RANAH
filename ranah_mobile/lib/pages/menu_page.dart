@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../pages/contact_complaint_page.dart';
 import '../pages/mitigation_page.dart';
+import '../pages/volcanic_activity_page.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_background.dart';
 
-enum _MenuSection { home, mitigation, contacts }
+enum _MenuSection { home, mitigation, contacts, volcanicActivity }
 
 class MenuPage extends StatefulWidget {
   const MenuPage({super.key});
@@ -30,6 +32,9 @@ class _MenuPageState extends State<MenuPage> {
       _MenuSection.contacts => ContactComplaintPage(
         onBack: () => _openSection(_MenuSection.home),
       ),
+      _MenuSection.volcanicActivity => VolcanicActivityPage(
+        onBack: () => _openSection(_MenuSection.home),
+      ),
     };
   }
 }
@@ -42,13 +47,7 @@ class _MenuHub extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF123858), Color(0xFF0B2D49)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
+      decoration: AppBackground.decoration,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(18, 20, 18, 24),
         children: [
@@ -66,6 +65,14 @@ class _MenuHub extends StatelessWidget {
             style: TextStyle(color: Color(0xFFD0D9E1), fontSize: 13),
           ),
           const SizedBox(height: 18),
+          _MenuHubCard(
+            icon: Icons.landscape_outlined,
+            title: 'Aktivitas Gunung Api',
+            description:
+                'Lihat daftar gunung dan laporan aktivitas yang tersedia.',
+            onTap: () => onOpen(_MenuSection.volcanicActivity),
+          ),
+          const SizedBox(height: 12),
           _MenuHubCard(
             icon: Icons.health_and_safety_outlined,
             title: 'Panduan Mitigasi',

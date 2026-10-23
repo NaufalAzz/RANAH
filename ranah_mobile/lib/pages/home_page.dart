@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../data/sample_news.dart';
 import '../models/news_item.dart';
+import '../widgets/app_background.dart';
 import '../widgets/news_artwork.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({required this.onOpenNews, super.key});
 
-  final VoidCallback onOpenNews;
+  final ValueChanged<NewsItem> onOpenNews;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -23,13 +24,7 @@ class _HomePageState extends State<HomePage> {
     );
 
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF12385B), Color(0xFF0B314F)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
+      decoration: AppBackground.decoration,
       child: Stack(
         children: [
           const Positioned(
@@ -108,7 +103,7 @@ class _FeaturedNewsCarousel extends StatefulWidget {
   });
 
   final List<NewsItem> items;
-  final VoidCallback onTap;
+  final ValueChanged<NewsItem> onTap;
   final ValueChanged<int> onIndexChanged;
 
   @override
@@ -164,7 +159,7 @@ class _FeaturedNewsCarouselState extends State<_FeaturedNewsCarousel> {
             },
             itemBuilder: (context, index) => _FeaturedNewsCard(
               item: widget.items[index],
-              onTap: widget.onTap,
+              onTap: () => widget.onTap(widget.items[index]),
               canGoPrevious: index > 0,
               canGoNext: index < widget.items.length - 1,
               onPrevious: _showPrevious,
@@ -333,7 +328,7 @@ class _LatestNewsCard extends StatelessWidget {
   const _LatestNewsCard({required this.item, required this.onTap});
 
   final NewsItem item;
-  final VoidCallback onTap;
+  final ValueChanged<NewsItem> onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -343,7 +338,7 @@ class _LatestNewsCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
       child: InkWell(
         borderRadius: BorderRadius.circular(11),
-        onTap: onTap,
+        onTap: () => onTap(item),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(

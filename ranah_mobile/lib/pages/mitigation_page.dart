@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/mitigation_guides.dart';
 import '../models/mitigation_guide.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_background.dart';
 
 class MitigationPage extends StatefulWidget {
   const MitigationPage({required this.onBackToHome, super.key});
@@ -36,13 +37,7 @@ class _MitigationPageState extends State<MitigationPage> {
     final guide = _selectedGuide;
 
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF123858), Color(0xFF0B2D49)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
+      decoration: AppBackground.decoration,
       child: Stack(
         children: [
           const Positioned(

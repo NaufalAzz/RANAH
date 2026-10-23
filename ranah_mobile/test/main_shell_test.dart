@@ -78,6 +78,29 @@ void main() {
     expect(_iconButton(tester, 'Berita utama berikutnya').onPressed, isNull);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Selecting a featured story opens that story in News', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const RanahApp());
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.text('Contoh: Kenali informasi resmi aktivitas gunung api'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Kembali'), findsOneWidget);
+    expect(
+      find.textContaining('Sebelum membagikan informasi aktivitas gunung api'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
 
 IconButton _iconButton(WidgetTester tester, String tooltip) {

@@ -38,17 +38,19 @@ void main() {
     expect(find.text('Semua Notifikasi'), findsOneWidget);
     await _tapVisible(tester, find.text('Pembaruan aktivitas belum tersedia'));
     await tester.pumpAndSettle();
-    expect(
-      find.text('Detail laporan aktivitas gunung api belum tersedia.'),
-      findsOneWidget,
-    );
+    expect(find.text('Aktivitas Gunung Api'), findsOneWidget);
+    await tester.tap(find.byTooltip('Kembali'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Notifikasi'));
+    await tester.pumpAndSettle();
 
     await _tapVisible(tester, find.text('Informasi status belum tersedia'));
     await tester.pumpAndSettle();
-    expect(
-      find.text('Informasi status gunung api belum tersedia.'),
-      findsOneWidget,
-    );
+    expect(find.text('Aktivitas Gunung Api'), findsOneWidget);
+    await tester.tap(find.byTooltip('Kembali'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Notifikasi'));
+    await tester.pumpAndSettle();
 
     await _tapVisible(
       tester,
@@ -91,7 +93,7 @@ void main() {
     await tester.tap(find.text('Pembaruan aktivitas belum tersedia'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Semua Notifikasi'), findsOneWidget);
+    expect(find.text('Aktivitas Gunung Api'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

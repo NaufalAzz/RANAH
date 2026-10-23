@@ -6,6 +6,7 @@ import '../models/complaint_draft.dart';
 import '../models/emergency_contact.dart';
 import '../services/phone_dialer.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_background.dart';
 
 class ContactComplaintPage extends StatefulWidget {
   const ContactComplaintPage({required this.onBack, super.key});
@@ -133,13 +134,7 @@ class _ContactComplaintPageState extends State<ContactComplaintPage> {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF123858), Color(0xFF0B2D49)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
+      decoration: AppBackground.decoration,
       child: Stack(
         children: [
           const Positioned(

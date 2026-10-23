@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/sample_notifications.dart';
 import '../models/notification_item.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_background.dart';
 
 class NotificationsPage extends StatelessWidget {
   const NotificationsPage({super.key, required this.onNotificationTap});
@@ -12,13 +13,7 @@ class NotificationsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF0D2541), Color(0xFF07182D)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
+      decoration: AppBackground.decoration,
       child: Stack(
         children: [
           const Positioned(top: 112, right: -76, child: _BackgroundRings()),

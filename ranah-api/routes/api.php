@@ -9,3 +9,6 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::get('/gunung', [GunungController::class, 'index']);
+
+Route::get('/gunung/{id}', [GunungController::class, 'show'])
+    ->whereNumber('id');
