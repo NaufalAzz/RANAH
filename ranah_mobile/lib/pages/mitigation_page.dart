@@ -239,6 +239,21 @@ class _GuideSteps extends StatelessWidget {
             ),
             if (index < guide.steps.length - 1) const SizedBox(height: 8),
           ],
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Sumber: ${guide.sourceTitle} — ${guide.sourceOrganization}. '
+              'Diakses ${guide.sourceAccessedAt}. ${guide.sourceUrl}\n'
+              'Ringkasan edukasi umum; ikuti arahan terbaru PVMBG dan BPBD.',
+              style: const TextStyle(
+                color: Color(0xFFD0D9E1),
+                fontSize: 10,
+                height: 1.35,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
         ],
       ),
     );

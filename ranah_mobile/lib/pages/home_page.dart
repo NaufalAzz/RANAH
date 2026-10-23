@@ -4,11 +4,27 @@ import '../data/sample_news.dart';
 import '../models/news_item.dart';
 import '../widgets/app_background.dart';
 import '../widgets/news_artwork.dart';
+import '../widgets/news_feed_notice.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({required this.onOpenNews, super.key});
+  const HomePage({
+    required this.onOpenNews,
+    this.items = sampleNews,
+    this.isUsingFallback = true,
+    this.isLoadingNews = false,
+    this.isFromCache = false,
+    this.cacheWriteFailed = false,
+    this.lastSyncedAt,
+    super.key,
+  });
 
   final ValueChanged<NewsItem> onOpenNews;
+  final List<NewsItem> items;
+  final bool isUsingFallback;
+  final bool isLoadingNews;
+  final bool isFromCache;
+  final bool cacheWriteFailed;
+  final DateTime? lastSyncedAt;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -19,9 +35,13 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final latest = sampleNews.where(
-      (item) => sampleNews.indexOf(item) != _featuredIndex,
-    );
+    final featuredIndex = _featuredIndex < widget.items.length
+        ? _featuredIndex
+        : 0;
+    final latest = [
+      for (var index = 0; index < widget.items.length; index++)
+        if (index != featuredIndex) widget.items[index],
+    ];
 
     return DecoratedBox(
       decoration: AppBackground.decoration,
@@ -41,15 +61,30 @@ class _HomePageState extends State<HomePage> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(10, 20, 10, 24),
               children: [
-                _FeaturedNewsCarousel(
-                  items: sampleNews,
-                  onTap: widget.onOpenNews,
-                  onIndexChanged: (index) =>
-                      setState(() => _featuredIndex = index),
+                NewsFeedNotice(
+                  isUsingFallback: widget.isUsingFallback,
+                  isLoading: widget.isLoadingNews,
+                  isFromCache: widget.isFromCache,
+                  cacheWriteFailed: widget.cacheWriteFailed,
+                  lastSyncedAt: widget.lastSyncedAt,
                 ),
+                if (widget.items.isEmpty)
+                  const _NoPublishedNews()
+                else
+                  _FeaturedNewsCarousel(
+                    items: widget.items,
+                    leadLabel: widget.isUsingFallback
+                        ? 'Berita Utama'
+                        : widget.isFromCache
+                        ? 'Berita Tersimpan'
+                        : 'Berita Terbaru',
+                    onTap: widget.onOpenNews,
+                    onIndexChanged: (index) =>
+                        setState(() => _featuredIndex = index),
+                  ),
                 const SizedBox(height: 22),
                 Text(
-                  'Berita Terbaru',
+                  widget.isFromCache ? 'Berita Tersimpan' : 'Berita Terbaru',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Colors.white,
                     fontSize: 17,
@@ -95,14 +130,32 @@ class _HomeBackgroundRing extends StatelessWidget {
   }
 }
 
+class _NoPublishedNews extends StatelessWidget {
+  const _NoPublishedNews();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.all(20),
+      child: Text(
+        'Belum ada berita yang dipublikasikan.',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: Colors.white),
+      ),
+    );
+  }
+}
+
 class _FeaturedNewsCarousel extends StatefulWidget {
   const _FeaturedNewsCarousel({
     required this.items,
+    required this.leadLabel,
     required this.onTap,
     required this.onIndexChanged,
   });
 
   final List<NewsItem> items;
+  final String leadLabel;
   final ValueChanged<NewsItem> onTap;
   final ValueChanged<int> onIndexChanged;
 
@@ -159,6 +212,7 @@ class _FeaturedNewsCarouselState extends State<_FeaturedNewsCarousel> {
             },
             itemBuilder: (context, index) => _FeaturedNewsCard(
               item: widget.items[index],
+              leadLabel: widget.leadLabel,
               onTap: () => widget.onTap(widget.items[index]),
               canGoPrevious: index > 0,
               canGoNext: index < widget.items.length - 1,
@@ -204,6 +258,7 @@ class _SafetyNote extends StatelessWidget {
 class _FeaturedNewsCard extends StatelessWidget {
   const _FeaturedNewsCard({
     required this.item,
+    required this.leadLabel,
     required this.onTap,
     required this.canGoPrevious,
     required this.canGoNext,
@@ -212,6 +267,7 @@ class _FeaturedNewsCard extends StatelessWidget {
   });
 
   final NewsItem item;
+  final String leadLabel;
   final VoidCallback onTap;
   final bool canGoPrevious;
   final bool canGoNext;
@@ -230,19 +286,22 @@ class _FeaturedNewsCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             NewsArtwork(item: item, featured: true),
-            const Positioned(
+            Positioned(
               left: 12,
               top: 11,
               child: DecoratedBox(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Color(0xFFE83D35),
                   borderRadius: BorderRadius.all(Radius.circular(20)),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
                   child: Text(
-                    'Berita Utama',
-                    style: TextStyle(
+                    leadLabel,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,

@@ -42,6 +42,14 @@ void main() {
       expect(find.text('Panduan Mitigasi'), findsOneWidget);
       expect(find.text(firstStep), findsOneWidget);
       expect(find.text('Kembali'), findsOneWidget);
+      expect(
+        find.textContaining('Buku Saku Menghadapi Bencana'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('ikuti arahan terbaru PVMBG dan BPBD'),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
 
       await tester.tap(find.text('Kembali'));

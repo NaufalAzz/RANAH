@@ -58,7 +58,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(
-      find.text('Sumber berita: belum tersedia pada data contoh.'),
+      find.text('Sumber berita: belum dicantumkan.'),
       findsOneWidget,
     );
     expect(

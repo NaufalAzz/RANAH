@@ -2,10 +2,47 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ranah_mobile/app/ranah_app.dart';
+import 'package:ranah_mobile/data/sample_emergency_contacts.dart';
+import 'package:ranah_mobile/models/emergency_contact.dart';
 
 void main() {
+  test('bundled contacts have unique ids and source metadata', () {
+    final ids = sampleEmergencyContacts.map((contact) => contact.id).toSet();
+    expect(ids.length, sampleEmergencyContacts.length);
+
+    for (final contact in sampleEmergencyContacts) {
+      expect(contact.displayNumber.trim(), isNotEmpty);
+      expect(contact.sourceTitle.trim(), isNotEmpty);
+      expect(contact.sourceOrganization.trim(), isNotEmpty);
+      expect(contact.sourceUrl.startsWith('https://'), isTrue);
+      expect(contact.sourceAccessedAt, '23 Oktober 2026');
+      if (contact.numberVerified) {
+        expect(contact.dialNumbers, isNotEmpty);
+      } else {
+        expect(contact.dialNumbers, isEmpty);
+      }
+    }
+  });
+
+  test('unverified contact attribution does not claim official verification', () {
+    const unverified = EmergencyContact(
+      id: 'example',
+      name: 'Kontak contoh',
+      organization: 'Contoh',
+      displayNumber: '123',
+      dialNumbers: [],
+      icon: Icons.phone,
+      numberVerified: false,
+      sourceTitle: 'Sumber belum diperiksa',
+      sourceOrganization: 'Contoh',
+      sourceUrl: 'https://example.invalid',
+      sourceAccessedAt: '—',
+    );
+    expect(unverified.sourceAttribution, 'Nomor belum diverifikasi');
+  });
+
   testWidgets(
-    'contact numbers require confirmation and unverified BNPB is disabled',
+    'offline emergency contacts show sources and keep dial confirmation',
     (tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
@@ -39,6 +76,7 @@ void main() {
       await tester.tap(find.text('115'));
       await tester.pumpAndSettle();
       expect(find.text('Buka Telepon 115'), findsOneWidget);
+      expect(find.textContaining('Kontak Darurat SAR'), findsOneWidget);
       expect(dialedNumbers, isEmpty);
       await tester.tap(find.text('Buka Telepon 115'));
       await tester.pumpAndSettle();
@@ -46,10 +84,14 @@ void main() {
 
       await tester.tap(find.text('117'));
       await tester.pumpAndSettle();
-      expect(find.text('Nomor belum terverifikasi'), findsOneWidget);
-      expect(dialedNumbers, ['115']);
-      await tester.tap(find.text('Mengerti'));
+      expect(find.text('Buka Telepon 117'), findsOneWidget);
+      expect(
+        find.textContaining('BNPB menyediakan Call Center 117'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Buka Telepon 117'));
       await tester.pumpAndSettle();
+      expect(dialedNumbers, ['115', '117']);
 
       await tester.tap(find.text('Pengaduan'));
       await tester.pumpAndSettle();

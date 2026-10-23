@@ -46,9 +46,8 @@ class _ContactComplaintPageState extends State<ContactComplaintPage> {
         builder: (context) => AlertDialog(
           title: const Text('Nomor belum terverifikasi'),
           content: Text(
-            '${contact.displayNumber} adalah nomor acuan BRD yang belum '
-            'diverifikasi ulang. Demi keamanan, nomor ini tidak dapat membuka '
-            'aplikasi telepon. ${contact.note ?? ''}',
+            '${contact.displayNumber} belum diverifikasi dan tidak dapat '
+            'dibuka melalui aplikasi telepon. ${contact.note ?? ''}',
           ),
           actions: [
             TextButton(
@@ -68,7 +67,9 @@ class _ContactComplaintPageState extends State<ContactComplaintPage> {
         content: Text(
           'Aplikasi Telepon akan dibuka dengan nomor ${contact.displayNumber}. '
           'Periksa ketersediaan layanan di wilayah Anda sebelum menelepon.'
-          '${contact.note == null ? '' : '\n\n${contact.note}'}',
+          '${contact.note == null ? '' : '\n\n${contact.note}'}\n\n'
+          'Sumber: ${contact.sourceTitle} (${contact.sourceOrganization}), '
+          'diakses ${contact.sourceAccessedAt}.\n${contact.sourceUrl}',
         ),
         actions: [
           TextButton(
@@ -368,7 +369,8 @@ class _EmergencyContactList extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Text(
-            'Ketuk nomor untuk membuka konfirmasi panggilan. Nomor acuan BRD perlu diperiksa kembali; 117 belum dapat dihubungi dari aplikasi.',
+          'Ketuk nomor untuk melihat sumber dan konfirmasi panggilan. '
+          'Layanan daerah dapat berbeda ketersediaannya.',
             style: TextStyle(
               color: Colors.white,
               fontSize: 11,
@@ -450,7 +452,7 @@ class _EmergencyContactCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      contact.note ?? contact.organization,
+                      contact.note ?? contact.sourceAttribution,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

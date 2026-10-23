@@ -1,35 +1,84 @@
 import 'package:flutter/material.dart';
 
-import '../services/api_service.dart';
+import '../services/gunung_repository.dart';
 import '../widgets/app_background.dart';
+import '../widgets/gunung_freshness_notice.dart';
 
 class GunungReportPage extends StatefulWidget {
-  const GunungReportPage({super.key, required this.gunungId, this.namaGunung});
+  const GunungReportPage({
+    super.key,
+    required this.gunungId,
+    this.namaGunung,
+    this.repository,
+  });
 
   final int gunungId;
   final String? namaGunung;
+  final GunungDataRepository? repository;
 
   @override
   State<GunungReportPage> createState() => _GunungReportPageState();
 }
 
 class _GunungReportPageState extends State<GunungReportPage> {
-  final ApiService _apiService = ApiService();
-  late Future<Map<String, dynamic>> _future;
+  late final GunungDataRepository _repository;
+  Map<String, dynamic>? _data;
+  DateTime? _lastCheckedAt;
+  Object? _syncError;
+  bool _isLoading = true;
+  bool _isFromCache = true;
+  bool _syncing = false;
 
   @override
   void initState() {
     super.initState();
-    _future = _apiService.getDetailGunung(widget.gunungId);
+    _repository = widget.repository ?? GunungRepository();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    try {
+      final cached = await _repository.readDetailCache(widget.gunungId);
+      if (!mounted) return;
+      if (cached != null) {
+        setState(() {
+          _data = cached.data;
+          _lastCheckedAt = cached.lastCheckedAt;
+          _isFromCache = true;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      // Continue with a network attempt when local storage is unavailable.
+    }
+    if (!mounted) return;
+    await _muatUlang();
   }
 
   Future<void> _muatUlang() async {
-    final request = _apiService.getDetailGunung(widget.gunungId);
-    setState(() => _future = request);
+    if (_syncing) return;
+    setState(() {
+      _syncing = true;
+      _syncError = null;
+    });
     try {
-      await request;
+      final snapshot = await _repository.syncDetail(widget.gunungId);
+      if (!mounted) return;
+      setState(() {
+        _data = snapshot.data;
+        _lastCheckedAt = snapshot.lastCheckedAt;
+        _isFromCache = false;
+      });
     } catch (_) {
-      // FutureBuilder menampilkan keadaan gagal.
+      if (!mounted) return;
+      setState(() => _syncError = Object());
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _syncing = false;
+        });
+      }
     }
   }
 
@@ -57,170 +106,152 @@ class _GunungReportPageState extends State<GunungReportPage> {
         children: [
           DecoratedBox(decoration: AppBackground.decoration),
           const ColoredBox(color: Color(0x66091C30)),
-          FutureBuilder<Map<String, dynamic>>(
-            future: _future,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return _ReportState(
-                  icon: Icons.cloud_off_outlined,
-                  title: 'Laporan belum dapat dimuat',
-                  message: 'Periksa koneksi atau coba muat ulang data.',
-                  action: FilledButton.icon(
-                    onPressed: _muatUlang,
-                    icon: const Icon(Icons.refresh_rounded),
-                    label: const Text('Coba lagi'),
-                  ),
-                );
-              }
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (_data == null)
+            _ReportState(
+              icon: Icons.cloud_off_outlined,
+              title: 'Laporan belum tersedia offline',
+              message: 'Data gunung ini belum tersimpan di perangkat.',
+              action: FilledButton.icon(
+                onPressed: _muatUlang,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Coba lagi'),
+              ),
+            )
+          else
+            _buildReport(_data!),
+        ],
+      ),
+    );
+  }
 
-              final data = snapshot.data ?? {};
-              final gunung = data['gunung'] is Map
-                  ? Map<String, dynamic>.from(data['gunung'] as Map)
-                  : <String, dynamic>{};
-              final rawReports = data['laporan'];
-              final laporan =
-                  rawReports is List &&
-                      rawReports.isNotEmpty &&
-                      rawReports.first is Map
-                  ? Map<String, dynamic>.from(rawReports.first as Map)
-                  : null;
-              final reportData = laporan ?? <String, dynamic>{};
+  Widget _buildReport(Map<String, dynamic> data) {
+    final gunung = data['gunung'] is Map
+        ? Map<String, dynamic>.from(data['gunung'] as Map)
+        : <String, dynamic>{};
+    final rawReports = data['laporan'];
+    final reports = rawReports is List
+        ? rawReports.whereType<Map>().map(Map<String, dynamic>.from).toList()
+        : <Map<String, dynamic>>[];
+    final laporan = reports.isNotEmpty ? reports.first : null;
+    final reportData = laporan ?? <String, dynamic>{};
 
-              return RefreshIndicator(
-                onRefresh: _muatUlang,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-                  children: [
-                    const _ReportHeading(),
-                    const SizedBox(height: 10),
-                    _ReportMapPlaceholder(
-                      nama: _text(
-                        gunung['nama'],
-                        widget.namaGunung ?? 'Gunung api',
-                      ),
-                      hasCoordinates:
-                          gunung['latitude'] != null &&
-                          gunung['longitude'] != null,
-                    ),
-                    const SizedBox(height: 10),
-                    _StatusBadge(
-                      status: _text(
-                        gunung['status_aktivitas'],
-                        'Belum diverifikasi',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _ReportCard(
-                      nama: _text(
-                        gunung['nama'],
-                        widget.namaGunung ?? 'Gunung api',
-                      ),
-                      imageUrl: _imageUrl(laporan?['foto']),
-                      fallbackPhotoPath: laporan?['foto']?.toString(),
-                    ),
-                    const SizedBox(height: 10),
-                    _InfoSection(
-                      title: 'Lokasi Administratif dan Geografis',
-                      icon: Icons.place_outlined,
-                      rows: [
-                        (
-                          'Kabupaten',
-                          _text(gunung['kabupaten'], 'Belum tersedia'),
-                        ),
-                        (
-                          'Provinsi',
-                          _text(gunung['provinsi'], 'Belum tersedia'),
-                        ),
-                        (
-                          'Koordinat',
-                          _coordinates(gunung['latitude'], gunung['longitude']),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _InfoSection(
-                      title: 'Periode Pengamatan',
-                      icon: Icons.calendar_month_outlined,
-                      rows: [('Periode', _period(reportData))],
-                    ),
-                    const SizedBox(height: 10),
-                    _InfoSection(
-                      title: 'Klimatologi',
-                      icon: Icons.cloud_outlined,
-                      rows: [
-                        (
-                          'Data',
-                          _text(
-                            reportData['data_klimatologi'],
-                            'Belum tersedia',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _InfoSection(
-                      title: 'Pengamatan Visual',
-                      icon: Icons.visibility_outlined,
-                      rows: [
-                        (
-                          'Data',
-                          _text(
-                            reportData['pengamatan_visual'],
-                            'Belum tersedia',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _InfoSection(
-                      title: 'Rekomendasi',
-                      icon: Icons.shield_outlined,
-                      rows: [
-                        (
-                          'Arahan tercatat',
-                          _text(reportData['rekomendasi'], 'Belum tersedia'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _InfoSection(
-                      title: 'Sumber dan Pembaruan',
-                      icon: Icons.source_outlined,
-                      rows: [
-                        (
-                          'Sumber',
-                          _text(reportData['sumber'], 'Belum tersedia'),
-                        ),
-                        (
-                          'Waktu publikasi',
-                          _text(
-                            reportData['waktu_publikasi'],
-                            'Belum tersedia',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _EstimatedZone(radius: gunung['radius_perkiraan_km']),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Data ditampilkan sesuai respons API RANAH. Status dan rekomendasi '
-                      'perlu merujuk sumber resmi. Zona perkiraan bukan batas KRB resmi. '
-                      'RANAH bukan pengganti arahan PVMBG dan BPBD.',
-                      style: TextStyle(
-                        color: Color(0xFFE2EDF5),
-                        fontSize: 12,
-                        height: 1.45,
-                      ),
-                    ),
-                  ],
+    return RefreshIndicator(
+      onRefresh: _muatUlang,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+        children: [
+          const _ReportHeading(),
+          const SizedBox(height: 10),
+          GunungFreshnessNotice(
+            isFromCache: _isFromCache,
+            lastCheckedAt: _lastCheckedAt,
+            hasError: _syncError != null,
+          ),
+          const SizedBox(height: 10),
+          _ReportMapPlaceholder(
+            nama: _text(gunung['nama'], widget.namaGunung ?? 'Gunung api'),
+            hasCoordinates:
+                gunung['latitude'] != null && gunung['longitude'] != null,
+          ),
+          const SizedBox(height: 10),
+          _StatusBadge(
+            status: _text(gunung['status_aktivitas'], 'Belum diverifikasi'),
+          ),
+          const SizedBox(height: 12),
+          if (laporan == null)
+            const _ReportState(
+              icon: Icons.description_outlined,
+              title: 'Belum ada laporan pengamatan',
+              message:
+                  'Belum ada laporan terkait yang tersimpan untuk gunung ini.',
+            )
+          else
+            _ReportCard(
+              nama: _text(gunung['nama'], widget.namaGunung ?? 'Gunung api'),
+              imageUrl: _imageUrl(laporan['foto']),
+              fallbackPhotoPath: laporan['foto']?.toString(),
+            ),
+          const SizedBox(height: 10),
+          _InfoSection(
+            title: 'Lokasi Administratif dan Geografis',
+            icon: Icons.place_outlined,
+            rows: [
+              ('Kabupaten', _text(gunung['kabupaten'], 'Belum tersedia')),
+              ('Provinsi', _text(gunung['provinsi'], 'Belum tersedia')),
+              (
+                'Koordinat',
+                _coordinates(gunung['latitude'], gunung['longitude']),
+              ),
+            ],
+          ),
+          if (laporan != null) ...[
+            const SizedBox(height: 10),
+            _InfoSection(
+              title: 'Periode Pengamatan',
+              icon: Icons.calendar_month_outlined,
+              rows: [('Periode', _period(reportData))],
+            ),
+            const SizedBox(height: 10),
+            _InfoSection(
+              title: 'Klimatologi',
+              icon: Icons.cloud_outlined,
+              rows: [
+                (
+                  'Data',
+                  _text(reportData['data_klimatologi'], 'Belum tersedia'),
                 ),
-              );
-            },
+              ],
+            ),
+            const SizedBox(height: 10),
+            _InfoSection(
+              title: 'Pengamatan Visual',
+              icon: Icons.visibility_outlined,
+              rows: [
+                (
+                  'Data',
+                  _text(reportData['pengamatan_visual'], 'Belum tersedia'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _InfoSection(
+              title: 'Rekomendasi',
+              icon: Icons.shield_outlined,
+              rows: [
+                (
+                  'Arahan tercatat',
+                  _text(reportData['rekomendasi'], 'Belum tersedia'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _InfoSection(
+              title: 'Sumber dan Pembaruan',
+              icon: Icons.source_outlined,
+              rows: [
+                ('Sumber', _text(reportData['sumber'], 'Belum tersedia')),
+                (
+                  'Waktu publikasi',
+                  _text(reportData['waktu_publikasi'], 'Belum tersedia'),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 10),
+          _EstimatedZone(radius: gunung['radius_perkiraan_km']),
+          const SizedBox(height: 12),
+          const Text(
+            'Data ditampilkan sesuai respons API RANAH. Status dan rekomendasi '
+            'perlu merujuk sumber resmi. Zona perkiraan bukan batas KRB resmi. '
+            'RANAH bukan pengganti arahan PVMBG dan BPBD.',
+            style: TextStyle(
+              color: Color(0xFFE2EDF5),
+              fontSize: 12,
+              height: 1.45,
+            ),
           ),
         ],
       ),

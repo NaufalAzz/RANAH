@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../pages/gunung_report_page.dart';
-import '../services/api_service.dart';
+import '../services/gunung_repository.dart';
 import '../widgets/app_background.dart';
+import '../widgets/gunung_freshness_notice.dart';
 
 const _activityLevels =
     <({String label, String key, Color color, IconData icon})>[
@@ -33,24 +34,36 @@ const _activityLevels =
     ];
 
 class VolcanicActivityPage extends StatefulWidget {
-  const VolcanicActivityPage({super.key, required this.onBack});
+  const VolcanicActivityPage({
+    super.key,
+    required this.onBack,
+    this.repository,
+  });
 
   final VoidCallback onBack;
+  final GunungDataRepository? repository;
 
   @override
   State<VolcanicActivityPage> createState() => _VolcanicActivityPageState();
 }
 
 class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
-  final ApiService _apiService = ApiService();
+  late final GunungDataRepository _repository;
   final TextEditingController _searchController = TextEditingController();
-  late Future<List<dynamic>> _futureGunung;
+  List<Map<String, dynamic>> _items = [];
+  DateTime? _lastCheckedAt;
+  Object? _syncError;
+  bool _isLoading = true;
+  bool _isFromCache = true;
+  bool _apiReturnedEmpty = false;
+  bool _syncing = false;
   String _query = '';
 
   @override
   void initState() {
     super.initState();
-    _futureGunung = _apiService.getGunung();
+    _repository = widget.repository ?? GunungRepository();
+    _initialize();
   }
 
   @override
@@ -59,13 +72,49 @@ class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
     super.dispose();
   }
 
-  Future<void> _reload() async {
-    final request = _apiService.getGunung();
-    setState(() => _futureGunung = request);
+  Future<void> _initialize() async {
     try {
-      await request;
+      final cached = await _repository.readGunungCache();
+      if (!mounted) return;
+      setState(() {
+        _items = cached.items;
+        _lastCheckedAt = cached.lastCheckedAt;
+        _isFromCache = true;
+        _isLoading = _items.isEmpty && _lastCheckedAt == null;
+      });
     } catch (_) {
-      // FutureBuilder menampilkan keadaan gagal.
+      // Network sync below is still useful if the local database cannot open.
+    }
+    await _reload();
+  }
+
+  Future<void> _reload() async {
+    if (_syncing) return;
+    setState(() {
+      _syncing = true;
+      _syncError = null;
+      if (_items.isEmpty && _lastCheckedAt == null) _isLoading = true;
+    });
+    try {
+      final snapshot = await _repository.syncGunung();
+      if (!mounted) return;
+      setState(() {
+        _items = snapshot.items;
+        _lastCheckedAt = snapshot.lastCheckedAt;
+        _isFromCache = false;
+        _apiReturnedEmpty = snapshot.apiReturnedEmpty;
+        _syncError = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _syncError = Object());
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _syncing = false;
+        });
+      }
     }
   }
 
@@ -112,117 +161,112 @@ class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
         children: [
           DecoratedBox(decoration: AppBackground.decoration),
           ColoredBox(color: const Color(0x66091C30)),
-          FutureBuilder<List<dynamic>>(
-            future: _futureGunung,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return _ActivityMessage(
-                  icon: Icons.cloud_off_outlined,
-                  message: 'Data aktivitas gunung belum dapat dimuat.',
-                  action: FilledButton.icon(
-                    onPressed: _reload,
-                    icon: const Icon(Icons.refresh_rounded),
-                    label: const Text('Coba lagi'),
-                  ),
-                );
-              }
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (_items.isEmpty && _syncError != null)
+            _ActivityMessage(
+              icon: Icons.cloud_off_outlined,
+              message: 'Data gunung belum tersedia di perangkat saat offline.',
+              action: FilledButton.icon(
+                onPressed: _reload,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Coba lagi'),
+              ),
+            )
+          else
+            _buildActivityList(),
+        ],
+      ),
+    );
+  }
 
-              final all = (snapshot.data ?? []).whereType<Map>().toList();
-              final visible = all.where(_matchesSearch).toList();
-              final unverified = visible
-                  .where((item) => _levelKey(item['status_aktivitas']) == null)
-                  .toList();
-
-              return RefreshIndicator(
-                onRefresh: _reload,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-                  children: [
-                    _TitlePanel(total: all.length),
-                    const SizedBox(height: 12),
-                    _DataNotice(),
-                    const SizedBox(height: 12),
-                    GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 2.15,
-                      children: [
-                        for (final level in _activityLevels)
-                          _LevelCountCard(
-                            level: level,
-                            count: visible
-                                .where(
-                                  (item) =>
-                                      _levelKey(item['status_aktivitas']) ==
-                                      level.key,
-                                )
-                                .length,
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _SearchField(
-                      controller: _searchController,
-                      query: _query,
-                      onChanged: (value) => setState(() => _query = value),
-                      onClear: () {
-                        _searchController.clear();
-                        setState(() => _query = '');
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    if (all.isEmpty)
-                      const _ActivityMessage(
-                        icon: Icons.landscape_outlined,
-                        message: 'Belum ada data gunung dari API RANAH.',
+  Widget _buildActivityList() {
+    final all = _items;
+    final visible = all.where(_matchesSearch).toList();
+    final unverified = visible
+        .where((item) => _levelKey(item['status_aktivitas']) == null)
+        .toList();
+    return RefreshIndicator(
+      onRefresh: _reload,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+        children: [
+          _TitlePanel(total: all.length),
+          const SizedBox(height: 12),
+          GunungFreshnessNotice(
+            isFromCache: _isFromCache,
+            lastCheckedAt: _lastCheckedAt,
+            hasError: _syncError != null,
+            apiReturnedEmpty: _apiReturnedEmpty && all.isNotEmpty,
+          ),
+          const SizedBox(height: 12),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 2.15,
+            children: [
+              for (final level in _activityLevels)
+                _LevelCountCard(
+                  level: level,
+                  count: visible
+                      .where(
+                        (item) =>
+                            _levelKey(item['status_aktivitas']) == level.key,
                       )
-                    else if (visible.isEmpty)
-                      const _ActivityMessage(
-                        icon: Icons.search_off_rounded,
-                        message:
-                            'Tidak ada gunung yang cocok dengan pencarian.',
-                      )
-                    else ...[
-                      for (final level in _activityLevels)
-                        _LevelSection(
-                          level: level,
-                          items: visible
-                              .where(
-                                (item) =>
-                                    _levelKey(item['status_aktivitas']) ==
-                                    level.key,
-                              )
-                              .toList(),
-                          onOpenReport: _openReport,
-                        ),
-                      if (unverified.isNotEmpty)
-                        _UnverifiedSection(
-                          items: unverified,
-                          onOpenReport: _openReport,
-                        ),
-                    ],
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Pengelompokan mengikuti teks status yang dikirim API RANAH. '
-                      'Status dan sumbernya belum diverifikasi terhadap PVMBG; '
-                      'data ini bukan peringatan resmi.',
-                      style: TextStyle(
-                        color: Color(0xFFE2EDF5),
-                        fontSize: 12,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
+                      .length,
                 ),
-              );
+            ],
+          ),
+          const SizedBox(height: 12),
+          _SearchField(
+            controller: _searchController,
+            query: _query,
+            onChanged: (value) => setState(() => _query = value),
+            onClear: () {
+              _searchController.clear();
+              setState(() => _query = '');
             },
+          ),
+          const SizedBox(height: 16),
+          if (all.isEmpty)
+            const _ActivityMessage(
+              icon: Icons.landscape_outlined,
+              message: 'Belum ada data gunung dari API RANAH.',
+            )
+          else if (visible.isEmpty)
+            const _ActivityMessage(
+              icon: Icons.search_off_rounded,
+              message: 'Tidak ada gunung yang cocok dengan pencarian.',
+            )
+          else ...[
+            for (final level in _activityLevels)
+              _LevelSection(
+                level: level,
+                items: visible
+                    .where(
+                      (item) =>
+                          _levelKey(item['status_aktivitas']) == level.key,
+                    )
+                    .toList(),
+                onOpenReport: _openReport,
+              ),
+            if (unverified.isNotEmpty)
+              _UnverifiedSection(items: unverified, onOpenReport: _openReport),
+          ],
+          const SizedBox(height: 12),
+          const Text(
+            'Pengelompokan mengikuti teks status yang dikirim API RANAH. '
+            'Status dan sumbernya belum diverifikasi terhadap PVMBG; '
+            'data ini bukan peringatan resmi.',
+            style: TextStyle(
+              color: Color(0xFFE2EDF5),
+              fontSize: 12,
+              height: 1.4,
+            ),
           ),
         ],
       ),
@@ -311,33 +355,6 @@ class _TitlePanel extends StatelessWidget {
       ),
     );
   }
-}
-
-class _DataNotice extends StatelessWidget {
-  const _DataNotice();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xE8163854),
-      borderRadius: BorderRadius.circular(9),
-      border: Border.all(color: const Color(0xFF5883A1)),
-    ),
-    child: const Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(Icons.info_outline_rounded, color: Color(0xFFFFD278), size: 21),
-        SizedBox(width: 9),
-        Expanded(
-          child: Text(
-            'Data API RANAH. Status aktivitas belum diverifikasi ke sumber resmi.',
-            style: TextStyle(color: Colors.white, fontSize: 12, height: 1.35),
-          ),
-        ),
-      ],
-    ),
-  );
 }
 
 class _LevelCountCard extends StatelessWidget {

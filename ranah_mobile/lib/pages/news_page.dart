@@ -5,12 +5,29 @@ import '../models/news_item.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/news_artwork.dart';
+import '../widgets/news_feed_notice.dart';
 
 class NewsPage extends StatefulWidget {
-  const NewsPage({super.key, this.initialNewsId, this.selectionRevision = 0});
+  const NewsPage({
+    super.key,
+    this.initialNewsId,
+    this.selectionRevision = 0,
+    this.items = sampleNews,
+    this.isUsingFallback = true,
+    this.isLoadingNews = false,
+    this.isFromCache = false,
+    this.cacheWriteFailed = false,
+    this.lastSyncedAt,
+  });
 
   final String? initialNewsId;
   final int selectionRevision;
+  final List<NewsItem> items;
+  final bool isUsingFallback;
+  final bool isLoadingNews;
+  final bool isFromCache;
+  final bool cacheWriteFailed;
+  final DateTime? lastSyncedAt;
 
   @override
   State<NewsPage> createState() => _NewsPageState();
@@ -33,14 +50,16 @@ class _NewsPageState extends State<NewsPage> {
   @override
   void didUpdateWidget(covariant NewsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectionRevision != widget.selectionRevision) {
+    if (oldWidget.selectionRevision != widget.selectionRevision ||
+        oldWidget.items != widget.items) {
       _selectNewsById(widget.initialNewsId);
     }
   }
 
   void _selectNewsById(String? id) {
+    _selectedItem = null;
     if (id == null) return;
-    for (final item in sampleNews) {
+    for (final item in widget.items) {
       if (item.id == id) {
         _selectedItem = item;
         return;
@@ -56,7 +75,7 @@ class _NewsPageState extends State<NewsPage> {
 
   List<NewsItem> get _filteredNews {
     final query = _query.trim().toLowerCase();
-    return sampleNews.where((item) {
+    return widget.items.where((item) {
       final matchesCategory =
           _category == 'Semua' || item.category == _category;
       final matchesQuery =
@@ -90,6 +109,12 @@ class _NewsPageState extends State<NewsPage> {
                       selectedCategory: _category,
                       searchController: _searchController,
                       items: _filteredNews,
+                      hasPublishedNews: widget.items.isNotEmpty,
+                      isUsingFallback: widget.isUsingFallback,
+                      isLoadingNews: widget.isLoadingNews,
+                      isFromCache: widget.isFromCache,
+                      cacheWriteFailed: widget.cacheWriteFailed,
+                      lastSyncedAt: widget.lastSyncedAt,
                       onQueryChanged: (value) => setState(() => _query = value),
                       onCategorySelected: (value) =>
                           setState(() => _category = value),
@@ -138,6 +163,12 @@ class _NewsListContent extends StatelessWidget {
     required this.selectedCategory,
     required this.searchController,
     required this.items,
+    required this.hasPublishedNews,
+    required this.isUsingFallback,
+    required this.isLoadingNews,
+    required this.isFromCache,
+    required this.cacheWriteFailed,
+    required this.lastSyncedAt,
     required this.onQueryChanged,
     required this.onCategorySelected,
     required this.onItemSelected,
@@ -148,6 +179,12 @@ class _NewsListContent extends StatelessWidget {
   final String selectedCategory;
   final TextEditingController searchController;
   final List<NewsItem> items;
+  final bool hasPublishedNews;
+  final bool isUsingFallback;
+  final bool isLoadingNews;
+  final bool isFromCache;
+  final bool cacheWriteFailed;
+  final DateTime? lastSyncedAt;
   final ValueChanged<String> onQueryChanged;
   final ValueChanged<String> onCategorySelected;
   final ValueChanged<NewsItem> onItemSelected;
@@ -159,6 +196,13 @@ class _NewsListContent extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
       children: [
         const _NewsSectionBanner(),
+        NewsFeedNotice(
+          isUsingFallback: isUsingFallback,
+          isLoading: isLoadingNews,
+          isFromCache: isFromCache,
+          cacheWriteFailed: cacheWriteFailed,
+          lastSyncedAt: lastSyncedAt,
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
           child: _NewsSearchField(
@@ -196,7 +240,7 @@ class _NewsListContent extends StatelessWidget {
         ),
         const SizedBox(height: 30),
         if (items.isEmpty)
-          const _EmptyNewsResults()
+          _EmptyNewsResults(hasPublishedNews: hasPublishedNews)
         else
           for (final item in items) ...[
             _NewsArticleCard(item: item, onTap: () => onItemSelected(item)),
@@ -413,7 +457,9 @@ class _NewsArticleCard extends StatelessWidget {
 }
 
 class _EmptyNewsResults extends StatelessWidget {
-  const _EmptyNewsResults();
+  const _EmptyNewsResults({required this.hasPublishedNews});
+
+  final bool hasPublishedNews;
 
   @override
   Widget build(BuildContext context) {
@@ -425,8 +471,10 @@ class _EmptyNewsResults extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(11),
         ),
-        child: const Text(
-          'Berita tidak ditemukan. Coba kata kunci atau kategori lain.',
+        child: Text(
+          hasPublishedNews
+              ? 'Berita tidak ditemukan. Coba kata kunci atau kategori lain.'
+              : 'Belum ada berita yang dipublikasikan.',
           textAlign: TextAlign.center,
           style: TextStyle(color: AppColors.muted, fontSize: 14),
         ),
@@ -519,18 +567,18 @@ class _NewsDetailContent extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 8),
+                      Text(
+                        item.source == null
+                            ? 'Sumber berita: belum dicantumkan.'
+                            : 'Sumber berita: ${item.source}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 12),
                       Text(
                         item.body,
                         style: Theme.of(context).textTheme.bodyLarge
                             ?.copyWith(fontSize: 15, height: 1.55),
-                      ),
-                      const SizedBox(height: 18),
-                      const Divider(height: 1),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Sumber berita: belum tersedia pada data contoh.',
-                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
                   ),

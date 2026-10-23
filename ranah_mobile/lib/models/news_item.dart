@@ -10,6 +10,8 @@ class NewsItem {
     required this.publishedAt,
     required this.icon,
     required this.accent,
+    this.source,
+    this.imageUrl,
   });
 
   final String id;
@@ -20,4 +22,6 @@ class NewsItem {
   final String publishedAt;
   final IconData icon;
   final Color accent;
+  final String? source;
+  final String? imageUrl;
 }

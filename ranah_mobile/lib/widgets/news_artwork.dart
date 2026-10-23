@@ -26,6 +26,27 @@ class NewsArtwork extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           if (featured) const CustomPaint(painter: _NewsScenePainter()),
+          if (item.imageUrl case final imageUrl?)
+            Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  const SizedBox.shrink(),
+            ),
+          if (item.imageUrl != null)
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0x22101A2C),
+                    Color(0x00101A2C),
+                    Color(0xCC101A2C),
+                  ],
+                ),
+              ),
+            ),
           Positioned(
             right: featured ? 8 : -9,
             bottom: featured ? -34 : -18,

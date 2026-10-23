@@ -9,10 +9,13 @@ import '../pages/menu_page.dart';
 import '../pages/news_page.dart';
 import '../pages/notifications_page.dart';
 import '../pages/volcanic_activity_page.dart';
+import '../services/news_repository.dart';
 import '../widgets/brand_header.dart';
 
 class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+  const MainShell({this.newsRepository, super.key});
+
+  final NewsRepository? newsRepository;
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -23,6 +26,33 @@ class _MainShellState extends State<MainShell> {
   bool _showingNotifications = false;
   String? _notificationNewsId;
   int _notificationSelectionRevision = 0;
+  late final NewsRepository _newsRepository;
+  List<NewsItem> _newsItems = sampleNews;
+  bool _newsUsingFallback = true;
+  bool _newsLoading = true;
+  bool _newsFromCache = false;
+  bool _newsCacheWriteFailed = false;
+  DateTime? _newsLastSyncedAt;
+
+  @override
+  void initState() {
+    super.initState();
+    _newsRepository = widget.newsRepository ?? NewsRepository();
+    _loadNews();
+  }
+
+  Future<void> _loadNews() async {
+    final result = await _newsRepository.load();
+    if (!mounted) return;
+    setState(() {
+      _newsItems = result.items;
+      _newsUsingFallback = result.isUsingFallback;
+      _newsLoading = false;
+      _newsFromCache = result.isFromCache;
+      _newsCacheWriteFailed = result.cacheWriteFailed;
+      _newsLastSyncedAt = result.lastSyncedAt;
+    });
+  }
 
   void _openTab(int index) {
     setState(() {
@@ -48,7 +78,7 @@ class _MainShellState extends State<MainShell> {
     switch (item.kind) {
       case NotificationKind.latestNews:
         final newsId = item.targetId;
-        final exists = sampleNews.any((news) => news.id == newsId);
+        final exists = _newsItems.any((news) => news.id == newsId);
 
         if (newsId == null || !exists) {
           _showDestinationUnavailable('Artikel berita terkait tidak tersedia.');
@@ -100,11 +130,25 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
-      HomePage(onOpenNews: _openNews),
+      HomePage(
+        onOpenNews: _openNews,
+        items: _newsItems,
+        isUsingFallback: _newsUsingFallback,
+        isLoadingNews: _newsLoading,
+        isFromCache: _newsFromCache,
+        cacheWriteFailed: _newsCacheWriteFailed,
+        lastSyncedAt: _newsLastSyncedAt,
+      ),
       const MapPage(),
       NewsPage(
         initialNewsId: _notificationNewsId,
         selectionRevision: _notificationSelectionRevision,
+        items: _newsItems,
+        isUsingFallback: _newsUsingFallback,
+        isLoadingNews: _newsLoading,
+        isFromCache: _newsFromCache,
+        cacheWriteFailed: _newsCacheWriteFailed,
+        lastSyncedAt: _newsLastSyncedAt,
       ),
       const MenuPage(),
     ];

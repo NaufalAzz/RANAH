@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../models/mitigation_guide.dart';
 
+const _bnpbGuideTitle = 'Buku Saku Menghadapi Bencana';
+const _bnpbOrganization = 'Badan Nasional Penanggulangan Bencana (BNPB)';
+const _bnpbUrl =
+    'https://bnpb.go.id/storage/app/media/Buku%20BNPB/Buku%20Saku%20Bencana%20BNPB.pdf';
+const _sourceAccessedAt = '23 Oktober 2026';
+
 // Konten lokal awal; nantinya dapat diganti dengan panduan yang dikelola admin.
 const mitigationGuides = <MitigationGuide>[
   MitigationGuide(
@@ -19,6 +25,10 @@ const mitigationGuides = <MitigationGuide>[
       'Lindungi dokumen penting dengan wadah yang tahan air dan mudah dibawa.',
       'Siapkan kebutuhan khusus anak, lansia, penyandang disabilitas, dan hewan peliharaan.',
     ],
+    sourceTitle: _bnpbGuideTitle,
+    sourceOrganization: _bnpbOrganization,
+    sourceUrl: _bnpbUrl,
+    sourceAccessedAt: _sourceAccessedAt,
   ),
   MitigationGuide(
     id: 'during-eruption',
@@ -35,6 +45,10 @@ const mitigationGuides = <MitigationGuide>[
       'Bawa tas siaga hanya jika dapat dijangkau dengan aman dan arahan petugas memungkinkan.',
       'Jangan kembali ke rumah atau zona yang ditinggalkan sebelum dinyatakan aman oleh pihak berwenang.',
     ],
+    sourceTitle: _bnpbGuideTitle,
+    sourceOrganization: _bnpbOrganization,
+    sourceUrl: _bnpbUrl,
+    sourceAccessedAt: _sourceAccessedAt,
   ),
   MitigationGuide(
     id: 'evacuation',
@@ -51,6 +65,10 @@ const mitigationGuides = <MitigationGuide>[
       'Sampaikan tujuan evakuasi kepada keluarga bila aman untuk menghubungi mereka.',
       'Setibanya di tempat evakuasi, lapor kepada petugas dan ikuti arahan berikutnya.',
     ],
+    sourceTitle: _bnpbGuideTitle,
+    sourceOrganization: _bnpbOrganization,
+    sourceUrl: _bnpbUrl,
+    sourceAccessedAt: _sourceAccessedAt,
   ),
   MitigationGuide(
     id: 'after-eruption',
@@ -67,5 +85,9 @@ const mitigationGuides = <MitigationGuide>[
       'Bersihkan abu dengan hati-hati dan lembapkan terlebih dahulu agar tidak mudah beterbangan.',
       'Periksa kondisi keluarga dan ikuti arahan petugas terkait bantuan serta pemulihan.',
     ],
+    sourceTitle: _bnpbGuideTitle,
+    sourceOrganization: _bnpbOrganization,
+    sourceUrl: _bnpbUrl,
+    sourceAccessedAt: _sourceAccessedAt,
   ),
 ];
