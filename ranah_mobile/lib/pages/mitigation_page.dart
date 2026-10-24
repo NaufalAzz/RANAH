@@ -4,6 +4,8 @@ import '../data/mitigation_guides.dart';
 import '../models/mitigation_guide.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
+import '../widgets/app_card_surface.dart';
+import '../widgets/app_page_banner.dart';
 
 class MitigationPage extends StatefulWidget {
   const MitigationPage({required this.onBackToHome, super.key});
@@ -55,10 +57,30 @@ class _MitigationPageState extends State<MitigationPage> {
                   onPressed: guide == null ? widget.onBackToHome : _closeGuide,
                 ),
               ),
-              if (guide == null)
-                _GuideCategoryGrid(onSelect: _openGuide)
-              else
-                _GuideSteps(guide: guide),
+              AnimatedSwitcher(
+                duration: MediaQuery.of(context).disableAnimations
+                    ? Duration.zero
+                    : const Duration(milliseconds: 240),
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.02, 0),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
+                child: guide == null
+                    ? _GuideCategoryGrid(
+                        key: const ValueKey('mitigation-categories'),
+                        onSelect: _openGuide,
+                      )
+                    : _GuideSteps(
+                        key: ValueKey('mitigation-${guide.id}'),
+                        guide: guide,
+                      ),
+              ),
             ],
           ),
         ],
@@ -73,64 +95,21 @@ class _MitigationBanner extends StatelessWidget {
   final String? guideTitle;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 88,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF21085F), Color(0xFF100525)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.shield_outlined, color: Colors.white, size: 42),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'PANDUAN MITIGASI',
-                  style: TextStyle(
-                    color: Color(0xFF82C7FF),
-                    fontSize: 13,
-                    height: 1.15,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-                const Text(
-                  'Panduan Mitigasi',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    height: 1.2,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  guideTitle ?? 'Jalur Evakuasi & Langkah Keselamatan',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFFC8C0D5),
-                    fontSize: 13,
-                    height: 1.15,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => AppPageBanner(
+    icon: Icons.shield_outlined,
+    eyebrow: 'PANDUAN MITIGASI',
+    title: 'Panduan Mitigasi',
+    subtitle: guideTitle ?? 'Jalur Evakuasi & Langkah Keselamatan',
+    minHeight: AppSizes.pageBannerMinHeight,
+    padding: const EdgeInsets.symmetric(
+      horizontal: AppSpacing.xl,
+      vertical: AppSpacing.sm,
+    ),
+    iconSize: 42,
+    iconGap: AppSpacing.lg,
+    eyebrowStyle: AppTypography.bannerEyebrow.copyWith(fontSize: 13),
+    subtitleStyle: AppTypography.bannerSubtitle.copyWith(fontSize: 13),
+  );
 }
 
 class _BackButton extends StatelessWidget {
@@ -149,11 +128,16 @@ class _BackButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.ink,
           backgroundColor: Colors.white,
-          minimumSize: const Size(0, 34),
-          padding: const EdgeInsets.symmetric(horizontal: 11),
-          side: const BorderSide(color: Color(0xFFE1E5EA)),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          minimumSize: const Size(0, AppSizes.minimumTapTarget),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+          side: const BorderSide(color: AppColors.border),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadii.control),
+          ),
+          textStyle: AppTypography.label.copyWith(
+            color: AppColors.ink,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
@@ -161,7 +145,7 @@ class _BackButton extends StatelessWidget {
 }
 
 class _GuideCategoryGrid extends StatelessWidget {
-  const _GuideCategoryGrid({required this.onSelect});
+  const _GuideCategoryGrid({required this.onSelect, super.key});
 
   final ValueChanged<MitigationGuide> onSelect;
 
@@ -197,7 +181,7 @@ class _GuideCategoryCard extends StatelessWidget {
       color: guide.color,
       elevation: 4,
       shadowColor: Colors.black.withValues(alpha: 0.35),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppRadii.card),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -209,7 +193,7 @@ class _GuideCategoryCard extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 15,
+                fontSize: 16,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -221,7 +205,7 @@ class _GuideCategoryCard extends StatelessWidget {
 }
 
 class _GuideSteps extends StatelessWidget {
-  const _GuideSteps({required this.guide});
+  const _GuideSteps({required this.guide, super.key});
 
   final MitigationGuide guide;
 
@@ -248,7 +232,7 @@ class _GuideSteps extends StatelessWidget {
               'Ringkasan edukasi umum; ikuti arahan terbaru PVMBG dan BPBD.',
               style: const TextStyle(
                 color: Color(0xFFD0D9E1),
-                fontSize: 10,
+                fontSize: 13,
                 height: 1.35,
               ),
             ),
@@ -273,38 +257,37 @@ class _GuideStepCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.38)),
+    return AppCardSurface(
+      variant: AppCardVariant.mitigationStep,
+      accent: color,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.sm,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 20,
-            height: 20,
+            width: AppSpacing.xl,
+            height: AppSpacing.xl,
             alignment: Alignment.center,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             child: Text(
               '$number',
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 10,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ),
-          const SizedBox(width: 9),
+          const SizedBox(width: AppSpacing.xs),
           Expanded(
             child: Text(
               text,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 12,
+                fontSize: 13,
                 height: 1.3,
               ),
             ),

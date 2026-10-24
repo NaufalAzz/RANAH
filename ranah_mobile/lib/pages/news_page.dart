@@ -4,6 +4,8 @@ import '../data/sample_news.dart';
 import '../models/news_item.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
+import '../widgets/app_card_surface.dart';
+import '../widgets/app_page_banner.dart';
 import '../widgets/news_artwork.dart';
 import '../widgets/news_feed_notice.dart';
 
@@ -101,7 +103,19 @@ class _NewsPageState extends State<NewsPage> {
           ),
           Positioned.fill(
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
+              duration: MediaQuery.of(context).disableAnimations
+                  ? Duration.zero
+                  : const Duration(milliseconds: 240),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.025, 0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              ),
               child: _selectedItem == null
                   ? _NewsListContent(
                       key: const ValueKey('news-list'),
@@ -216,13 +230,13 @@ class _NewsListContent extends StatelessWidget {
             'FILTER KATEGORI',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: FontWeight.w800,
             ),
           ),
         ),
         SizedBox(
-          height: 36,
+          height: AppSizes.minimumTapTarget,
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 18),
             scrollDirection: Axis.horizontal,
@@ -255,54 +269,34 @@ class _NewsSectionBanner extends StatelessWidget {
   const _NewsSectionBanner();
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 18, 18, 18),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF29107C), Color(0xFF18064A)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.newspaper_rounded, color: Colors.white, size: 38),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'INFORMASI RANAH',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: const Color(0xFF8BC8FF),
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  'Berita dan Event',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    height: 1.1,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  'Informasi terkini seputar bencana',
-                  style: TextStyle(color: Color(0xFFD0C9E7), fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => AppPageBanner(
+    icon: Icons.newspaper_rounded,
+    eyebrow: 'INFORMASI RANAH',
+    title: 'Berita dan Event',
+    subtitle: 'Informasi terkini seputar bencana',
+    minHeight: AppSizes.pageBannerMinHeight,
+    padding: EdgeInsets.fromLTRB(
+      AppSpacing.xl,
+      AppSpacing.md,
+      AppSpacing.md,
+      AppSpacing.md,
+    ),
+    iconSize: 38,
+    iconGap: AppSpacing.lg,
+    gradient: AppGradients.sectionBanner,
+    eyebrowStyle: TextStyle(
+      color: AppColors.bannerEyebrow,
+      fontSize: 13,
+      fontWeight: FontWeight.w800,
+      letterSpacing: 1.1,
+    ),
+    titleStyle: AppTypography.pageTitle.copyWith(
+      color: AppColors.onDark,
+      fontSize: 20,
+      height: 1.1,
+      fontWeight: FontWeight.w800,
+    ),
+  );
 }
 
 class _NewsSearchField extends StatelessWidget {
@@ -314,7 +308,7 @@ class _NewsSearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 40,
+      height: AppSizes.minimumTapTarget,
       child: TextField(
         controller: controller,
         onChanged: onChanged,
@@ -330,15 +324,15 @@ class _NewsSearchField extends StatelessWidget {
           fillColor: Colors.white,
           contentPadding: EdgeInsets.zero,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(AppRadii.pill),
             borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(AppRadii.pill),
             borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(AppRadii.pill),
             borderSide: const BorderSide(color: Color(0xFF8BC8FF), width: 2),
           ),
         ),
@@ -362,20 +356,22 @@ class _CategoryFilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: selected ? AppColors.primary : const Color(0xFFE5EAF0),
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(AppRadii.control),
       child: InkWell(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(AppRadii.control),
         onTap: onTap,
         child: Container(
-          constraints: const BoxConstraints(minHeight: 36),
+          constraints: const BoxConstraints(
+            minHeight: AppSizes.minimumTapTarget,
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 14),
           alignment: Alignment.center,
           child: Text(
             label,
             style: TextStyle(
               color: selected ? Colors.white : const Color(0xFF68768A),
-              fontSize: 12,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ),
@@ -393,63 +389,58 @@ class _NewsArticleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Card(
-        margin: EdgeInsets.zero,
-        elevation: 2,
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
-        child: InkWell(
-          onTap: onTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AspectRatio(
-                aspectRatio: 2.3,
-                child: NewsArtwork(item: item, featured: true),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+      child: AppCardSurface(
+        variant: AppCardVariant.news,
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AspectRatio(
+              aspectRatio: 2.3,
+              child: NewsArtwork(item: item, featured: true),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.category.toUpperCase(),
+                    style: TextStyle(
+                      color: item.accent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    item.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontSize: 18, height: 1.25),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.summary,
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.ink,
+                      fontSize: 13,
+                      height: 1.25,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    item.publishedAt,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.category.toUpperCase(),
-                      style: TextStyle(
-                        color: item.accent,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      item.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontSize: 13, height: 1.2),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.summary,
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.ink,
-                        fontSize: 10,
-                        height: 1.25,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      item.publishedAt,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -511,11 +502,11 @@ class _NewsDetailContent extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.ink,
                 backgroundColor: Colors.white,
-                minimumSize: const Size(48, 40),
+                minimumSize: const Size(48, AppSizes.minimumTapTarget),
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                side: const BorderSide(color: Color(0xFFE1E5EA)),
+                side: const BorderSide(color: AppColors.border),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(7),
+                  borderRadius: BorderRadius.circular(AppRadii.control),
                 ),
               ),
             ),
@@ -578,7 +569,7 @@ class _NewsDetailContent extends StatelessWidget {
                       Text(
                         item.body,
                         style: Theme.of(context).textTheme.bodyLarge
-                            ?.copyWith(fontSize: 15, height: 1.55),
+                            ?.copyWith(fontSize: 16, height: 1.55),
                       ),
                     ],
                   ),

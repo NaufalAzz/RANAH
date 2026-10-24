@@ -7,6 +7,8 @@ import '../models/emergency_contact.dart';
 import '../services/phone_dialer.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
+import '../widgets/app_card_surface.dart';
+import '../widgets/app_page_banner.dart';
 
 class ContactComplaintPage extends StatefulWidget {
   const ContactComplaintPage({required this.onBack, super.key});
@@ -99,7 +101,7 @@ class _ContactComplaintPageState extends State<ContactComplaintPage> {
     }
   }
 
-  void _submitComplaint() {
+  Future<void> _submitComplaint() async {
     final valid = _formKey.currentState?.validate() ?? false;
     if (!valid) return;
     if (!_consented) {
@@ -107,16 +109,26 @@ class _ContactComplaintPageState extends State<ContactComplaintPage> {
       return;
     }
 
-    setState(() {
-      _localSubmissions.add(
-        ComplaintDraft(
-          reporterName: _nameController.text.trim(),
-          phoneNumber: _phoneController.text.trim(),
-          category: _selectedCategory!,
-          location: _locationController.text.trim(),
-          description: _descriptionController.text.trim(),
-        ),
+    try {
+      setState(() {
+        _localSubmissions.add(
+          ComplaintDraft(
+            reporterName: _nameController.text.trim(),
+            phoneNumber: _phoneController.text.trim(),
+            category: _selectedCategory!,
+            location: _locationController.text.trim(),
+            description: _descriptionController.text.trim(),
+          ),
+        );
+      });
+    } catch (_) {
+      _showMessage(
+        'Pengaduan tidak dapat dicatat sementara. Data belum dikirim ke server.',
       );
+      return;
+    }
+
+    setState(() {
       _nameController.clear();
       _phoneController.clear();
       _locationController.clear();
@@ -124,6 +136,40 @@ class _ContactComplaintPageState extends State<ContactComplaintPage> {
       _selectedCategory = null;
       _consented = false;
     });
+
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.darkPanel,
+        icon: const Icon(
+          Icons.save_outlined,
+          size: 36,
+          color: Color(0xFF91D4C8),
+        ),
+        title: const Text(
+          'Pengaduan Tersimpan Sementara',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
+        content: const Text(
+          'Pengaduan dicatat di memori sesi aplikasi ini dan belum dikirim ke server. Data dapat hilang saat aplikasi ditutup.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppColors.mutedOnDark, height: 1.45),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.card),
+          side: const BorderSide(color: AppColors.darkPanelBorder),
+        ),
+      ),
+    );
   }
 
   void _showMessage(String message) {
@@ -156,7 +202,7 @@ class _ContactComplaintPageState extends State<ContactComplaintPage> {
                     label: const Text('Kembali ke Menu'),
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.white,
-                      minimumSize: const Size(0, 34),
+                      minimumSize: const Size(0, AppSizes.minimumTapTarget),
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                     ),
                   ),
@@ -166,25 +212,43 @@ class _ContactComplaintPageState extends State<ContactComplaintPage> {
                 selectedIndex: _selectedTab,
                 onSelected: (index) => setState(() => _selectedTab = index),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               Expanded(
-                child: _selectedTab == 0
-                    ? _EmergencyContactList(onContactTap: _handleContactTap)
-                    : _ComplaintForm(
-                        formKey: _formKey,
-                        nameController: _nameController,
-                        phoneController: _phoneController,
-                        locationController: _locationController,
-                        descriptionController: _descriptionController,
-                        selectedCategory: _selectedCategory,
-                        onCategoryChanged: (category) =>
-                            setState(() => _selectedCategory = category),
-                        consented: _consented,
-                        onConsentChanged: (value) =>
-                            setState(() => _consented = value),
-                        submissionCount: _localSubmissions.length,
-                        onSubmit: _submitComplaint,
-                      ),
+                child: AnimatedSwitcher(
+                  duration: MediaQuery.of(context).disableAnimations
+                      ? Duration.zero
+                      : const Duration(milliseconds: 220),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0.02, 0),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  ),
+                  child: KeyedSubtree(
+                    key: ValueKey('contact-tab-$_selectedTab'),
+                    child: _selectedTab == 0
+                        ? _EmergencyContactList(onContactTap: _handleContactTap)
+                        : _ComplaintForm(
+                            formKey: _formKey,
+                            nameController: _nameController,
+                            phoneController: _phoneController,
+                            locationController: _locationController,
+                            descriptionController: _descriptionController,
+                            selectedCategory: _selectedCategory,
+                            onCategoryChanged: (category) =>
+                                setState(() => _selectedCategory = category),
+                            consented: _consented,
+                            onConsentChanged: (value) =>
+                                setState(() => _consented = value),
+                            submissionCount: _localSubmissions.length,
+                            onSubmit: _submitComplaint,
+                          ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -198,63 +262,22 @@ class _ContactBanner extends StatelessWidget {
   const _ContactBanner();
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 76,
-      padding: const EdgeInsets.symmetric(horizontal: 22),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF21085F), Color(0xFF100525)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.phone_in_talk_rounded,
-            color: Colors.white,
-            size: 37,
-          ),
-          const SizedBox(width: 17),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'LAYANAN RANAH',
-                  style: TextStyle(
-                    color: Color(0xFF82C7FF),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.7,
-                  ),
-                ),
-                Text(
-                  'Kontak & Pengaduan',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    height: 1.2,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  'Hubungi kami atau kirim laporan',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Color(0xFFC8C0D5), fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const AppPageBanner(
+    icon: Icons.phone_in_talk_rounded,
+    eyebrow: 'LAYANAN RANAH',
+    title: 'Kontak & Pengaduan',
+    subtitle: 'Hubungi kami atau kirim laporan',
+    minHeight: 76,
+    padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 10),
+    iconSize: 37,
+    iconGap: AppSpacing.md,
+    eyebrowStyle: TextStyle(
+      color: AppColors.bannerEyebrow,
+      fontSize: 13,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.7,
+    ),
+  );
 }
 
 class _ContactTabs extends StatelessWidget {
@@ -276,7 +299,7 @@ class _ContactTabs extends StatelessWidget {
               onTap: () => onSelected(0),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: AppSpacing.xs),
           Expanded(
             child: _ContactTabButton(
               label: 'Pengaduan',
@@ -310,7 +333,7 @@ class _ContactTabButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
         child: SizedBox(
-          height: 42,
+          height: AppSizes.minimumTapTarget,
           child: Center(
             child: Text(
               label,
@@ -345,7 +368,7 @@ class _EmergencyContactList extends StatelessWidget {
           ),
           child: const Text.rich(
             TextSpan(
-              style: TextStyle(color: Colors.white, fontSize: 11, height: 1.3),
+              style: TextStyle(color: Colors.white, fontSize: 13, height: 1.3),
               children: [
                 TextSpan(
                   text: 'Catatan: ',
@@ -369,11 +392,11 @@ class _EmergencyContactList extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Text(
-          'Ketuk nomor untuk melihat sumber dan konfirmasi panggilan. '
-          'Layanan daerah dapat berbeda ketersediaannya.',
+            'Ketuk nomor untuk melihat sumber dan konfirmasi panggilan. '
+            'Layanan daerah dapat berbeda ketersediaannya.',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
               height: 1.3,
             ),
@@ -385,7 +408,7 @@ class _EmergencyContactList extends StatelessWidget {
             'Kontak Darurat',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 14,
+              fontSize: 18,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -410,74 +433,63 @@ class _EmergencyContactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFF702A39).withValues(alpha: 0.88),
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 52),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFB03C4A)),
+    return AppCardSurface(
+      variant: AppCardVariant.contact,
+      onTap: onTap,
+      minimumHeight: 52,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: AppSpacing.xs,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: const BoxDecoration(
+              color: Color(0xFFD9363D),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(contact.icon, color: Colors.white, size: 18),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFD9363D),
-                  shape: BoxShape.circle,
+          const SizedBox(width: AppSpacing.xs),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  contact.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    height: 1.2,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                child: Icon(contact.icon, color: Colors.white, size: 18),
-              ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      contact.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        height: 1.2,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      contact.note ?? contact.sourceAttribution,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFFB7C8D7),
-                        fontSize: 10,
-                      ),
-                    ),
-                  ],
+                Text(
+                  contact.note ?? contact.sourceAttribution,
+                  style: const TextStyle(
+                    color: Color(0xFFB7C8D7),
+                    fontSize: 13,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                contact.displayNumber,
-                style: TextStyle(
-                  color: contact.numberVerified
-                      ? const Color(0xFFFF494F)
-                      : const Color(0xFFFFB45C),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            contact.displayNumber,
+            style: TextStyle(
+              color: contact.numberVerified
+                  ? const Color(0xFFFF494F)
+                  : const Color(0xFFFFB45C),
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -523,7 +535,7 @@ class _ComplaintForm extends StatelessWidget {
               'Form Pengaduan',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 14,
+                fontSize: 18,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -553,10 +565,23 @@ class _ComplaintForm extends StatelessWidget {
             const _FormLabel(label: 'Pilih Kategori'),
             DropdownButtonFormField<String>(
               initialValue: selectedCategory,
+              isExpanded: true,
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppColors.ink,
+                fontWeight: FontWeight.w600,
+              ),
               decoration: _inputDecoration('Pilih kategori...'),
               items: [
                 for (final category in complaintCategories)
-                  DropdownMenuItem(value: category, child: Text(category)),
+                  DropdownMenuItem(
+                    value: category,
+                    child: Text(
+                      category,
+                      style: AppTypography.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
               ],
               validator: (value) =>
                   value == null ? 'Pilih kategori pengaduan.' : null,
@@ -581,7 +606,7 @@ class _ComplaintForm extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 backgroundColor: Colors.white,
                 disabledForegroundColor: AppColors.muted,
-                minimumSize: const Size(0, 42),
+                minimumSize: const Size(0, AppSizes.minimumTapTarget),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -591,7 +616,7 @@ class _ComplaintForm extends StatelessWidget {
               padding: EdgeInsets.only(top: 4),
               child: Text(
                 'Lampiran foto/video belum didukung pada tahap ini.',
-                style: TextStyle(color: Color(0xFFD0D9E1), fontSize: 11),
+                style: TextStyle(color: Color(0xFFD0D9E1), fontSize: 13),
               ),
             ),
             const SizedBox(height: 12),
@@ -616,7 +641,7 @@ class _ComplaintForm extends StatelessWidget {
                 'Saya setuju data ini digunakan untuk pencatatan pengaduan. Data hanya disimpan sementara di aplikasi ini dan belum dikirim ke server.',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 11,
+                  fontSize: 13,
                   height: 1.3,
                 ),
               ),
@@ -626,7 +651,7 @@ class _ComplaintForm extends StatelessWidget {
               onPressed: onSubmit,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                minimumSize: const Size(0, 46),
+                minimumSize: const Size(0, AppSizes.minimumTapTarget),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -639,7 +664,7 @@ class _ComplaintForm extends StatelessWidget {
                   ? 'Pengaduan belum dikirim ke server.'
                   : 'Tersimpan sementara di sesi aplikasi: $submissionCount',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFFD0D9E1), fontSize: 11),
+              style: const TextStyle(color: Color(0xFFD0D9E1), fontSize: 13),
             ),
           ],
         ),
@@ -661,7 +686,7 @@ class _FormLabel extends StatelessWidget {
         label,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -700,7 +725,7 @@ class _TextInput extends StatelessWidget {
 InputDecoration _inputDecoration(String hint) {
   return InputDecoration(
     hintText: hint,
-    hintStyle: const TextStyle(color: Color(0xFF8995A4), fontSize: 12),
+    hintStyle: const TextStyle(color: Color(0xFF8995A4), fontSize: 13),
     filled: true,
     fillColor: Colors.white,
     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
@@ -708,7 +733,7 @@ InputDecoration _inputDecoration(String hint) {
       borderRadius: BorderRadius.circular(8),
       borderSide: BorderSide.none,
     ),
-    errorStyle: const TextStyle(color: Color(0xFFFFB7B7), fontSize: 11),
+    errorStyle: const TextStyle(color: Color(0xFFFFB7B7), fontSize: 13),
   );
 }
 

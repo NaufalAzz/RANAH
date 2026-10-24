@@ -3,56 +3,76 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 class BrandHeader extends StatelessWidget {
-  const BrandHeader({super.key, this.onOpenNotifications});
+  const BrandHeader({
+    super.key,
+    this.onOpenNotifications,
+    this.logo,
+    this.notificationCount,
+  });
 
   final VoidCallback? onOpenNotifications;
+  final Widget? logo;
+
+  /// Null keeps the current small indicator; a value enables a count badge.
+  final int? notificationCount;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 16, 12, 16),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF10052E), AppColors.primaryDark],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSizes.brandHeaderVerticalPadding,
+        AppSpacing.xs,
+        AppSizes.brandHeaderVerticalPadding,
       ),
+      decoration: const BoxDecoration(gradient: AppGradients.brandHeader),
       child: Row(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFF0A2C4A),
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: const Icon(
-              Icons.home_work_rounded,
-              color: Colors.white,
-              size: 27,
+          Semantics(
+            image: true,
+            label: logo == null ? 'Ikon sementara RANAH' : 'Logo RANAH',
+            child: Container(
+              width: AppSizes.brandMark,
+              height: AppSizes.brandMark,
+              decoration: BoxDecoration(
+                color: AppColors.brandTile,
+                borderRadius: BorderRadius.circular(AppRadii.card),
+              ),
+              alignment: Alignment.center,
+              child:
+                  logo ??
+                  const Icon(
+                    Icons.home_work_rounded,
+                    color: AppColors.onDark,
+                    size: AppSizes.brandIcon,
+                  ),
             ),
           ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'RANAH',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.6,
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Container(
+              constraints: const BoxConstraints(minHeight: AppSizes.brandMark),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.xxs,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.brandLabelPanel,
+                borderRadius: BorderRadius.circular(AppRadii.control),
+              ),
+              alignment: Alignment.centerLeft,
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('RANAH', style: AppTypography.brandTitle),
+                  SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    'Aplikasi Siaga Bencana Erupsi',
+                    style: AppTypography.bannerSubtitle,
                   ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Aplikasi Siaga Bencana Erupsi',
-                  style: TextStyle(color: Color(0xFFD9D3F0), fontSize: 10),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           IconButton(
@@ -65,27 +85,62 @@ class BrandHeader extends StatelessWidget {
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
-                const Icon(Icons.notifications_none_rounded, size: 27),
-                Positioned(
-                  right: -1,
-                  top: -1,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF3B43),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+                const Icon(
+                  Icons.notifications_none_rounded,
+                  size: AppSizes.iconMedium,
                 ),
+                if (notificationCount == null || notificationCount! > 0)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: _NotificationBadge(count: notificationCount),
+                  ),
               ],
             ),
-            color: Colors.white,
-            constraints: const BoxConstraints.tightFor(width: 48, height: 48),
+            color: AppColors.onDark,
+            constraints: const BoxConstraints.tightFor(
+              width: AppSizes.minimumTapTarget,
+              height: AppSizes.minimumTapTarget,
+            ),
             padding: EdgeInsets.zero,
           ),
         ],
       ),
+    );
+  }
+}
+
+class _NotificationBadge extends StatelessWidget {
+  const _NotificationBadge({required this.count});
+
+  final int? count;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = count;
+    if (value == null) {
+      return const SizedBox(
+        width: 8,
+        height: 8,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.danger,
+            shape: BoxShape.circle,
+          ),
+        ),
+      );
+    }
+
+    final label = value > 99 ? '99+' : '$value';
+    return Container(
+      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: AppColors.danger,
+        borderRadius: BorderRadius.circular(AppRadii.pill),
+      ),
+      alignment: Alignment.center,
+      child: Text(label, style: AppTypography.badge),
     );
   }
 }

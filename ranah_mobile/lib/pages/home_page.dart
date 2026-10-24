@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../data/sample_news.dart';
 import '../models/news_item.dart';
+import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
+import '../widgets/app_card_surface.dart';
 import '../widgets/news_artwork.dart';
 import '../widgets/news_feed_notice.dart';
 
@@ -59,7 +61,12 @@ class _HomePageState extends State<HomePage> {
           ),
           Positioned.fill(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(10, 20, 10, 24),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xs,
+                AppSpacing.lg,
+                AppSpacing.xs,
+                AppSpacing.xl,
+              ),
               children: [
                 NewsFeedNotice(
                   isUsingFallback: widget.isUsingFallback,
@@ -82,19 +89,18 @@ class _HomePageState extends State<HomePage> {
                     onIndexChanged: (index) =>
                         setState(() => _featuredIndex = index),
                   ),
-                const SizedBox(height: 22),
+                const SizedBox(height: AppSpacing.xl),
                 Text(
                   widget.isFromCache ? 'Berita Tersimpan' : 'Berita Terbaru',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  style: AppTypography.sectionTitle.copyWith(
                     color: Colors.white,
-                    fontSize: 17,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: AppSpacing.xs),
                 for (final item in latest) ...[
                   _LatestNewsCard(item: item, onTap: widget.onOpenNews),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.md),
                 ],
                 const SizedBox(height: 4),
                 const _SafetyNote(),
@@ -121,8 +127,8 @@ class _HomeBackgroundRing extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.035),
-            width: 28,
+            color: AppBackground.ringColor,
+            width: AppBackground.ringWidth,
           ),
         ),
       ),
@@ -238,15 +244,22 @@ class _SafetyNote extends StatelessWidget {
         borderRadius: BorderRadius.circular(11),
         border: Border.all(color: const Color(0xFF1D5778)),
       ),
-      child: const Row(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline_rounded, color: Color(0xFF70D2D7), size: 22),
-          SizedBox(width: 10),
+          const Icon(
+            Icons.info_outline_rounded,
+            color: Color(0xFF70D2D7),
+            size: 22,
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               'RANAH membantu menyajikan informasi. Ikuti arahan resmi petugas kebencanaan.',
-              style: TextStyle(color: Colors.white, fontSize: 12, height: 1.4),
+              style: AppTypography.bodyCompact.copyWith(
+                color: Colors.white,
+                height: 1.4,
+              ),
             ),
           ),
         ],
@@ -276,99 +289,92 @@ class _FeaturedNewsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            NewsArtwork(item: item, featured: true),
-            Positioned(
-              left: 12,
-              top: 11,
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE83D35),
-                  borderRadius: BorderRadius.all(Radius.circular(20)),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 5,
-                  ),
-                  child: Text(
-                    leadLabel,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                    ),
+    return AppCardSurface(
+      variant: AppCardVariant.news,
+      onTap: onTap,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          NewsArtwork(item: item, featured: true),
+          Positioned(
+            left: 12,
+            top: 11,
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                color: Color(0xFFE83D35),
+                borderRadius: BorderRadius.all(Radius.circular(20)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                child: Text(
+                  leadLabel,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
             ),
-            Positioned(
-              left: 28,
-              right: 28,
-              bottom: 13,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    item.category.toUpperCase(),
-                    style: TextStyle(
-                      color: item.accent,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                    ),
+          ),
+          Positioned(
+            left: 28,
+            right: 28,
+            bottom: 13,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  item.category.toUpperCase(),
+                  style: TextStyle(
+                    color: item.accent,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      height: 1.12,
-                      fontWeight: FontWeight.w800,
-                    ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  item.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    height: 1.12,
+                    fontWeight: FontWeight.w800,
                   ),
-                ],
-              ),
-            ),
-            Positioned(
-              left: 8,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: IconButton(
-                  onPressed: canGoPrevious ? onPrevious : null,
-                  tooltip: 'Berita utama sebelumnya',
-                  style: _carouselArrowStyle(),
-                  icon: const Icon(Icons.chevron_left_rounded, size: 23),
                 ),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 8,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: IconButton(
+                onPressed: canGoPrevious ? onPrevious : null,
+                tooltip: 'Berita utama sebelumnya',
+                style: _carouselArrowStyle(),
+                icon: const Icon(Icons.chevron_left_rounded, size: 23),
               ),
             ),
-            Positioned(
-              right: 8,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: IconButton(
-                  onPressed: canGoNext ? onNext : null,
-                  tooltip: 'Berita utama berikutnya',
-                  style: _carouselArrowStyle(),
-                  icon: const Icon(Icons.chevron_right_rounded, size: 23),
-                ),
+          ),
+          Positioned(
+            right: 8,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: IconButton(
+                onPressed: canGoNext ? onNext : null,
+                tooltip: 'Berita utama berikutnya',
+                style: _carouselArrowStyle(),
+                icon: const Icon(Icons.chevron_right_rounded, size: 23),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -378,7 +384,10 @@ class _FeaturedNewsCard extends StatelessWidget {
     backgroundColor: const Color(0x665B5872),
     disabledForegroundColor: Colors.white.withValues(alpha: 0.5),
     disabledBackgroundColor: const Color(0x443C3A4A),
-    minimumSize: const Size(48, 48),
+    minimumSize: const Size(
+      AppSizes.minimumTapTarget,
+      AppSizes.minimumTapTarget,
+    ),
     shape: const CircleBorder(),
   );
 }
@@ -391,42 +400,35 @@ class _LatestNewsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(11),
-        onTap: () => onTap(item),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              SizedBox(width: 84, child: NewsArtwork(item: item)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _CategoryLabel(label: item.category, color: item.accent),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.title,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      item.publishedAt,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
+    return AppCardSurface(
+      variant: AppCardVariant.news,
+      onTap: () => onTap(item),
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      child: Row(
+        children: [
+          SizedBox(width: 84, child: NewsArtwork(item: item)),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _CategoryLabel(label: item.category, color: item.accent),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  item.title,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
-              ),
-            ],
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  item.publishedAt,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -444,7 +446,7 @@ class _CategoryLabel extends StatelessWidget {
       label.toUpperCase(),
       style: TextStyle(
         color: color,
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: FontWeight.w800,
         letterSpacing: 0.35,
       ),

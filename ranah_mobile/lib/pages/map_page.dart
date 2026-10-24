@@ -1,11 +1,14 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
+import '../widgets/app_card_surface.dart';
+import '../widgets/app_page_banner.dart';
 
 class MapPage extends StatelessWidget {
-  const MapPage({super.key});
+  const MapPage({this.onOpenActivity, super.key});
+
+  final VoidCallback? onOpenActivity;
 
   @override
   Widget build(BuildContext context) {
@@ -21,14 +24,16 @@ class MapPage extends StatelessWidget {
           Positioned.fill(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
-              children: const [
+              children: [
                 _MapTitlePanel(),
                 SizedBox(height: 14),
                 _IllustrativeMap(),
+                SizedBox(height: 12),
+                _MapLevelLegend(),
                 SizedBox(height: 14),
                 _LocationAction(),
                 SizedBox(height: 10),
-                _ActivityReportHeading(),
+                _ActivityReportHeading(onTap: onOpenActivity),
                 SizedBox(height: 10),
                 _LocationSummary(),
                 SizedBox(height: 12),
@@ -62,8 +67,8 @@ class _BackgroundRing extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.035),
-            width: 26,
+            color: AppBackground.ringColor,
+            width: AppBackground.ringWidth,
           ),
         ),
       ),
@@ -76,51 +81,33 @@ class _MapTitlePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(22, 20, 18, 20),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF29107C), Color(0xFF18064A)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
+    return const AppPageBanner(
+      icon: Icons.landscape_outlined,
+      eyebrow: 'PETA DAN KESIAPSIAGAAN',
+      title: 'Peta dan Zona Bencana',
+      subtitle: 'Zona bahaya dan titik evakuasi',
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.landscape_outlined, color: Colors.white, size: 42),
-          const SizedBox(width: 18),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'PETA DAN KESIAPSIAGAAN',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: const Color(0xFF8BC8FF),
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  'Peta dan Zona Bencana',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 21,
-                    height: 1.1,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  'Zona bahaya dan titik evakuasi',
-                  style: TextStyle(color: Color(0xFFD0C9E7), fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-        ],
+      iconSize: 42,
+      iconGap: AppSpacing.md,
+      gradient: AppGradients.sectionBanner,
+      eyebrowStyle: TextStyle(
+        color: AppColors.bannerEyebrow,
+        fontSize: 13,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1.1,
       ),
+      titleStyle: TextStyle(
+        color: AppColors.onDark,
+        fontSize: 21,
+        height: 1.1,
+        fontWeight: FontWeight.w800,
+      ),
+      subtitleStyle: TextStyle(color: AppColors.mutedOnDark, fontSize: 13),
     );
   }
 }
@@ -132,110 +119,37 @@ class _IllustrativeMap extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: AspectRatio(
-        aspectRatio: 1.78,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              const CustomPaint(painter: _MapSketchPainter()),
-              const Align(
-                alignment: Alignment(-0.38, -0.18),
-                child: _MapPin(
-                  icon: Icons.landscape_rounded,
-                  color: Color(0xFFDF5538),
-                ),
-              ),
-              const Align(
-                alignment: Alignment(0.42, 0.48),
-                child: _MapPin(
-                  icon: Icons.shield_rounded,
-                  color: Color(0xFF128A78),
-                ),
-              ),
-              const Align(
-                alignment: Alignment(-0.7, 0.38),
-                child: _MapPin(
-                  icon: Icons.place_rounded,
-                  color: Color(0xFFDF3D39),
-                ),
-              ),
-              Positioned(
-                top: 9,
-                left: 9,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: const Color(0xE6191232),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                    child: Text(
-                      'ILUSTRASI - BUKAN PETA AKTUAL',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+      child: AppCardSurface(
+        variant: AppCardVariant.information,
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: AspectRatio(
+          aspectRatio: 1.78,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.map_outlined, color: Colors.white70, size: 42),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'Peta geografis belum tersedia',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.sectionTitle.copyWith(
+                    color: Colors.white,
                   ),
                 ),
-              ),
-              Positioned(
-                top: 9,
-                right: 9,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: const Color(0xE6191232),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                    child: Text(
-                      'TITIK AMAN - CONTOH',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Sumber peta resmi belum terhubung. Zona, jalur, dan titik aman tidak ditampilkan tanpa data terverifikasi.',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.bodyCompact.copyWith(
+                    color: AppColors.mutedOnDark,
                   ),
                 ),
-              ),
-              const Positioned(left: 8, bottom: 8, child: _MapLevelLegend()),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    );
-  }
-}
-
-class _MapPin extends StatelessWidget {
-  const _MapPin({required this.icon, required this.color});
-
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 31,
-      height: 31,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x55000000),
-            blurRadius: 5,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Icon(icon, color: Colors.white, size: 17),
     );
   }
 }
@@ -243,48 +157,60 @@ class _MapPin extends StatelessWidget {
 class _MapLevelLegend extends StatelessWidget {
   const _MapLevelLegend();
 
-  static const levels = <({String name, Color color})>[
-    (name: 'Level I - Normal', color: Color(0xFF38A65B)),
-    (name: 'Level II - Waspada', color: Color(0xFFF4D22F)),
-    (name: 'Level III - Siaga', color: Color(0xFFF07831)),
-    (name: 'Level IV - Awas', color: Color(0xFFE33C39)),
+  static const levels = <({String label, Color color})>[
+    (label: 'Level I · Normal', color: AppColors.normal),
+    (label: 'Level II · Waspada', color: AppColors.warning),
+    (label: 'Level III · Siaga', color: AppColors.watch),
+    (label: 'Level IV · Awas', color: AppColors.danger),
   ];
 
   @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xD9001324),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) => AppCardSurface(
+    variant: AppCardVariant.information,
+    padding: const EdgeInsets.all(AppSpacing.md),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Arti Level Aktivitas',
+          style: AppTypography.bodyLarge.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.xs,
           children: [
-            for (final item in levels)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 1.5),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.circle, color: item.color, size: 9),
-                    const SizedBox(width: 5),
-                    Text(
-                      item.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 8.5,
-                      ),
+            for (final level in levels)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.circle,
+                    size: AppSizes.iconSmall,
+                    color: level.color,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Text(
+                    level.label,
+                    style: AppTypography.bodyCompact.copyWith(
+                      color: Colors.white,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
           ],
         ),
-      ),
-    );
-  }
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Legenda ini menjelaskan kategori level, bukan status gunung tertentu.',
+          style: AppTypography.caption.copyWith(color: AppColors.mutedOnDark),
+        ),
+      ],
+    ),
+  );
 }
 
 class _LocationAction extends StatelessWidget {
@@ -328,7 +254,7 @@ class _LocationAction extends StatelessWidget {
                         'Gunakan lokasi untuk melihat informasi evakuasi di sekitar.',
                         style: TextStyle(
                           color: Color(0xFFD0C9E7),
-                          fontSize: 11,
+                          fontSize: 13,
                           height: 1.25,
                         ),
                       ),
@@ -362,32 +288,36 @@ class _LocationSummary extends StatelessWidget {
 }
 
 class _ActivityReportHeading extends StatelessWidget {
-  const _ActivityReportHeading();
+  const _ActivityReportHeading({this.onTap});
+
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
-      child: Container(
-        height: 48,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: const Color(0xFF201064),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(13),
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(13),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x44000000),
-              blurRadius: 5,
-              offset: Offset(0, 3),
+          child: Ink(
+            height: AppSizes.minimumTapTarget,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(AppRadii.control),
             ),
-          ],
-        ),
-        child: const Text(
-          'Laporan Aktivitas Gunung',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
+            child: const Center(
+              child: Text(
+                'Laporan Aktivitas Gunung',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -467,14 +397,9 @@ class _InfoPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF123D5B),
-        border: Border.all(color: const Color(0xFF1D5778)),
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return AppCardSurface(
+      variant: AppCardVariant.information,
+      padding: const EdgeInsets.all(AppSpacing.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -505,7 +430,7 @@ class _InfoPanel extends StatelessWidget {
                   detail,
                   style: const TextStyle(
                     color: Color(0xFFB9D2E1),
-                    fontSize: 11,
+                    fontSize: 13,
                     height: 1.3,
                   ),
                 ),
@@ -533,200 +458,4 @@ class _MapSourceNote extends StatelessWidget {
       ),
     );
   }
-}
-
-class _MapSketchPainter extends CustomPainter {
-  const _MapSketchPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = const Color(0xFF526D4D),
-    );
-    _drawTerrain(canvas, size);
-    _drawCoastAndWater(canvas, size);
-    _drawRoads(canvas, size);
-    _drawDangerZones(canvas, size);
-    _drawRoute(canvas, size);
-  }
-
-  void _drawTerrain(Canvas canvas, Size size) {
-    final colors = [
-      const Color(0xFF687C50),
-      const Color(0xFF7F8153),
-      const Color(0xFF4E7056),
-    ];
-    for (var row = 0; row < 5; row++) {
-      for (var column = 0; column < 8; column++) {
-        final rect = Rect.fromLTWH(
-          column * size.width / 8,
-          row * size.height / 5,
-          size.width / 8 + 1,
-          size.height / 5 + 1,
-        );
-        final paint = Paint()
-          ..color = colors[(row * 3 + column * 5) % colors.length].withValues(
-            alpha: 0.2,
-          );
-        canvas.drawRect(rect, paint);
-      }
-    }
-    final hillsPaint = Paint()
-      ..color = const Color(0xFF9BA26A).withValues(alpha: 0.24);
-    for (var i = 0; i < 7; i++) {
-      canvas.drawCircle(
-        Offset(
-          size.width * (0.08 + i * 0.145),
-          size.height * (0.22 + (i % 3) * 0.28),
-        ),
-        size.height * 0.12,
-        hillsPaint,
-      );
-    }
-  }
-
-  void _drawCoastAndWater(Canvas canvas, Size size) {
-    final coastline = Path()
-      ..moveTo(size.width * 0.77, 0)
-      ..cubicTo(
-        size.width * 0.7,
-        size.height * 0.23,
-        size.width * 0.88,
-        size.height * 0.35,
-        size.width * 0.78,
-        size.height * 0.57,
-      )
-      ..cubicTo(
-        size.width * 0.68,
-        size.height * 0.77,
-        size.width * 0.88,
-        size.height * 0.82,
-        size.width * 0.75,
-        size.height,
-      );
-    final water = Path.from(coastline)
-      ..lineTo(size.width, size.height)
-      ..lineTo(size.width, 0)
-      ..close();
-    canvas.drawPath(
-      water,
-      Paint()..color = const Color(0xFF126080).withValues(alpha: 0.88),
-    );
-    final shore = Paint()
-      ..color = const Color(0xFFBAC89A)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawPath(coastline, shore);
-  }
-
-  void _drawRoads(Canvas canvas, Size size) {
-    final paths = <Path>[
-      Path()
-        ..moveTo(0, size.height * 0.67)
-        ..cubicTo(
-          size.width * 0.2,
-          size.height * 0.5,
-          size.width * 0.45,
-          size.height * 0.8,
-          size.width * 0.75,
-          size.height * 0.39,
-        ),
-      Path()
-        ..moveTo(size.width * 0.12, 0)
-        ..cubicTo(
-          size.width * 0.28,
-          size.height * 0.28,
-          size.width * 0.38,
-          size.height * 0.6,
-          size.width * 0.61,
-          size.height,
-        ),
-      Path()
-        ..moveTo(0, size.height * 0.22)
-        ..cubicTo(
-          size.width * 0.3,
-          size.height * 0.34,
-          size.width * 0.52,
-          size.height * 0.08,
-          size.width * 0.77,
-          size.height * 0.25,
-        ),
-    ];
-    final edge = Paint()
-      ..color = const Color(0xFF725F47)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 5
-      ..strokeCap = StrokeCap.round;
-    final road = Paint()
-      ..color = const Color(0xFFE7D9AF)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4
-      ..strokeCap = StrokeCap.round;
-    for (final path in paths) {
-      canvas.drawPath(path, edge);
-      canvas.drawPath(path, road);
-    }
-  }
-
-  void _drawDangerZones(Canvas canvas, Size size) {
-    final center = Offset(size.width * 0.39, size.height * 0.4);
-    final radius = math.min(size.height * 0.43, size.width * 0.28).toDouble();
-    canvas.drawCircle(center, radius, Paint()..color = const Color(0x44F9C51C));
-    canvas.drawCircle(
-      center,
-      radius * 0.62,
-      Paint()..color = const Color(0x55F06C35),
-    );
-    canvas.drawCircle(
-      center,
-      radius * 0.28,
-      Paint()..color = const Color(0x66D93832),
-    );
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..color = const Color(0x99F2C42A)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.3,
-    );
-  }
-
-  void _drawRoute(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(size.width * 0.14, size.height * 0.73)
-      ..cubicTo(
-        size.width * 0.3,
-        size.height * 0.68,
-        size.width * 0.35,
-        size.height * 0.54,
-        size.width * 0.45,
-        size.height * 0.56,
-      )
-      ..cubicTo(
-        size.width * 0.56,
-        size.height * 0.59,
-        size.width * 0.55,
-        size.height * 0.75,
-        size.width * 0.72,
-        size.height * 0.62,
-      );
-    final paint = Paint()
-      ..color = const Color(0xFF21D2C1)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final end = math.min(distance + 6, metric.length).toDouble();
-        canvas.drawPath(metric.extractPath(distance, end), paint);
-        distance += 10;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _MapSketchPainter oldDelegate) => false;
 }

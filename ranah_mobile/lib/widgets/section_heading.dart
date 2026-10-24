@@ -18,14 +18,19 @@ class SectionHeading extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Text(title, style: Theme.of(context).textTheme.titleLarge)),
+        Expanded(
+          child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+        ),
         if (actionLabel != null)
           TextButton(
             onPressed: onAction,
             style: TextButton.styleFrom(
               foregroundColor: AppColors.primary,
-              minimumSize: const Size(48, 48),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(
+                AppSizes.minimumTapTarget,
+                AppSizes.minimumTapTarget,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
             ),
             child: Text(actionLabel!),
           ),

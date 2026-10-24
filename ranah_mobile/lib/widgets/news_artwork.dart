@@ -15,7 +15,9 @@ class NewsArtwork extends StatelessWidget {
       height: featured ? 188 : 86,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(featured ? 11 : 6),
+        borderRadius: BorderRadius.circular(
+          featured ? AppRadii.image : AppRadii.control,
+        ),
         gradient: LinearGradient(
           colors: [item.accent.withValues(alpha: 0.95), AppColors.primaryDark],
           begin: Alignment.topLeft,
@@ -31,7 +33,7 @@ class NewsArtwork extends StatelessWidget {
               imageUrl,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) =>
-                  const SizedBox.shrink(),
+                  const _ArtworkFallbackLabel(),
             ),
           if (item.imageUrl != null)
             const DecoratedBox(
@@ -47,6 +49,8 @@ class NewsArtwork extends StatelessWidget {
                 ),
               ),
             ),
+          if (item.imageUrl == null)
+            const Positioned(top: 8, left: 8, child: _ArtworkFallbackLabel()),
           Positioned(
             right: featured ? 8 : -9,
             bottom: featured ? -34 : -18,
@@ -69,6 +73,25 @@ class NewsArtwork extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ArtworkFallbackLabel extends StatelessWidget {
+  const _ArtworkFallbackLabel();
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: const Color(0xCC101A2C),
+      borderRadius: BorderRadius.circular(AppRadii.pill),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Text(
+        'ILUSTRASI',
+        style: AppTypography.badge.copyWith(fontSize: 10),
+      ),
+    ),
+  );
 }
 
 class _NewsScenePainter extends CustomPainter {

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../services/gunung_repository.dart';
+import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
+import '../widgets/app_page_banner.dart';
 import '../widgets/gunung_freshness_notice.dart';
 
 class GunungReportPage extends StatefulWidget {
@@ -249,7 +251,7 @@ class _GunungReportPageState extends State<GunungReportPage> {
             'RANAH bukan pengganti arahan PVMBG dan BPBD.',
             style: TextStyle(
               color: Color(0xFFE2EDF5),
-              fontSize: 12,
+              fontSize: 13,
               height: 1.45,
             ),
           ),
@@ -294,49 +296,26 @@ class _ReportHeading extends StatelessWidget {
   const _ReportHeading();
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [Color(0xE8200B59), Color(0xE5101736)],
-      ),
-      borderRadius: BorderRadius.circular(9),
+  Widget build(BuildContext context) => const AppPageBanner(
+    icon: Icons.landscape_outlined,
+    eyebrow: 'INFORMASI RANAH',
+    title: 'Aktivitas Gunung Api',
+    subtitle: 'Laporan dan informasi yang tersedia',
+    minHeight: 0,
+    padding: EdgeInsets.symmetric(
+      horizontal: AppSpacing.md,
+      vertical: AppSpacing.sm,
     ),
-    child: const Row(
-      children: [
-        Icon(Icons.landscape_outlined, color: Colors.white, size: 38),
-        SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'INFORMASI RANAH',
-                style: TextStyle(
-                  color: Color(0xFF8BC8FF),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: .8,
-                ),
-              ),
-              SizedBox(height: 3),
-              Text(
-                'Aktivitas Gunung Api',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                'Laporan dan informasi yang tersedia',
-                style: TextStyle(color: Color(0xFFD0C9E7), fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-      ],
+    iconSize: 38,
+    iconGap: AppSpacing.sm,
+    eyebrowStyle: TextStyle(
+      color: AppColors.bannerEyebrow,
+      fontSize: 13,
+      fontWeight: FontWeight.w800,
+      letterSpacing: 0.8,
     ),
+    gradient: LinearGradient(colors: [Color(0xE8200B59), Color(0xE5101736)]),
+    borderRadius: BorderRadius.all(Radius.circular(AppRadii.compact)),
   );
 }
 
@@ -345,100 +324,47 @@ class _ReportMapPlaceholder extends StatelessWidget {
     required this.nama,
     required this.hasCoordinates,
   });
+
   final String nama;
   final bool hasCoordinates;
 
   @override
   Widget build(BuildContext context) => Container(
     height: 154,
-    clipBehavior: Clip.antiAlias,
+    padding: const EdgeInsets.all(AppSpacing.md),
     decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(9),
-      border: Border.all(color: Colors.white.withValues(alpha: .26)),
-      gradient: const LinearGradient(
-        colors: [Color(0xFF21465B), Color(0xFF17384C)],
-      ),
+      color: AppColors.darkPanel,
+      borderRadius: BorderRadius.circular(AppRadii.card),
+      border: Border.all(color: AppColors.darkPanelBorder),
     ),
-    child: Stack(
-      children: [
-        const Positioned.fill(
-          child: CustomPaint(painter: _TerrainPlaceholderPainter()),
-        ),
-        Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.location_on_rounded,
-                color: Color(0xFFFFC46B),
-                size: 34,
-              ),
-              Text(
-                nama,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                hasCoordinates
-                    ? 'Koordinat tersedia; peta belum terhubung'
-                    : 'Peta lokasi belum tersedia',
-                style: const TextStyle(color: Color(0xFFE0E9EF), fontSize: 11),
-              ),
-            ],
+    child: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.map_outlined,
+            color: AppColors.mutedOnDark,
+            size: 32,
           ),
-        ),
-        const Positioned(
-          left: 8,
-          top: 8,
-          child: _MapLabel(text: 'ILUSTRASI - BUKAN PETA AKTUAL'),
-        ),
-      ],
-    ),
-  );
-}
-
-class _TerrainPlaceholderPainter extends CustomPainter {
-  const _TerrainPlaceholderPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF76A18C).withValues(alpha: .18);
-    for (var index = 0; index < 5; index++) {
-      canvas.drawCircle(
-        Offset(size.width * index / 4, size.height * .9),
-        size.height * .43,
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _MapLabel extends StatelessWidget {
-  const _MapLabel({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(
-      color: const Color(0xD9161725),
-      borderRadius: BorderRadius.circular(5),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 9,
-          fontWeight: FontWeight.w800,
-        ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            nama,
+            style: AppTypography.bodyLarge.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            hasCoordinates
+                ? 'Koordinat tersedia, tetapi peta belum terhubung.'
+                : 'Koordinat dan peta lokasi belum tersedia.',
+            textAlign: TextAlign.center,
+            style: AppTypography.bodyCompact.copyWith(
+              color: AppColors.mutedOnDark,
+            ),
+          ),
+        ],
       ),
     ),
   );
@@ -461,7 +387,7 @@ class _StatusBadge extends StatelessWidget {
         status,
         style: const TextStyle(
           color: Color(0xFF382500),
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -494,7 +420,7 @@ class _ReportCard extends StatelessWidget {
           'Laporan Gunung Api',
           style: TextStyle(
             color: Color(0xFF9ED7FF),
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -551,7 +477,7 @@ class _PhotoUnavailable extends StatelessWidget {
               hasPath
                   ? 'Foto belum dapat ditampilkan'
                   : 'Foto laporan belum tersedia',
-              style: const TextStyle(color: Colors.white, fontSize: 11),
+              style: const TextStyle(color: Colors.white, fontSize: 13),
             ),
           ],
         ),
@@ -604,7 +530,7 @@ class _InfoSection extends StatelessWidget {
               row.$1,
               style: const TextStyle(
                 color: Color(0xFFD1E5F1),
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -612,7 +538,7 @@ class _InfoSection extends StatelessWidget {
             row.$2,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 12,
+              fontSize: 13,
               height: 1.35,
             ),
           ),
@@ -661,7 +587,7 @@ class _EstimatedZone extends StatelessWidget {
                       : 'Data radius perkiraan belum tersedia. Batas KRB resmi tidak ditampilkan.',
                   style: const TextStyle(
                     color: Color(0xFFE6EDF2),
-                    fontSize: 12,
+                    fontSize: 13,
                     height: 1.35,
                   ),
                 ),

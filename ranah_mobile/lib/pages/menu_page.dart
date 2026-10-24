@@ -5,6 +5,7 @@ import '../pages/mitigation_page.dart';
 import '../pages/volcanic_activity_page.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
+import '../widgets/app_card_surface.dart';
 
 enum _MenuSection { home, mitigation, contacts, volcanicActivity }
 
@@ -24,7 +25,7 @@ class _MenuPageState extends State<MenuPage> {
 
   @override
   Widget build(BuildContext context) {
-    return switch (_section) {
+    final page = switch (_section) {
       _MenuSection.home => _MenuHub(onOpen: _openSection),
       _MenuSection.mitigation => MitigationPage(
         onBackToHome: () => _openSection(_MenuSection.home),
@@ -36,6 +37,23 @@ class _MenuPageState extends State<MenuPage> {
         onBack: () => _openSection(_MenuSection.home),
       ),
     };
+
+    return AnimatedSwitcher(
+      duration: MediaQuery.of(context).disableAnimations
+          ? Duration.zero
+          : const Duration(milliseconds: 240),
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0.025, 0),
+            end: Offset.zero,
+          ).animate(animation),
+          child: child,
+        ),
+      ),
+      child: KeyedSubtree(key: ValueKey(_section), child: page),
+    );
   }
 }
 
@@ -51,18 +69,16 @@ class _MenuHub extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(18, 20, 18, 24),
         children: [
-          const Text(
+          Text(
             'Layanan RANAH',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 21,
-              fontWeight: FontWeight.w800,
-            ),
+            style: AppTypography.pageTitle.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 5),
-          const Text(
+          Text(
             'Pilih panduan atau layanan yang Anda perlukan.',
-            style: TextStyle(color: Color(0xFFD0D9E1), fontSize: 13),
+            style: AppTypography.bodyCompact.copyWith(
+              color: AppColors.mutedOnDark,
+            ),
           ),
           const SizedBox(height: 18),
           _MenuHubCard(
@@ -107,54 +123,45 @@ class _MenuHubCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEAE6F7),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Icon(icon, color: AppColors.primary, size: 25),
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: AppColors.ink,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 12,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
-            ],
+    return AppCardSurface(
+      variant: AppCardVariant.menu,
+      onTap: onTap,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Row(
+        children: [
+          Container(
+            width: AppSizes.minimumTapTarget,
+            height: AppSizes.minimumTapTarget,
+            decoration: BoxDecoration(
+              color: AppColors.primarySoft,
+              borderRadius: BorderRadius.circular(AppRadii.control),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 25),
           ),
-        ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTypography.bodyLarge.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  description,
+                  style: AppTypography.bodyCompact.copyWith(
+                    color: AppColors.muted,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+        ],
       ),
     );
   }

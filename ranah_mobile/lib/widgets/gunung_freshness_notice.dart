@@ -48,7 +48,7 @@ class GunungFreshnessNotice extends StatelessWidget {
               '$source\n$checkedAt. Waktu ini adalah waktu pemeriksaan/simpan di perangkat, bukan waktu publikasi sumber.',
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 12,
+                fontSize: 13,
                 height: 1.35,
               ),
             ),

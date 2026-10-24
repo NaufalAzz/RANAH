@@ -10,7 +10,9 @@ import '../pages/news_page.dart';
 import '../pages/notifications_page.dart';
 import '../pages/volcanic_activity_page.dart';
 import '../services/news_repository.dart';
+import '../theme/app_theme.dart';
 import '../widgets/brand_header.dart';
+import '../widgets/ranah_page_route.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({this.newsRepository, super.key});
@@ -112,7 +114,8 @@ class _MainShellState extends State<MainShell> {
         setState(() => _showingNotifications = false);
 
         Navigator.of(context).push(
-          MaterialPageRoute<void>(
+          RanahPageRoute<void>(
+            context: context,
             builder: (_) =>
                 VolcanicActivityPage(onBack: () => Navigator.of(context).pop()),
           ),
@@ -129,6 +132,19 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final animationsDisabled = MediaQuery.of(context).disableAnimations;
+    final transitionDuration = animationsDisabled
+        ? Duration.zero
+        : const Duration(milliseconds: 240);
+    final scaledNavigationLabelSize = MediaQuery.textScalerOf(context)
+        .scale(AppTypography.label.fontSize!);
+    final bottomNavigationHeight =
+        scaledNavigationLabelSize + AppSizes.bottomNavigationLabelClearance;
+    final responsiveNavigationHeight =
+        bottomNavigationHeight < AppSizes.bottomNavigationHeight
+        ? AppSizes.bottomNavigationHeight
+        : bottomNavigationHeight;
+
     final pages = <Widget>[
       HomePage(
         onOpenNews: _openNews,
@@ -139,7 +155,15 @@ class _MainShellState extends State<MainShell> {
         cacheWriteFailed: _newsCacheWriteFailed,
         lastSyncedAt: _newsLastSyncedAt,
       ),
-      const MapPage(),
+      MapPage(
+        onOpenActivity: () => Navigator.of(context).push(
+          RanahPageRoute<void>(
+            context: context,
+            builder: (_) =>
+                VolcanicActivityPage(onBack: () => Navigator.of(context).pop()),
+          ),
+        ),
+      ),
       NewsPage(
         initialNewsId: _notificationNewsId,
         selectionRevision: _notificationSelectionRevision,
@@ -164,9 +188,10 @@ class _MainShellState extends State<MainShell> {
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final contentWidth = constraints.maxWidth < 560
+              final contentWidth =
+                  constraints.maxWidth < AppSizes.maxContentWidth
                   ? constraints.maxWidth
-                  : 560.0;
+                  : AppSizes.maxContentWidth;
 
               return Center(
                 child: SizedBox(
@@ -179,17 +204,53 @@ class _MainShellState extends State<MainShell> {
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            IndexedStack(
-                              index: _selectedIndex,
-                              children: pages,
-                            ),
-                            if (_showingNotifications)
+                            for (var index = 0; index < pages.length; index++)
                               Positioned.fill(
-                                child: NotificationsPage(
-                                  onNotificationTap:
-                                      _openNotificationDestination,
+                                key: ValueKey('main-tab-$index'),
+                                child: IgnorePointer(
+                                  ignoring: index != _selectedIndex,
+                                  child: ExcludeSemantics(
+                                    excluding: index != _selectedIndex,
+                                    child: AnimatedOpacity(
+                                      opacity: index == _selectedIndex ? 1 : 0,
+                                      duration: transitionDuration,
+                                      curve: Curves.easeOutCubic,
+                                      child: AnimatedSlide(
+                                        offset: index == _selectedIndex
+                                            ? Offset.zero
+                                            : const Offset(0.025, 0),
+                                        duration: transitionDuration,
+                                        curve: Curves.easeOutCubic,
+                                        child: pages[index],
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                ignoring: !_showingNotifications,
+                                child: ExcludeSemantics(
+                                  excluding: !_showingNotifications,
+                                  child: AnimatedOpacity(
+                                    opacity: _showingNotifications ? 1 : 0,
+                                    duration: transitionDuration,
+                                    curve: Curves.easeOutCubic,
+                                    child: AnimatedSlide(
+                                      offset: _showingNotifications
+                                          ? Offset.zero
+                                          : const Offset(0, -0.025),
+                                      duration: transitionDuration,
+                                      curve: Curves.easeOutCubic,
+                                      child: NotificationsPage(
+                                        onNotificationTap:
+                                            _openNotificationDestination,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -201,17 +262,19 @@ class _MainShellState extends State<MainShell> {
           ),
         ),
         bottomNavigationBar: SizedBox(
-          height: 68,
+          height: responsiveNavigationHeight,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final contentWidth = constraints.maxWidth < 560
+              final contentWidth =
+                  constraints.maxWidth < AppSizes.maxContentWidth
                   ? constraints.maxWidth
-                  : 560.0;
+                  : AppSizes.maxContentWidth;
 
               return Center(
                 child: SizedBox(
                   width: contentWidth,
                   child: NavigationBar(
+                    height: responsiveNavigationHeight,
                     selectedIndex: _selectedIndex,
                     onDestinationSelected: _openTab,
                     labelBehavior:

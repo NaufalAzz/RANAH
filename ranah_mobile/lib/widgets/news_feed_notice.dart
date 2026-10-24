@@ -50,7 +50,7 @@ class NewsFeedNotice extends StatelessWidget {
                   '$syncLabel Data mungkin sudah usang.'
             : 'Berita server tidak tersedia. Konten berlabel Contoh adalah '
                   'data demonstrasi, bukan informasi bencana aktual.',
-        style: const TextStyle(color: Color(0xFF664A13), fontSize: 11),
+        style: const TextStyle(color: Color(0xFF664A13), fontSize: 13),
       ),
     );
   }

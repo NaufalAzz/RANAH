@@ -2,33 +2,36 @@ import 'package:flutter/material.dart';
 
 import '../pages/gunung_report_page.dart';
 import '../services/gunung_repository.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_page_banner.dart';
 import '../widgets/app_background.dart';
 import '../widgets/gunung_freshness_notice.dart';
+import '../widgets/ranah_page_route.dart';
 
 const _activityLevels =
     <({String label, String key, Color color, IconData icon})>[
       (
         label: 'Level IV - Awas',
         key: 'iv',
-        color: Color(0xFFEF5555),
+        color: AppColors.danger,
         icon: Icons.warning_rounded,
       ),
       (
         label: 'Level III - Siaga',
         key: 'iii',
-        color: Color(0xFFF28B39),
+        color: AppColors.watch,
         icon: Icons.warning_amber_rounded,
       ),
       (
         label: 'Level II - Waspada',
         key: 'ii',
-        color: Color(0xFFE7B938),
+        color: AppColors.warning,
         icon: Icons.change_circle_outlined,
       ),
       (
         label: 'Level I - Normal',
         key: 'i',
-        color: Color(0xFF45B978),
+        color: AppColors.normal,
         icon: Icons.check_circle_outline_rounded,
       ),
     ];
@@ -264,7 +267,7 @@ class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
             'data ini bukan peringatan resmi.',
             style: TextStyle(
               color: Color(0xFFE2EDF5),
-              fontSize: 12,
+              fontSize: 13,
               height: 1.4,
             ),
           ),
@@ -290,7 +293,8 @@ class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
     final id = item['id'];
     if (id is! int) return;
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
+      RanahPageRoute<void>(
+        context: context,
         builder: (_) => GunungReportPage(
           gunungId: id,
           namaGunung: item['nama']?.toString(),
@@ -306,53 +310,21 @@ class _TitlePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xE8200B59), Color(0xE5101736)],
-        ),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withValues(alpha: .12)),
+    return AppPageBanner(
+      icon: Icons.landscape_outlined,
+      eyebrow: 'INFORMASI RANAH',
+      title: 'Tingkat Aktivitas Gunung Api',
+      subtitle: '$total data gunung dari API RANAH',
+      minHeight: 0,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      iconSize: 38,
+      iconGap: AppSpacing.sm,
+      eyebrowStyle: AppTypography.bannerEyebrow.copyWith(fontSize: 13),
+      gradient: const LinearGradient(
+        colors: [Color(0xE8200B59), Color(0xE5101736)],
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.landscape_outlined, color: Colors.white, size: 38),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'INFORMASI RANAH',
-                  style: TextStyle(
-                    color: Color(0xFF8BC8FF),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: .8,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  'Tingkat Aktivitas Gunung Api',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  '$total data gunung dari API RANAH',
-                  style: const TextStyle(
-                    color: Color(0xFFD5DCE7),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      borderRadius: BorderRadius.circular(AppRadii.compact),
+      border: Border.all(color: Colors.white.withValues(alpha: .12)),
     );
   }
 }
@@ -395,7 +367,7 @@ class _LevelCountCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: level.color,
-                  fontSize: 9,
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -588,7 +560,7 @@ class _GunungRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFFD1E0E9),
-                    fontSize: 11,
+                    fontSize: 13,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -598,7 +570,7 @@ class _GunungRow extends StatelessWidget {
                       : 'Belum diverifikasi',
                   style: TextStyle(
                     color: statusColor,
-                    fontSize: 10,
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
