@@ -165,6 +165,22 @@ class _RanahShellState extends State<RanahShell> {
     }
   }
 
+  RanahDestination get _selectedDestination {
+    if (_page == _Page.home ||
+        (_page == _Page.story && _storyReturnPage == _Page.home)) {
+      return RanahDestination.home;
+    }
+    if (_page == _Page.map ||
+        _page == _Page.activity ||
+        _page == _Page.volcanoReport) {
+      return RanahDestination.map;
+    }
+    if (_page == _Page.news || _page == _Page.story) {
+      return RanahDestination.news;
+    }
+    return RanahDestination.home;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_page == _Page.adminLogin) {
@@ -177,112 +193,120 @@ class _RanahShellState extends State<RanahShell> {
       return AdminPanelPage(onExit: () => _navigate(_Page.adminLogin));
     }
     return Scaffold(
-      body: Stack(
-        children: [
-          Column(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 600;
+          final selected = _selectedDestination;
+          return Stack(
             children: [
-              RanahHeader(
-                selected:
-                    _page == _Page.home ||
-                        (_page == _Page.story && _storyReturnPage == _Page.home)
-                    ? RanahDestination.home
-                    : _page == _Page.map ||
-                          _page == _Page.activity ||
-                          _page == _Page.volcanoReport
-                    ? RanahDestination.map
-                    : _page == _Page.news || _page == _Page.story
-                    ? RanahDestination.news
-                    : RanahDestination.home,
-                onSelect: _onDestination,
-                onNotifications: _openNotifications,
+              Column(
+                children: [
+                  RanahHeader(
+                    selected: selected,
+                    onSelect: _onDestination,
+                    onNotifications: _openNotifications,
+                  ),
+                  Expanded(
+                    child: RanahBackground(
+                      child: _page == _Page.home
+                          ? HomePage(
+                              onStoryTap: (story) =>
+                                  _openStory(story, _Page.home),
+                            )
+                          : _page == _Page.map
+                          ? MapPage(
+                              onActivityTap: () => _openActivity(_Page.map),
+                              onMountainTap: (mountain) =>
+                                  _openVolcanoReport(mountain.name, _Page.map),
+                              onEvacuationRouteTap: () =>
+                                  _openEvacuationRoute(_Page.map),
+                              showLocationDetails: _mapLocationDetails,
+                              onLocationDetailsChanged: (show) {
+                                _mapLocationDetails = show;
+                              },
+                              manualPinPosition: _manualMapPinPosition,
+                              manualLocationChosen: _manualMapLocationChosen,
+                              onManualPinChanged: (position) => setState(() {
+                                _manualMapPinPosition = position;
+                                _manualMapLocationChosen = true;
+                              }),
+                            )
+                          : _page == _Page.evacuationRoute
+                          ? EvacuationRoutePage(
+                              onBack: () => _navigate(_routeReturnPage),
+                            )
+                          : _page == _Page.activity
+                          ? VolcanicActivityPage(
+                              onBack: () => _navigate(_activityReturnPage),
+                              onViewReport: (volcano) =>
+                                  _openVolcanoReport(
+                                    volcano.name,
+                                    _Page.activity,
+                                  ),
+                            )
+                          : _page == _Page.volcanoReport
+                          ? VolcanoReportPage(
+                              volcano: _selectedVolcano,
+                              onBack: () => _navigate(_reportReturnPage),
+                            )
+                          : _page == _Page.news
+                          ? NewsPage(
+                              onStoryTap: (story) =>
+                                  _openStory(story, _Page.news),
+                            )
+                          : _page == _Page.story && _selectedStory != null
+                          ? NewsDetailPage(
+                              story: _selectedStory!,
+                              onBack: () => _navigate(_storyReturnPage),
+                            )
+                          : _page == _Page.mitigation
+                          ? MitigationGuidePage(
+                              onBack: () => _navigate(_mitigationReturnPage),
+                            )
+                          : _page == _Page.notifications
+                          ? NotificationsPage(
+                              onBack: () => _navigate(_notificationsReturnPage),
+                              onNotificationTap:
+                                  _openNotificationDestination,
+                            )
+                          : _page == _Page.contact
+                          ? EmergencyContactsPage(
+                              onBack: () => _navigate(_contactsReturnPage),
+                            )
+                          : _PlaceholderPage(
+                              page: _page,
+                              onBack: () => _navigate(_Page.home),
+                            ),
+                    ),
+                  ),
+                  if (compact)
+                    RanahBottomNavigation(
+                      selected: selected,
+                      onSelect: _onDestination,
+                    ),
+                ],
               ),
-              Expanded(
-                child: RanahBackground(
-                  child: _page == _Page.home
-                      ? HomePage(
-                          onStoryTap: (story) => _openStory(story, _Page.home),
-                        )
-                      : _page == _Page.map
-                      ? MapPage(
-                          onActivityTap: () => _openActivity(_Page.map),
-                          onMountainTap: (mountain) =>
-                              _openVolcanoReport(mountain.name, _Page.map),
-                          onEvacuationRouteTap: () =>
-                              _openEvacuationRoute(_Page.map),
-                          showLocationDetails: _mapLocationDetails,
-                          onLocationDetailsChanged: (show) {
-                            _mapLocationDetails = show;
-                          },
-                          manualPinPosition: _manualMapPinPosition,
-                          manualLocationChosen: _manualMapLocationChosen,
-                          onManualPinChanged: (position) => setState(() {
-                            _manualMapPinPosition = position;
-                            _manualMapLocationChosen = true;
-                          }),
-                        )
-                      : _page == _Page.evacuationRoute
-                      ? EvacuationRoutePage(
-                          onBack: () => _navigate(_routeReturnPage),
-                        )
-                      : _page == _Page.activity
-                      ? VolcanicActivityPage(
-                          onBack: () => _navigate(_activityReturnPage),
-                          onViewReport: (volcano) =>
-                              _openVolcanoReport(volcano.name, _Page.activity),
-                        )
-                      : _page == _Page.volcanoReport
-                      ? VolcanoReportPage(
-                          volcano: _selectedVolcano,
-                          onBack: () => _navigate(_reportReturnPage),
-                        )
-                      : _page == _Page.news
-                      ? NewsPage(
-                          onStoryTap: (story) => _openStory(story, _Page.news),
-                        )
-                      : _page == _Page.story && _selectedStory != null
-                      ? NewsDetailPage(
-                          story: _selectedStory!,
-                          onBack: () => _navigate(_storyReturnPage),
-                        )
-                      : _page == _Page.mitigation
-                      ? MitigationGuidePage(
-                          onBack: () => _navigate(_mitigationReturnPage),
-                        )
-                      : _page == _Page.notifications
-                      ? NotificationsPage(
-                          onBack: () => _navigate(_notificationsReturnPage),
-                          onNotificationTap: _openNotificationDestination,
-                        )
-                      : _page == _Page.contact
-                      ? EmergencyContactsPage(
-                          onBack: () => _navigate(_contactsReturnPage),
-                        )
-                      : _PlaceholderPage(
-                          page: _page,
-                          onBack: () => _navigate(_Page.home),
-                        ),
+              if (_menuOpen) ...[
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _menuOpen = false),
+                    child: const SizedBox.expand(),
+                  ),
                 ),
-              ),
+                Positioned(
+                  top: compact ? null : 48,
+                  bottom: compact ? 80 : null,
+                  right: 16,
+                  child: _MenuPopup(
+                    onContact: _openContacts,
+                    onMitigation: _openMitigationGuide,
+                  ),
+                ),
+              ],
             ],
-          ),
-          if (_menuOpen) ...[
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => setState(() => _menuOpen = false),
-                child: const SizedBox.expand(),
-              ),
-            ),
-            Positioned(
-              top: 48,
-              right: 16,
-              child: _MenuPopup(
-                onContact: _openContacts,
-                onMitigation: _openMitigationGuide,
-              ),
-            ),
-          ],
-        ],
+          );
+        },
       ),
     );
   }

@@ -32,21 +32,18 @@ class BrandHeader extends StatelessWidget {
         children: [
           Semantics(
             image: true,
-            label: logo == null ? 'Ikon sementara RANAH' : 'Logo RANAH',
+            label: 'Logo RANAH',
             child: Container(
               width: AppSizes.brandMark,
               height: AppSizes.brandMark,
               decoration: BoxDecoration(
-                color: AppColors.brandTile,
                 borderRadius: BorderRadius.circular(AppRadii.card),
               ),
-              alignment: Alignment.center,
-              child:
-                  logo ??
-                  const Icon(
-                    Icons.home_work_rounded,
-                    color: AppColors.onDark,
-                    size: AppSizes.brandIcon,
+              clipBehavior: Clip.antiAlias,
+              child: logo ??
+                  Image.asset(
+                    'assets/images/brand_mark.png',
+                    fit: BoxFit.cover,
                   ),
             ),
           ),
@@ -80,7 +77,10 @@ class BrandHeader extends StatelessWidget {
           Tooltip(
             message: isOnline ? 'Online' : 'Offline',
             child: Padding(
-              padding: const EdgeInsets.only(right: AppSpacing.xs),
+              padding: const EdgeInsets.only(
+                left: AppSpacing.sm,
+                right: AppSpacing.xs,
+              ),
               child: Icon(
                 isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
                 size: 19,

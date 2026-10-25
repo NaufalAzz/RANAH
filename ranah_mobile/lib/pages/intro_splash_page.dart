@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// Automatic cinematic intro. Its mark is the same temporary symbol used by
-/// BrandHeader; the repository does not contain an official logo asset.
+/// Automatic cinematic intro using the RANAH brand mark.
 class IntroSplashPage extends StatefulWidget {
   const IntroSplashPage({required this.onFinished, super.key});
 
@@ -243,12 +242,8 @@ class _IntroSplashPageState extends State<IntroSplashPage>
         BoxShadow(color: Color(0x55211A70), blurRadius: 36, spreadRadius: 2),
       ],
     ),
-    alignment: Alignment.center,
-    child: const Icon(
-      Icons.home_work_rounded,
-      color: AppColors.onDark,
-      size: 50,
-    ),
+    clipBehavior: Clip.antiAlias,
+    child: Image.asset('assets/images/brand_mark.png', fit: BoxFit.cover),
   );
 }
 

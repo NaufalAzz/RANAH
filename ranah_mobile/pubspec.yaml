@@ -67,6 +67,7 @@ flutter:
 
   assets:
     - assets/images/App.png
+    - assets/images/brand_mark.png
     - assets/geojson/ranah_krb_simulasi.geojson
     - assets/geojson/ranah_krb_big_terverifikasi.geojson
 
