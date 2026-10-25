@@ -19,6 +19,10 @@ class LaporanGunung extends Model
         'foto',
         'sumber',
         'waktu_publikasi',
+        'periode_waktu',
+        'url_sumber',
+        'sumber_id',
+        'waktu_pengambilan',
     ];
 
     protected function casts(): array
@@ -27,6 +31,7 @@ class LaporanGunung extends Model
             'periode_mulai' => 'date',
             'periode_selesai' => 'date',
             'waktu_publikasi' => 'datetime',
+            'waktu_pengambilan' => 'datetime',
         ];
     }
 

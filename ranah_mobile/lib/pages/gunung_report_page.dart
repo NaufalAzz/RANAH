@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/gunung_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/app_page_banner.dart';
 import '../widgets/gunung_freshness_notice.dart';
+import '../widgets/ranah_page_route.dart';
+import '../widgets/volcano_interactive_map.dart';
 
 class GunungReportPage extends StatefulWidget {
   const GunungReportPage({
@@ -12,11 +15,13 @@ class GunungReportPage extends StatefulWidget {
     required this.gunungId,
     this.namaGunung,
     this.repository,
+    this.showMapTiles = true,
   });
 
   final int gunungId;
   final String? namaGunung;
   final GunungDataRepository? repository;
+  final bool showMapTiles;
 
   @override
   State<GunungReportPage> createState() => _GunungReportPageState();
@@ -30,6 +35,7 @@ class _GunungReportPageState extends State<GunungReportPage> {
   bool _isLoading = true;
   bool _isFromCache = true;
   bool _syncing = false;
+  List<Map<String, dynamic>> _mapItems = [];
 
   @override
   void initState() {
@@ -39,6 +45,12 @@ class _GunungReportPageState extends State<GunungReportPage> {
   }
 
   Future<void> _initialize() async {
+    try {
+      final list = await _repository.readGunungCache();
+      if (mounted) setState(() => _mapItems = list.items);
+    } catch (_) {
+      // The selected detail can still provide a single cached map marker.
+    }
     try {
       final cached = await _repository.readDetailCache(widget.gunungId);
       if (!mounted) return;
@@ -68,6 +80,7 @@ class _GunungReportPageState extends State<GunungReportPage> {
       if (!mounted) return;
       setState(() {
         _data = snapshot.data;
+        _mergeMapGunung(snapshot.data['gunung']);
         _lastCheckedAt = snapshot.lastCheckedAt;
         _isFromCache = false;
       });
@@ -138,6 +151,7 @@ class _GunungReportPageState extends State<GunungReportPage> {
         : <Map<String, dynamic>>[];
     final laporan = reports.isNotEmpty ? reports.first : null;
     final reportData = laporan ?? <String, dynamic>{};
+    final mapItems = _itemsWithCurrentGunung(gunung);
 
     return RefreshIndicator(
       onRefresh: _muatUlang,
@@ -150,13 +164,15 @@ class _GunungReportPageState extends State<GunungReportPage> {
           GunungFreshnessNotice(
             isFromCache: _isFromCache,
             lastCheckedAt: _lastCheckedAt,
+            sourceRetrievedAt: gunungTime(_data),
             hasError: _syncError != null,
           ),
           const SizedBox(height: 10),
-          _ReportMapPlaceholder(
-            nama: _text(gunung['nama'], widget.namaGunung ?? 'Gunung api'),
-            hasCoordinates:
-                gunung['latitude'] != null && gunung['longitude'] != null,
+          VolcanoInteractiveMap(
+            items: mapItems,
+            selectedId: widget.gunungId,
+            onOpenDetail: _openMapDetail,
+            tilesEnabled: widget.showMapTiles,
           ),
           const SizedBox(height: 10),
           _StatusBadge(
@@ -194,7 +210,11 @@ class _GunungReportPageState extends State<GunungReportPage> {
             _InfoSection(
               title: 'Periode Pengamatan',
               icon: Icons.calendar_month_outlined,
-              rows: [('Periode', _period(reportData))],
+              rows: [
+                ('Periode', _period(reportData)),
+                if (_text(reportData['periode_waktu'], '').isNotEmpty)
+                  ('Waktu', _text(reportData['periode_waktu'], '')),
+              ],
             ),
             const SizedBox(height: 10),
             _InfoSection(
@@ -237,10 +257,25 @@ class _GunungReportPageState extends State<GunungReportPage> {
                 ('Sumber', _text(reportData['sumber'], 'Belum tersedia')),
                 (
                   'Waktu publikasi',
-                  _text(reportData['waktu_publikasi'], 'Belum tersedia'),
+                  _publicationDate(reportData['waktu_publikasi']),
+                ),
+                (
+                  'Data diambil server',
+                  _text(
+                    reportData['waktu_pengambilan'] ??
+                        gunung['waktu_pengambilan'],
+                    'Belum tersedia',
+                  ),
                 ),
               ],
             ),
+            if (_validSourceUrl(reportData['url_sumber']) case final sourceUrl?)
+              TextButton.icon(
+                onPressed: () => _openSource(context, sourceUrl),
+                icon: const Icon(Icons.open_in_new_rounded),
+                label: const Text('Buka laporan MAGMA'),
+                style: TextButton.styleFrom(foregroundColor: Colors.white),
+              ),
           ],
           const SizedBox(height: 10),
           _EstimatedZone(radius: gunung['radius_perkiraan_km']),
@@ -256,6 +291,50 @@ class _GunungReportPageState extends State<GunungReportPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> _itemsWithCurrentGunung(
+    Map<String, dynamic> gunung,
+  ) {
+    final items = List<Map<String, dynamic>>.from(_mapItems);
+    final index = items.indexWhere(
+      (item) => item['id'].toString() == gunung['id']?.toString(),
+    );
+    if (index < 0) {
+      items.add(gunung);
+    } else {
+      items[index] = {...items[index], ...gunung};
+    }
+    return items;
+  }
+
+  void _mergeMapGunung(dynamic raw) {
+    if (raw is! Map) return;
+    final gunung = Map<String, dynamic>.from(raw);
+    final id = gunung['id']?.toString();
+    if (id == null) return;
+    final index = _mapItems.indexWhere((item) => item['id']?.toString() == id);
+    if (index < 0) {
+      _mapItems = [..._mapItems, gunung];
+    } else {
+      _mapItems[index] = {..._mapItems[index], ...gunung};
+    }
+  }
+
+  void _openMapDetail(Map<String, dynamic> item) {
+    final id = int.tryParse(item['id']?.toString() ?? '');
+    if (id == null || id == widget.gunungId) return;
+    Navigator.of(context).push(
+      RanahPageRoute<void>(
+        context: context,
+        builder: (_) => GunungReportPage(
+          gunungId: id,
+          namaGunung: item['nama']?.toString(),
+          repository: _repository,
+          showMapTiles: widget.showMapTiles,
+        ),
       ),
     );
   }
@@ -284,6 +363,50 @@ class _GunungReportPageState extends State<GunungReportPage> {
     if (start.isEmpty && end.isEmpty) return 'Periode belum tersedia';
     if (start.isNotEmpty && end.isNotEmpty) return '$start sampai $end';
     return start.isEmpty ? 'Sampai $end' : 'Mulai $start';
+  }
+
+  String _publicationDate(dynamic value) {
+    final text = _text(value, 'Belum tersedia');
+    final parsed = DateTime.tryParse(text);
+    if (parsed == null) return text;
+    final local = parsed.toLocal();
+    return '${local.day.toString().padLeft(2, '0')}/${local.month.toString().padLeft(2, '0')}/${local.year}';
+  }
+
+  String? _validSourceUrl(dynamic value) {
+    final uri = Uri.tryParse(value?.toString() ?? '');
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        uri.host != 'magma.esdm.go.id') {
+      return null;
+    }
+    return uri.toString();
+  }
+
+  Future<void> _openSource(BuildContext context, String value) async {
+    final uri = Uri.tryParse(value);
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        uri.host != 'magma.esdm.go.id') {
+      return;
+    }
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tautan sumber tidak dapat dibuka.')),
+      );
+    }
+  }
+
+  String? gunungTime(Map<String, dynamic>? data) {
+    final gunung = data?['gunung'];
+    final reports = data?['laporan'];
+    if (reports is List && reports.isNotEmpty && reports.first is Map) {
+      final report = reports.first as Map;
+      final retrieved = report['waktu_pengambilan']?.toString();
+      if (retrieved != null && retrieved.isNotEmpty) return retrieved;
+    }
+    return gunung is Map ? gunung['waktu_pengambilan']?.toString() : null;
   }
 
   String _text(dynamic value, String fallback) {
@@ -316,57 +439,6 @@ class _ReportHeading extends StatelessWidget {
     ),
     gradient: LinearGradient(colors: [Color(0xE8200B59), Color(0xE5101736)]),
     borderRadius: BorderRadius.all(Radius.circular(AppRadii.compact)),
-  );
-}
-
-class _ReportMapPlaceholder extends StatelessWidget {
-  const _ReportMapPlaceholder({
-    required this.nama,
-    required this.hasCoordinates,
-  });
-
-  final String nama;
-  final bool hasCoordinates;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 154,
-    padding: const EdgeInsets.all(AppSpacing.md),
-    decoration: BoxDecoration(
-      color: AppColors.darkPanel,
-      borderRadius: BorderRadius.circular(AppRadii.card),
-      border: Border.all(color: AppColors.darkPanelBorder),
-    ),
-    child: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.map_outlined,
-            color: AppColors.mutedOnDark,
-            size: 32,
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            nama,
-            style: AppTypography.bodyLarge.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xxs),
-          Text(
-            hasCoordinates
-                ? 'Koordinat tersedia, tetapi peta belum terhubung.'
-                : 'Koordinat dan peta lokasi belum tersedia.',
-            textAlign: TextAlign.center,
-            style: AppTypography.bodyCompact.copyWith(
-              color: AppColors.mutedOnDark,
-            ),
-          ),
-        ],
-      ),
-    ),
   );
 }
 

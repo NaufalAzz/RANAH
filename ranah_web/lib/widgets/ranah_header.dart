@@ -47,7 +47,7 @@ class RanahHeader extends StatelessWidget {
             const SizedBox(width: 10),
             SizedBox(
               width: width < 760 ? 152 : 200,
-              height: 38,
+              height: 56,
               child: const _BrandLabel(),
             ),
             const Spacer(),
@@ -72,13 +72,16 @@ class RanahHeader extends StatelessWidget {
 
   Widget _buildCompact(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final navWidth = width < 360 ? 36.0 : 43.0;
-    final labelWidth = (width - 14 - 27 - 4 - navWidth * 4 - 28).clamp(
-      56.0,
-      100.0,
-    );
+    const navWidth = 55.0;
+    const notificationWidth = 48.0;
+    final showBrand = width >= 380;
+    final labelWidth =
+        (width - 14 - 27 - 4 - navWidth * 4 - notificationWidth - 28).clamp(
+          56.0,
+          100.0,
+        );
     return SizedBox(
-      height: 48,
+      height: 72,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 7),
         child: Row(
@@ -93,12 +96,14 @@ class RanahHeader extends StatelessWidget {
                 semanticLabel: 'Logo RANAH',
               ),
             ),
-            const SizedBox(width: 4),
-            SizedBox(
-              width: labelWidth,
-              height: 31,
-              child: const _BrandLabel(compact: true),
-            ),
+            if (showBrand) ...[
+              const SizedBox(width: 4),
+              SizedBox(
+                width: labelWidth,
+                height: 35,
+                child: const _BrandLabel(compact: true),
+              ),
+            ],
             const Spacer(),
             for (final destination in RanahDestination.values)
               SizedBox(
@@ -111,7 +116,7 @@ class RanahHeader extends StatelessWidget {
                 ),
               ),
             SizedBox(
-              width: 30,
+              width: notificationWidth,
               child: _NotificationButton(
                 onPressed: onNotifications,
                 compact: true,
@@ -160,26 +165,27 @@ class _BrandLabel extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'Disaster Evacuation',
+            compact ? 'RANAH' : 'Evakuasi Bencana RANAH',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: Colors.white,
-              fontSize: compact ? 8 : 12,
+              fontSize: 16,
               height: 1.1,
               fontWeight: FontWeight.w700,
             ),
           ),
-          Text(
-            'Aplikasi Siaga Bencana Erupsi',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: compact ? 5.5 : 10,
-              height: 1.2,
+          if (!compact)
+            Text(
+              'Aplikasi Siaga Bencana Erupsi',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                height: 1.2,
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -202,12 +208,13 @@ class _NavigationButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, icon) = switch (destination) {
-      RanahDestination.home => ('Home', Icons.home_rounded),
-      RanahDestination.map => ('Map', Icons.map_rounded),
-      RanahDestination.news => ('News', Icons.article_rounded),
+      RanahDestination.home => ('Awal', Icons.home_rounded),
+      RanahDestination.map => ('Peta', Icons.map_rounded),
+      RanahDestination.news => ('Berita', Icons.article_rounded),
       RanahDestination.menu => ('Menu', Icons.menu_rounded),
     };
     return Semantics(
+      key: ValueKey('ranah-nav-${destination.name}'),
       button: true,
       selected: selected,
       label: label,
@@ -215,24 +222,42 @@ class _NavigationButton extends StatelessWidget {
         onTap: onPressed,
         borderRadius: BorderRadius.circular(7),
         child: SizedBox(
-          height: 52,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          height: compact ? 68 : 60,
+          child: Stack(
+            alignment: Alignment.center,
             children: [
-              Icon(
-                icon,
-                size: compact ? 12 : 16,
-                color: selected ? Colors.white : const Color(0xFF62627C),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    icon,
+                    size: compact ? 18 : 20,
+                    color: selected ? Colors.white : RanahColors.headerMuted,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: selected ? Colors.white : RanahColors.headerMuted,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: compact ? 8 : 12,
-                  color: selected ? Colors.white : const Color(0xFF77768B),
-                  fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
+              if (selected)
+                const Positioned(
+                  bottom: 0,
+                  left: 7,
+                  right: 7,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.all(Radius.circular(2)),
+                    ),
+                    child: SizedBox(height: 3),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -252,16 +277,12 @@ class _NotificationButton extends StatelessWidget {
     return IconButton(
       onPressed: onPressed,
       tooltip: 'Notifikasi contoh',
-      visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
-      constraints: BoxConstraints.tightFor(
-        width: compact ? 28 : 40,
-        height: 40,
-      ),
+      constraints: const BoxConstraints.tightFor(width: 48, height: 48),
       icon: Stack(
         clipBehavior: Clip.none,
         children: [
-          Icon(Icons.notifications_none_rounded, size: compact ? 16 : 21),
+          Icon(Icons.notifications_none_rounded, size: compact ? 21 : 24),
           Positioned(
             right: -3,
             top: -3,
@@ -275,7 +296,7 @@ class _NotificationButton extends StatelessWidget {
               ),
               child: const Text(
                 '3',
-                style: TextStyle(color: Colors.white, fontSize: 7, height: 1),
+                style: TextStyle(color: Colors.white, fontSize: 12, height: 1),
               ),
             ),
           ),

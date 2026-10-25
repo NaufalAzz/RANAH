@@ -3,30 +3,54 @@ import 'package:flutter/material.dart';
 import '../data/map_sample_data.dart';
 import '../theme/ranah_theme.dart';
 import '../widgets/illustrative_map.dart';
+import '../widgets/ranah_full_width_title_background.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({
     required this.onActivityTap,
     required this.onMountainTap,
+    required this.onEvacuationRouteTap,
+    required this.showLocationDetails,
+    required this.onLocationDetailsChanged,
+    required this.manualPinPosition,
+    required this.manualLocationChosen,
+    required this.onManualPinChanged,
     super.key,
   });
 
   final VoidCallback onActivityTap;
   final ValueChanged<SampleMountain> onMountainTap;
+  final VoidCallback onEvacuationRouteTap;
+  final bool showLocationDetails;
+  final ValueChanged<bool> onLocationDetailsChanged;
+  final Offset manualPinPosition;
+  final bool manualLocationChosen;
+  final ValueChanged<Offset> onManualPinChanged;
 
   @override
   State<MapPage> createState() => _MapPageState();
 }
 
 class _MapPageState extends State<MapPage> {
-  bool _showPadang = false;
+  late bool _showPadang;
+  late Offset _manualPinPosition;
+  late bool _manualLocationChosen;
+
+  @override
+  void initState() {
+    super.initState();
+    _showPadang = widget.showLocationDetails;
+    _manualPinPosition = widget.manualPinPosition;
+    _manualLocationChosen = widget.manualLocationChosen;
+  }
 
   void _showLocationNotice() {
     setState(() => _showPadang = true);
+    widget.onLocationDetailsChanged(true);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'GPS belum tersedia. Peta menampilkan lokasi contoh Padang, bukan lokasi aktual Anda.',
+          'GPS belum tersedia. Geser pin pada peta ilustratif untuk memilih titik secara manual.',
         ),
         behavior: SnackBarBehavior.floating,
       ),
@@ -40,44 +64,52 @@ class _MapPageState extends State<MapPage> {
         final width = constraints.maxWidth;
         final mobile = width < 700;
         final contentWidth = width > 1260 ? 1260.0 : width;
+        final horizontalInset = mobile ? 12.0 : 28.0;
+        final innerWidth = contentWidth - horizontalInset * 2;
         final mapHeight = mobile
             ? (width < 420 ? 205.0 : 232.0)
             : (MediaQuery.sizeOf(context).height * .43).clamp(330.0, 510.0);
-        return Align(
-          alignment: Alignment.topCenter,
-          child: SizedBox(
-            width: contentWidth,
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                mobile ? 12 : 28,
-                0,
-                mobile ? 12 : 28,
-                28,
+        return RanahPageScrollLayout(
+          maxContentWidth: contentWidth,
+          horizontalInset: horizontalInset,
+          title: _MapTitleBanner(maxContentWidth: innerWidth),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_showPadang)
+                _MapBackBar(
+                  onBack: () {
+                    setState(() => _showPadang = false);
+                    widget.onLocationDetailsChanged(false);
+                  },
+                ),
+              if (_showPadang) const _ManualLocationHint(),
+              SizedBox(height: mobile ? 10 : 18),
+              SizedBox(
+                height: mapHeight,
+                child: IllustrativeMap(
+                  padang: _showPadang,
+                  onSampleLocationTap: () {
+                    setState(() => _showPadang = true);
+                    widget.onLocationDetailsChanged(true);
+                  },
+                  manualPinPosition: _manualPinPosition,
+                  onManualPinChanged: _showPadang
+                      ? (position) {
+                          setState(() {
+                            _manualPinPosition = position;
+                            _manualLocationChosen = true;
+                          });
+                          widget.onManualPinChanged(position);
+                        }
+                      : null,
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _MapTitleBanner(),
-                  if (_showPadang)
-                    _MapBackBar(
-                      onBack: () => setState(() => _showPadang = false),
-                    ),
-                  SizedBox(height: mobile ? 10 : 18),
-                  SizedBox(
-                    height: mapHeight,
-                    child: IllustrativeMap(
-                      padang: _showPadang,
-                      onSampleLocationTap: () =>
-                          setState(() => _showPadang = true),
-                    ),
-                  ),
-                  if (_showPadang)
-                    _buildLocationDetail(mobile)
-                  else
-                    _buildMapActions(mobile),
-                ],
-              ),
-            ),
+              if (_showPadang)
+                _buildLocationDetail(mobile)
+              else
+                _buildMapActions(mobile),
+            ],
           ),
         );
       },
@@ -119,15 +151,23 @@ class _MapPageState extends State<MapPage> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _CurrentLocationCard(),
+        _CurrentLocationCard(manual: _manualLocationChosen),
         const SizedBox(height: 14),
-        const _SectionHeading(
+        _SectionHeading(
           icon: Icons.alt_route_rounded,
           title: 'Jalur Evakuasi',
           subtitle: 'Rute ilustratif ke zona aman bencana',
+          trailing: TextButton(
+            key: const ValueKey('open-evacuation-route'),
+            onPressed: widget.onEvacuationRouteTap,
+            child: const Text(
+              'Lihat rute',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
         ),
         const SizedBox(height: 8),
-        const _EvacuationRouteCard(),
+        _EvacuationRouteCard(onTap: widget.onEvacuationRouteTap),
         const SizedBox(height: 15),
         _SectionHeading(
           icon: Icons.landscape_outlined,
@@ -135,7 +175,10 @@ class _MapPageState extends State<MapPage> {
           subtitle: 'Data gunung contoh · bukan status terkini',
           trailing: TextButton(
             onPressed: widget.onActivityTap,
-            child: const Text('Lihat daftar'),
+            child: const Text(
+              'Lihat daftar',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -187,52 +230,59 @@ class _MapPageState extends State<MapPage> {
 }
 
 class _MapTitleBanner extends StatelessWidget {
-  const _MapTitleBanner();
+  const _MapTitleBanner({required this.maxContentWidth});
+
+  final double maxContentWidth;
 
   @override
-  Widget build(BuildContext context) => Container(
-    height: 60,
-    padding: const EdgeInsets.symmetric(horizontal: 12),
-    decoration: const BoxDecoration(
-      color: Color(0xFF17003E),
-      border: Border(bottom: BorderSide(color: Color(0xFF263B65))),
-    ),
-    child: const Row(
-      children: [
-        Icon(Icons.landscape_outlined, size: 28, color: Colors.white),
-        SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'PETA & ZONA BAHAYA',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 9,
-                  letterSpacing: 1,
-                  color: Color(0xFF91A8D0),
-                  fontWeight: FontWeight.w600,
+  Widget build(BuildContext context) => RanahFullWidthTitleBackground(
+    color: const Color(0xFF17003E),
+    maxContentWidth: maxContentWidth,
+    bottomBorder: const BorderSide(color: Color(0xFF263B65)),
+    child: Container(
+      constraints: const BoxConstraints(minHeight: 76),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Color(0xFF17003E),
+        border: Border(bottom: BorderSide(color: Color(0xFF263B65))),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.landscape_outlined, size: 28, color: Colors.white),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'PETA & ZONA BAHAYA',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    letterSpacing: 1,
+                    color: Color(0xFF91A8D0),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              Text(
-                'Peta dan Jalur Evakuasi',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-              ),
-              Text(
-                'Informasi contoh wilayah Padang dan Sumatera Barat',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 9, color: Color(0xFFC1C8D7)),
-              ),
-            ],
+                Text(
+                  'Peta dan Jalur Evakuasi',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  'Informasi contoh wilayah Padang dan Sumatera Barat',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: Color(0xFFC1C8D7)),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }
@@ -244,18 +294,18 @@ class _MapBackBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    height: 32,
+    height: 48,
     alignment: Alignment.centerLeft,
     color: const Color(0xFF12304C),
     child: TextButton.icon(
       onPressed: onBack,
       icon: const Icon(Icons.arrow_back, size: 14),
-      label: const Text('Kembali', style: TextStyle(fontSize: 11)),
+      label: const Text('Kembali', style: TextStyle(fontSize: 12)),
       style: TextButton.styleFrom(
         foregroundColor: RanahColors.ink,
         backgroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 10),
-        minimumSize: const Size(0, 26),
+        minimumSize: const Size(48, 48),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       ),
     ),
@@ -310,7 +360,7 @@ class _MapAction extends StatelessWidget {
         Text(
           description,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Color(0xFFD1DCE9), fontSize: 11),
+          style: const TextStyle(color: Color(0xFFD1DCE9), fontSize: 12),
         ),
       ],
     ),
@@ -318,7 +368,9 @@ class _MapAction extends StatelessWidget {
 }
 
 class _CurrentLocationCard extends StatelessWidget {
-  const _CurrentLocationCard();
+  const _CurrentLocationCard({required this.manual});
+
+  final bool manual;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -334,7 +386,7 @@ class _CurrentLocationCard extends StatelessWidget {
         ),
       ],
     ),
-    child: const Row(
+    child: Row(
       children: [
         Icon(Icons.location_pin, color: Color(0xFFFF3941), size: 25),
         SizedBox(width: 12),
@@ -343,25 +395,54 @@ class _CurrentLocationCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'LOKASI CONTOH',
+                manual ? 'LOKASI PILIHAN MANUAL' : 'LOKASI CONTOH',
                 style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 12,
                   color: Color(0xFFC8D7E8),
                   letterSpacing: .6,
                 ),
               ),
               Text(
-                'UNP, Air Tawar, Kota Padang',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                manual
+                    ? 'Titik ilustratif pada peta'
+                    : 'UNP, Air Tawar, Kota Padang',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               Text(
-                'Bukan lokasi perangkat Anda',
-                style: TextStyle(fontSize: 10, color: Color(0xFFD1DCE9)),
+                manual
+                    ? 'Nama tempat dan koordinat aktual tidak tersedia.'
+                    : 'Bukan lokasi perangkat Anda',
+                style: const TextStyle(fontSize: 12, color: Color(0xFFD1DCE9)),
               ),
             ],
           ),
         ),
         Icon(Icons.my_location, size: 19, color: Colors.white70),
+      ],
+    ),
+  );
+}
+
+class _ManualLocationHint extends StatelessWidget {
+  const _ManualLocationHint();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+    decoration: const BoxDecoration(color: Color(0xFF12304C)),
+    child: const Row(
+      children: [
+        Icon(Icons.touch_app_outlined, color: Color(0xFF73C9D8), size: 16),
+        SizedBox(width: 7),
+        Expanded(
+          child: Text(
+            'GPS tidak digunakan. Geser pin merah untuk memilih titik manual pada peta contoh.',
+            style: TextStyle(color: Colors.white, fontSize: 12),
+          ),
+        ),
       ],
     ),
   );
@@ -400,11 +481,11 @@ class _SectionHeading extends StatelessWidget {
           children: [
             Text(
               title,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
             Text(
               subtitle,
-              style: const TextStyle(fontSize: 10, color: Color(0xFFC7D2E0)),
+              style: const TextStyle(fontSize: 12, color: Color(0xFFC7D2E0)),
             ),
           ],
         ),
@@ -415,47 +496,65 @@ class _SectionHeading extends StatelessWidget {
 }
 
 class _EvacuationRouteCard extends StatelessWidget {
-  const _EvacuationRouteCard();
+  const _EvacuationRouteCard({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFF174A7D),
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    borderRadius: BorderRadius.circular(9),
+    child: InkWell(
+      key: const ValueKey('evacuation-route-card'),
+      onTap: onTap,
       borderRadius: BorderRadius.circular(9),
-      border: Border.all(color: const Color(0xFF2580B5)),
-    ),
-    child: const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF174A7D),
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: const Color(0xFF2580B5)),
+        ),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.alt_route, color: Color(0xFF40B9D2), size: 19),
-            SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Rute Evakuasi Terdekat',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            Row(
+              children: [
+                Icon(Icons.alt_route, color: Color(0xFF40B9D2), size: 19),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Rute Evakuasi Terdekat',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'Rute contoh · bukan arahan evakuasi resmi',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFFC7D2E0),
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    'Rute contoh · bukan arahan evakuasi resmi',
-                    style: TextStyle(fontSize: 9, color: Color(0xFFC7D2E0)),
-                  ),
-                ],
-              ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: Colors.white70),
+              ],
+            ),
+            SizedBox(height: 9),
+            _RouteStop(title: 'Lokasi awal', name: 'Universitas Negeri Padang'),
+            _RouteStop(
+              title: 'Tujuan contoh',
+              name: 'Titik aman ilustratif · Jl. Bypass',
             ),
           ],
         ),
-        SizedBox(height: 9),
-        _RouteStop(title: 'Lokasi awal', name: 'Universitas Negeri Padang'),
-        _RouteStop(
-          title: 'Tujuan contoh',
-          name: 'Titik aman ilustratif · Jl. Bypass',
-        ),
-      ],
+      ),
     ),
   );
 }
@@ -486,12 +585,12 @@ class _RouteStop extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(fontSize: 9, color: Color(0xFFC9D8E6)),
+                style: const TextStyle(fontSize: 12, color: Color(0xFFC9D8E6)),
               ),
               Text(
                 name,
                 style: const TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -545,7 +644,7 @@ class _MountainCard extends StatelessWidget {
                   Text(
                     mountain.name,
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -553,7 +652,7 @@ class _MountainCard extends StatelessWidget {
                   Text(
                     mountain.level,
                     style: TextStyle(
-                      fontSize: 9,
+                      fontSize: 12,
                       color: Color(mountain.color),
                       fontWeight: FontWeight.w700,
                     ),
@@ -561,13 +660,13 @@ class _MountainCard extends StatelessWidget {
                   Text(
                     mountain.distance,
                     style: const TextStyle(
-                      fontSize: 9,
+                      fontSize: 12,
                       color: Color(0xFFC7D2E0),
                     ),
                   ),
                   const Text(
                     'DATA DUMMY',
-                    style: TextStyle(fontSize: 8, color: Color(0xFFE6B866)),
+                    style: TextStyle(fontSize: 12, color: Color(0xFFE6B866)),
                   ),
                 ],
               ),
@@ -606,13 +705,13 @@ class _HazardCard extends StatelessWidget {
               Text(
                 hazard.name,
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               Text(
                 hazard.description,
-                style: const TextStyle(fontSize: 9, color: Color(0xFFC7D2E0)),
+                style: const TextStyle(fontSize: 12, color: Color(0xFFC7D2E0)),
               ),
             ],
           ),

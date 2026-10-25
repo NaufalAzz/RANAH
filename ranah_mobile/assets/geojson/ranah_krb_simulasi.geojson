@@ -1,0 +1,175 @@
+
+{
+  "type": "FeatureCollection",
+  "name": "ranah_krb_simulasi",
+  "metadata": {
+    "status": "SYNTHETIC_DEMO_ONLY",
+    "warning": "SIMULASI SAJA. BUKAN KRB RESMI. DILARANG DIGUNAKAN UNTUK PANDUAN EVAKUASI NYATA.",
+    "is_official_krb": false,
+    "is_for_evacuation_guidance": false,
+    "crs": "OGC:CRS84",
+    "zone_colors": {
+      "SIMULASI_I": "#E53935",
+      "SIMULASI_II": "#FB8C00",
+      "SIMULASI_III": "#FDD835"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "marapi_simulasi_i",
+      "properties": {
+        "volcano": "Marapi",
+        "zone_class": "SIMULASI_I",
+        "zone_label": "Zona I — SIMULASI",
+        "data_status": "SYNTHETIC_DEMO_ONLY",
+        "is_official_krb": false,
+        "is_for_evacuation_guidance": false
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [100.5536, -0.3736],
+          [100.5506, -0.3680],
+          [100.5436, -0.3656],
+          [100.5366, -0.3680],
+          [100.5336, -0.3736],
+          [100.5366, -0.3792],
+          [100.5436, -0.3816],
+          [100.5506, -0.3792],
+          [100.5536, -0.3736]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "marapi_simulasi_ii",
+      "properties": {
+        "volcano": "Marapi",
+        "zone_class": "SIMULASI_II",
+        "zone_label": "Zona II — SIMULASI",
+        "data_status": "SYNTHETIC_DEMO_ONLY",
+        "is_official_krb": false,
+        "is_for_evacuation_guidance": false
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [100.5656, -0.3736],
+          [100.5586, -0.3617],
+          [100.5436, -0.3566],
+          [100.5286, -0.3617],
+          [100.5216, -0.3736],
+          [100.5286, -0.3855],
+          [100.5436, -0.3906],
+          [100.5586, -0.3855],
+          [100.5656, -0.3736]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "marapi_simulasi_iii",
+      "properties": {
+        "volcano": "Marapi",
+        "zone_class": "SIMULASI_III",
+        "zone_label": "Zona III — SIMULASI",
+        "data_status": "SYNTHETIC_DEMO_ONLY",
+        "is_official_krb": false,
+        "is_for_evacuation_guidance": false
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [100.5836, -0.3736],
+          [100.5716, -0.3526],
+          [100.5436, -0.3436],
+          [100.5156, -0.3526],
+          [100.5036, -0.3736],
+          [100.5156, -0.3946],
+          [100.5436, -0.4036],
+          [100.5716, -0.3946],
+          [100.5836, -0.3736]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "talang_simulasi_i",
+      "properties": {
+        "volcano": "Talang",
+        "zone_class": "SIMULASI_I",
+        "zone_label": "Zona I — SIMULASI",
+        "data_status": "SYNTHETIC_DEMO_ONLY",
+        "is_official_krb": false,
+        "is_for_evacuation_guidance": false
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [100.6895, -0.9784],
+          [100.6865, -0.9728],
+          [100.6795, -0.9704],
+          [100.6725, -0.9728],
+          [100.6695, -0.9784],
+          [100.6725, -0.9840],
+          [100.6795, -0.9864],
+          [100.6865, -0.9840],
+          [100.6895, -0.9784]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "talang_simulasi_ii",
+      "properties": {
+        "volcano": "Talang",
+        "zone_class": "SIMULASI_II",
+        "zone_label": "Zona II — SIMULASI",
+        "data_status": "SYNTHETIC_DEMO_ONLY",
+        "is_official_krb": false,
+        "is_for_evacuation_guidance": false
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [100.7015, -0.9784],
+          [100.6945, -0.9665],
+          [100.6795, -0.9614],
+          [100.6645, -0.9665],
+          [100.6575, -0.9784],
+          [100.6645, -0.9903],
+          [100.6795, -0.9954],
+          [100.6945, -0.9903],
+          [100.7015, -0.9784]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "talang_simulasi_iii",
+      "properties": {
+        "volcano": "Talang",
+        "zone_class": "SIMULASI_III",
+        "zone_label": "Zona III — SIMULASI",
+        "data_status": "SYNTHETIC_DEMO_ONLY",
+        "is_official_krb": false,
+        "is_for_evacuation_guidance": false
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [100.7195, -0.9784],
+          [100.7075, -0.9574],
+          [100.6795, -0.9484],
+          [100.6515, -0.9574],
+          [100.6395, -0.9784],
+          [100.6515, -0.9994],
+          [100.6795, -1.0084],
+          [100.7075, -0.9994],
+          [100.7195, -0.9784]
+        ]]
+      }
+    }
+  ]
+}

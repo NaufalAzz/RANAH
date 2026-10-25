@@ -1,9 +1,147 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ranah_web/main.dart';
 import 'package:ranah_web/widgets/illustrative_map.dart';
+import 'package:ranah_web/pages/admin_login_page.dart';
+import 'package:ranah_web/pages/admin_panel_page.dart';
+import 'package:ranah_web/theme/ranah_theme.dart';
 
 void main() {
+  test(
+    'shared text colors meet the 4.5:1 AA ratio on their tested surfaces',
+    () {
+      expect(
+        _contrastRatio(RanahColors.muted, Colors.white),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        _contrastRatio(RanahColors.eruption, Colors.white),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        _contrastRatio(RanahColors.headerMuted, RanahColors.headerStart),
+        greaterThanOrEqualTo(4.5),
+      );
+    },
+  );
+
+  testWidgets('font size setting scales text and navigation has 48dp targets', (
+    tester,
+  ) async {
+    for (final size in [const Size(390, 844)]) {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      await tester.pumpWidget(const MyApp());
+      for (final destination in ['home', 'map', 'news', 'menu']) {
+        final nav = find.byKey(ValueKey('ranah-nav-$destination'));
+        expect(tester.getSize(nav).width, greaterThanOrEqualTo(48));
+        expect(tester.getSize(nav).height, greaterThanOrEqualTo(48));
+      }
+      expect(tester.takeException(), isNull);
+
+      if (size.width == 390) {
+        final label = find.text('Awal').first;
+        final originalHeight = tester.getSize(label).height;
+        await tester.tap(find.byKey(const ValueKey('text-size-control')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('130%'));
+        await tester.pumpAndSettle();
+        expect(tester.getSize(label).height, greaterThan(originalHeight));
+        expect(tester.takeException(), isNull);
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    }
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+
+  testWidgets('admin login validates required fields and never grants access', (
+    tester,
+  ) async {
+    var previewOpened = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AdminLoginPage(
+          onBack: () {},
+          onPreview: () => previewOpened = true,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Masuk'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nama pengguna atau email wajib diisi.'), findsOneWidget);
+    expect(find.text('Kata sandi wajib diisi.'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('admin-username')),
+      'contoh',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('admin-password')),
+      'rahasia',
+    );
+    await tester.tap(find.text('Masuk'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Layanan autentikasi belum terhubung. Tidak ada akses admin yang diberikan.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(AdminPanelPage), findsNothing);
+
+    await tester.ensureVisible(find.text('Lihat pratinjau kerangka'));
+    await tester.tap(find.text('Lihat pratinjau kerangka'));
+    expect(previewOpened, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'admin preview navigation and server-unavailable state fit layouts',
+    (tester) async {
+      for (final size in [const Size(390, 844), const Size(1280, 900)]) {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        await tester.pumpWidget(
+          MaterialApp(home: AdminPanelPage(onExit: () {})),
+        );
+        expect(
+          find.textContaining('belum terhubung ke server.'),
+          findsOneWidget,
+        );
+        expect(find.text('Data Gunung & Aktivitas'), findsWidgets);
+        expect(tester.takeException(), isNull);
+
+        if (size.width < 780) {
+          await tester.tap(find.byKey(const ValueKey('admin-section-picker')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Pengaduan').last);
+        } else {
+          await tester.tap(find.text('Pengaduan').last);
+        }
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Acuan kebutuhan ID tidak terbaca pada ekstrak BRD'),
+          findsOneWidget,
+        );
+        expect(
+          find.text('Peninjauan dan pengelolaan pengaduan'),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+      }
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    },
+  );
+
   testWidgets(
     'activity search filters, report opens, KRB toggles, and back returns',
     (tester) async {
@@ -13,7 +151,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       await tester.pumpWidget(const MyApp());
-      await tester.tap(find.text('Map').first);
+      await tester.tap(find.text('Peta').first);
       await tester.pumpAndSettle();
       expect(find.text('Peta dan Jalur Evakuasi'), findsOneWidget);
 
@@ -47,7 +185,7 @@ void main() {
 
       await tester.tap(find.text('Kembali').first);
       await tester.pumpAndSettle();
-      expect(find.text('Volcanic Activity'), findsOneWidget);
+      expect(find.text('Aktivitas Gunung Api'), findsOneWidget);
     },
   );
 
@@ -60,7 +198,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(const MyApp());
-    await tester.tap(find.text('Map').first);
+    await tester.tap(find.text('Peta').first);
     await tester.pumpAndSettle();
     expect(find.text('Peta dan Jalur Evakuasi'), findsOneWidget);
 
@@ -89,7 +227,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(const MyApp());
-    await tester.tap(find.text('Map').first);
+    await tester.tap(find.text('Peta').first);
     await tester.pumpAndSettle();
     expect(find.text('Peta dan Jalur Evakuasi'), findsOneWidget);
     expect(find.text('LOKASI CONTOH'), findsNothing);
@@ -105,6 +243,59 @@ void main() {
     expect(find.text('LOKASI CONTOH'), findsNothing);
   });
 
+  testWidgets('evacuation route opens from map details and returns to them', (
+    tester,
+  ) async {
+    for (final size in [const Size(390, 844), const Size(1280, 900)]) {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      await tester.pumpWidget(const MyApp());
+      await tester.tap(find.text('Peta').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Temukan Lokasi Saya'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Geser pin merah'), findsOneWidget);
+      final pin = find.byKey(const ValueKey('manual-location-pin'));
+      final beforeDrag = tester.getRect(pin);
+      await tester.drag(pin, const Offset(70, -18));
+      await tester.pumpAndSettle();
+      expect(find.text('LOKASI PILIHAN MANUAL'), findsOneWidget);
+      expect(find.text('Titik ilustratif pada peta'), findsOneWidget);
+      expect(tester.getRect(pin).center.dx, greaterThan(beforeDrag.center.dx));
+      expect(tester.takeException(), isNull);
+
+      final routeCard = find.byKey(const ValueKey('evacuation-route-card'));
+      await tester.ensureVisible(routeCard);
+      await tester.tap(routeCard);
+      await tester.pumpAndSettle();
+      expect(find.text('Jalur Evakuasi'), findsOneWidget);
+      expect(find.text('Rute Evakuasi Terdekat'), findsOneWidget);
+      expect(find.text('Jenis bencana'), findsOneWidget);
+      expect(find.text('Jarak rute'), findsOneWidget);
+      expect(find.text('Estimasi jalan kaki'), findsOneWidget);
+      expect(find.text('DATA SIMULASI'), findsOneWidget);
+      expect(
+        find.textContaining('bukan arahan evakuasi resmi'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.byKey(const ValueKey('evacuation-route-back')));
+      await tester.pumpAndSettle();
+      expect(find.text('LOKASI PILIHAN MANUAL'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('evacuation-route-card')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    }
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+
   testWidgets('news filters, opens the selected story, and returns to News', (
     tester,
   ) async {
@@ -114,12 +305,12 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(const MyApp());
-    await tester.tap(find.text('News').first);
+    await tester.tap(find.text('Berita').first);
     await tester.pumpAndSettle();
-    expect(find.text('News & Event'), findsOneWidget);
+    expect(find.text('Berita & Peristiwa'), findsOneWidget);
     expect(find.text('CONTOH · ERUPSI'), findsOneWidget);
 
-    await tester.tap(find.text('Ngungsi'));
+    await tester.tap(find.text('Pengungsian'));
     await tester.pumpAndSettle();
     expect(
       find.text('Contoh Berita: Informasi Posko Pengungsian'),
@@ -149,7 +340,7 @@ void main() {
 
     await tester.tap(find.text('Kembali'));
     await tester.pumpAndSettle();
-    expect(find.text('News & Event'), findsOneWidget);
+    expect(find.text('Berita & Peristiwa'), findsOneWidget);
   });
 
   testWidgets('news and detail fit a desktop viewport', (tester) async {
@@ -159,9 +350,9 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(const MyApp());
-    await tester.tap(find.text('News').first);
+    await tester.tap(find.text('Berita').first);
     await tester.pumpAndSettle();
-    expect(find.text('News & Event'), findsOneWidget);
+    expect(find.text('Berita & Peristiwa'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.tap(
@@ -178,7 +369,7 @@ void main() {
 
     await tester.tap(find.text('Kembali'));
     await tester.pumpAndSettle();
-    expect(find.text('News & Event'), findsOneWidget);
+    expect(find.text('Berita & Peristiwa'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -214,16 +405,16 @@ void main() {
 
     await tester.tap(find.byTooltip('Kembali'));
     await tester.pumpAndSettle();
-    expect(find.text('Hot News!!'), findsOneWidget);
+    expect(find.text('Berita Utama'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text('News').first);
+    await tester.tap(find.text('Berita').first);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Notifikasi contoh'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Kembali'));
     await tester.pumpAndSettle();
-    expect(find.text('News & Event'), findsOneWidget);
+    expect(find.text('Berita & Peristiwa'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -296,7 +487,7 @@ void main() {
     await tester.pumpWidget(const MyApp());
     await tester.tap(find.text('Menu').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('CONTACT'));
+    await tester.tap(find.text('KONTAK DARURAT'));
     await tester.pumpAndSettle();
 
     expect(find.text('Kontak & Pengaduan'), findsOneWidget);
@@ -346,7 +537,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Kembali'));
     await tester.pumpAndSettle();
-    expect(find.text('Hot News!!'), findsOneWidget);
+    expect(find.text('Berita Utama'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -359,7 +550,7 @@ void main() {
     await tester.pumpWidget(const MyApp());
     await tester.tap(find.text('Menu').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('CONTACT'));
+    await tester.tap(find.text('KONTAK DARURAT'));
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('emergency-contact-integrated')),
@@ -377,7 +568,7 @@ void main() {
         await tester.pumpWidget(const MyApp());
         await tester.tap(find.text('Menu').first);
         await tester.pumpAndSettle();
-        await tester.tap(find.text('CONTACT'));
+        await tester.tap(find.text('KONTAK DARURAT'));
         await tester.pumpAndSettle();
 
         await tester.tap(find.text('Pengaduan').first);
@@ -446,7 +637,7 @@ void main() {
     await tester.pumpWidget(const MyApp());
     await tester.tap(find.text('Menu').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('MITIGATION GUIDE'));
+    await tester.tap(find.text('PANDUAN MITIGASI'));
     await tester.pumpAndSettle();
 
     expect(find.text('Panduan Mitigasi'), findsOneWidget);
@@ -506,7 +697,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Kembali'));
     await tester.pumpAndSettle();
-    expect(find.text('Hot News!!'), findsOneWidget);
+    expect(find.text('Berita Utama'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -519,7 +710,7 @@ void main() {
     await tester.pumpWidget(const MyApp());
     await tester.tap(find.text('Menu').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('MITIGATION GUIDE'));
+    await tester.tap(find.text('PANDUAN MITIGASI'));
     await tester.pumpAndSettle();
 
     expect(find.text('Panduan Mitigasi'), findsOneWidget);
@@ -547,4 +738,26 @@ void main() {
     expect(find.byKey(const ValueKey('mitigation-step-after-9')), findsNothing);
     expect(tester.takeException(), isNull);
   });
+}
+
+double _contrastRatio(Color foreground, Color background) {
+  double luminance(Color color) {
+    double channel(double normalized) {
+      return normalized <= .04045
+          ? normalized / 12.92
+          : math.pow((normalized + .055) / 1.055, 2.4).toDouble();
+    }
+
+    return .2126 * channel(color.r) +
+        .7152 * channel(color.g) +
+        .0722 * channel(color.b);
+  }
+
+  final light = luminance(foreground) > luminance(background)
+      ? luminance(foreground)
+      : luminance(background);
+  final dark = luminance(foreground) > luminance(background)
+      ? luminance(background)
+      : luminance(foreground);
+  return (light + .05) / (dark + .05);
 }

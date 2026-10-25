@@ -21,6 +21,12 @@ class GunungApiTest extends TestCase
             'longitude' => null,
             'radius_perkiraan_km' => null,
             'sumber_data' => null,
+            'sumber_koordinat' => 'BIG e-Atlas',
+            'sumber_koordinat_id' => '14',
+            'sumber_validasi_administratif' => 'geoBoundaries IDN ADM1 (2017)',
+            'sumber_validasi_administratif_id' => 'sample-adm1-shape-id',
+            'status_validasi_koordinat' => 'terverifikasi',
+            'waktu_validasi_koordinat' => '2026-10-25 00:00:00',
         ]);
         $this->createGunung(['nama' => 'Gunung Nonaktif', 'aktif' => false]);
 
@@ -42,13 +48,26 @@ class GunungApiTest extends TestCase
                     'status_aktivitas',
                     'radius_perkiraan_km',
                     'sumber_data',
+                    'sumber_id',
+                    'waktu_pengambilan',
+                    'sumber_koordinat',
+                    'sumber_koordinat_id',
+                    'sumber_validasi_administratif',
+                    'sumber_validasi_administratif_id',
+                    'status_validasi_koordinat',
+                    'waktu_validasi_koordinat',
                     'aktif',
                 ]],
             ])
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $active->id)
             ->assertJsonPath('data.0.nama', 'Gunung Aktif')
-            ->assertJsonPath('data.0.status_aktivitas', null);
+            ->assertJsonPath('data.0.status_aktivitas', null)
+            ->assertJsonPath('data.0.sumber_koordinat', 'BIG e-Atlas')
+            ->assertJsonPath('data.0.sumber_koordinat_id', '14')
+            ->assertJsonPath('data.0.sumber_validasi_administratif', 'geoBoundaries IDN ADM1 (2017)')
+            ->assertJsonPath('data.0.sumber_validasi_administratif_id', 'sample-adm1-shape-id')
+            ->assertJsonPath('data.0.status_validasi_koordinat', 'terverifikasi');
     }
 
     public function test_detail_returns_gunung_and_related_reports_in_defined_order(): void
@@ -91,6 +110,12 @@ class GunungApiTest extends TestCase
                         'status_aktivitas',
                         'radius_perkiraan_km',
                         'sumber_data',
+                        'sumber_koordinat',
+                        'sumber_koordinat_id',
+                        'sumber_validasi_administratif',
+                        'sumber_validasi_administratif_id',
+                        'status_validasi_koordinat',
+                        'waktu_validasi_koordinat',
                         'aktif',
                     ],
                     'laporan' => [[
@@ -104,6 +129,10 @@ class GunungApiTest extends TestCase
                         'foto',
                         'sumber',
                         'waktu_publikasi',
+                        'sumber_id',
+                        'url_sumber',
+                        'periode_waktu',
+                        'waktu_pengambilan',
                     ]],
                 ],
             ])

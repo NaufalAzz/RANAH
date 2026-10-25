@@ -163,10 +163,10 @@ class _HeroCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(22),
                     ),
                     child: const Text(
-                      'Hot News!!',
+                      'Berita Utama',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
+                        fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -176,7 +176,7 @@ class _HeroCard extends StatelessWidget {
                     'CONTOH',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 9,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                       letterSpacing: .7,
                     ),
@@ -197,8 +197,8 @@ class _HeroCard extends StatelessWidget {
                     Text(
                       story.category,
                       style: TextStyle(
-                        color: Color(story.color),
-                        fontSize: 14,
+                        color: Colors.white,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -208,7 +208,7 @@ class _HeroCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 15,
+                        fontSize: 16,
                         height: 1.05,
                         fontWeight: FontWeight.w700,
                       ),
@@ -252,8 +252,8 @@ class _HeroArrow extends StatelessWidget {
         height: 48,
         child: Center(
           child: Container(
-            width: 35,
-            height: 35,
+            width: 48,
+            height: 48,
             decoration: const BoxDecoration(
               color: Color(0x669BA8BA),
               shape: BoxShape.circle,
@@ -287,8 +287,8 @@ class _NewsCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
-        child: SizedBox(
-          height: compact ? 94 : 108,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: compact ? 94 : 108),
           child: Padding(
             padding: EdgeInsets.all(compact ? 10 : 12),
             child: Row(
@@ -313,8 +313,8 @@ class _NewsCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Color(story.color),
-                          fontSize: 12,
+                          color: RanahColors.ink,
+                          fontSize: 16,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -325,7 +325,7 @@ class _NewsCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: RanahColors.ink,
-                          fontSize: 12,
+                          fontSize: 16,
                           height: 1.12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -335,7 +335,7 @@ class _NewsCard extends StatelessWidget {
                         story.date,
                         style: const TextStyle(
                           color: RanahColors.ink,
-                          fontSize: 12,
+                          fontSize: 16,
                         ),
                       ),
                     ],

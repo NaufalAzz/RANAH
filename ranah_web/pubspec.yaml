@@ -60,6 +60,24 @@ flutter:
   assets:
     - assets/images/
 
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/roboto-regular.ttf
+          weight: 400
+        - asset: assets/fonts/roboto-medium.ttf
+          weight: 500
+        - asset: assets/fonts/roboto-bold.ttf
+          weight: 700
+        - asset: assets/fonts/roboto-black.ttf
+          weight: 900
+        - asset: assets/fonts/roboto-italic.ttf
+          style: italic
+          weight: 400
+        - asset: assets/fonts/roboto-bolditalic.ttf
+          style: italic
+          weight: 700
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

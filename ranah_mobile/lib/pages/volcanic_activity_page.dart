@@ -200,6 +200,9 @@ class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
           GunungFreshnessNotice(
             isFromCache: _isFromCache,
             lastCheckedAt: _lastCheckedAt,
+            sourceRetrievedAt: all.isEmpty
+                ? null
+                : all.first['waktu_pengambilan']?.toString(),
             hasError: _syncError != null,
             apiReturnedEmpty: _apiReturnedEmpty && all.isNotEmpty,
           ),
@@ -262,9 +265,10 @@ class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
           ],
           const SizedBox(height: 12),
           const Text(
-            'Pengelompokan mengikuti teks status yang dikirim API RANAH. '
-            'Status dan sumbernya belum diverifikasi terhadap PVMBG; '
-            'data ini bukan peringatan resmi.',
+            'Daftar status berasal dari halaman MAGMA yang berhasil dibaca; '
+            'cakupannya bukan seluruh gunung api Indonesia. Level I–IV '
+            'menyatakan tingkat aktivitas, bukan klasifikasi gunung aktif '
+            'atau tidak aktif. Data ini bukan peringatan resmi RANAH.',
             style: TextStyle(
               color: Color(0xFFE2EDF5),
               fontSize: 13,

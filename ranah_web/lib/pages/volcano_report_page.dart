@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../data/volcanic_activity_data.dart';
 import '../theme/ranah_theme.dart';
+import '../widgets/ranah_full_width_title_background.dart';
 
 class VolcanoReportPage extends StatefulWidget {
   const VolcanoReportPage({
@@ -80,45 +81,48 @@ class _ReportTitleBanner extends StatelessWidget {
   const _ReportTitleBanner();
 
   @override
-  Widget build(BuildContext context) => Container(
-    height: 52,
-    padding: const EdgeInsets.symmetric(horizontal: 10),
+  Widget build(BuildContext context) => RanahFullWidthTitleBackground(
     color: const Color(0xFF17003E),
-    child: const Row(
-      children: [
-        Icon(Icons.landscape_outlined, size: 27),
-        SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'DISASTER EVACUATION',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 8,
-                  letterSpacing: .9,
-                  color: Color(0xFF91A8D0),
+    child: Container(
+      constraints: const BoxConstraints(minHeight: 76),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      color: const Color(0xFF17003E),
+      child: const Row(
+        children: [
+          Icon(Icons.landscape_outlined, size: 27),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'SIAGA BENCANA',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    letterSpacing: .9,
+                    color: Color(0xFF91A8D0),
+                  ),
                 ),
-              ),
-              Text(
-                'Volcanic Activity',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-              ),
-              Text(
-                'Memantau aktivitas gunung api',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 9, color: Color(0xFFC1C8D7)),
-              ),
-            ],
+                Text(
+                  'Aktivitas Gunung Api',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  'Memantau aktivitas gunung api',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: Color(0xFFC1C8D7)),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }
@@ -131,7 +135,7 @@ class _ReportBackBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    height: 30,
+    height: 48,
     padding: const EdgeInsets.symmetric(horizontal: 6),
     color: const Color(0xFF12304C),
     child: Row(
@@ -140,29 +144,36 @@ class _ReportBackBar extends StatelessWidget {
         TextButton.icon(
           onPressed: onBack,
           icon: const Icon(Icons.arrow_back, size: 14),
-          label: const Text('Kembali', style: TextStyle(fontSize: 10)),
+          label: const Text('Kembali', style: TextStyle(fontSize: 12)),
           style: TextButton.styleFrom(
             foregroundColor: RanahColors.ink,
             backgroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 8),
-            minimumSize: const Size(0, 26),
+            minimumSize: const Size(48, 48),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(4),
             ),
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFB51B).withValues(alpha: .8),
-            borderRadius: BorderRadius.circular(3),
-          ),
-          child: Text(
-            'Level ${volcano.level} - ${_levelName(volcano.level)} (contoh)',
-            style: const TextStyle(
-              fontSize: 8,
-              color: Color(0xFF332308),
-              fontWeight: FontWeight.w700,
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFB51B).withValues(alpha: .8),
+                borderRadius: BorderRadius.circular(3),
+              ),
+              child: Text(
+                'Level ${volcano.level} - ${_levelName(volcano.level)} (contoh)',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF332308),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
         ),
@@ -196,11 +207,11 @@ class _ReportPanel extends StatelessWidget {
       children: [
         const Text(
           'Laporan Gunung Api - DATA CONTOH',
-          style: TextStyle(fontSize: 9, color: Color(0xFFE3ECF5)),
+          style: TextStyle(fontSize: 12, color: Color(0xFFE3ECF5)),
         ),
         Text(
           volcano.name,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 6),
         AspectRatio(
@@ -214,12 +225,12 @@ class _ReportPanel extends StatelessWidget {
           padding: EdgeInsets.only(top: 3),
           child: Text(
             'Foto ilustrasi dari mockup - bukan bukti status terkini.',
-            style: TextStyle(fontSize: 8),
+            style: TextStyle(fontSize: 12),
           ),
         ),
         const SizedBox(height: 5),
         SizedBox(
-          height: 30,
+          height: 48,
           child: OutlinedButton(
             onPressed: onToggleKrb,
             style: OutlinedButton.styleFrom(
@@ -234,7 +245,7 @@ class _ReportPanel extends StatelessWidget {
             ),
             child: Text(
               showKrb ? 'Sembunyikan Zona KRB' : 'Tampilkan Peta KRB',
-              style: const TextStyle(fontSize: 10),
+              style: const TextStyle(fontSize: 12),
             ),
           ),
         ),
@@ -244,7 +255,7 @@ class _ReportPanel extends StatelessWidget {
             child: Text(
               'Zona ini hanya ilustrasi perkiraan, bukan batas KRB resmi.',
               style: TextStyle(
-                fontSize: 9,
+                fontSize: 12,
                 color: Color(0xFFFFD77D),
                 fontWeight: FontWeight.w600,
               ),
@@ -256,7 +267,7 @@ class _ReportPanel extends StatelessWidget {
         const SizedBox(height: 5),
         const Text(
           'Demo lokal - periksa sumber resmi PVMBG/BPBD untuk informasi kebencanaan.',
-          style: TextStyle(fontSize: 8, color: Color(0xFFFFD77D)),
+          style: TextStyle(fontSize: 12, color: Color(0xFFFFD77D)),
         ),
       ],
     ),
@@ -277,13 +288,13 @@ class _ReportSection extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 2),
         Text(
           body,
           style: const TextStyle(
-            fontSize: 9,
+            fontSize: 12,
             height: 1.15,
             color: Color(0xFFF0F3F8),
           ),
@@ -313,7 +324,7 @@ class _MapDisclosure extends StatelessWidget {
       text,
       style: TextStyle(
         color: warning ? const Color(0xFFFFE6AC) : Colors.white,
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: FontWeight.w700,
       ),
     ),
@@ -463,7 +474,7 @@ class _ReportMapPainter extends CustomPainter {
         text: text,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
           shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
         ),

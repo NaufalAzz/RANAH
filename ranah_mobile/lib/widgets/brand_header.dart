@@ -70,7 +70,7 @@ class BrandHeader extends StatelessWidget {
                   Text('RANAH', style: AppTypography.brandTitle),
                   SizedBox(height: AppSpacing.xxs),
                   Text(
-                    'Aplikasi Siaga Bencana Erupsi',
+                    'Aplikasi Informasi Bencana dan Evakuasi',
                     style: AppTypography.bannerSubtitle,
                   ),
                 ],

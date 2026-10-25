@@ -79,6 +79,25 @@ void main() {
     expect(result.items, hasLength(1));
   });
 
+  test('a volcano missing from the latest source list is retained as cached detail, not marked inactive', () async {
+    final repository = GunungRepository(
+      api: FakeGunungApi(list: [sampleGunung()], detail: sampleDetail()),
+      localStore: store,
+    );
+    await repository.syncGunung();
+    await repository.syncDetail(11);
+
+    final nextListing = GunungRepository(
+      api: FakeGunungApi(list: [sampleGunung(id: 12, nama: 'Gunung Kedua')]),
+      localStore: store,
+    );
+    await nextListing.syncGunung();
+
+    expect((await store.readGunung()).map((item) => item['id']), [12]);
+    expect((await store.readDetail(11))?['gunung']['id'], 11);
+    expect((await store.readDetail(11))?['laporan'], hasLength(1));
+  });
+
   test('detail and related reports can be read from cache offline', () async {
     final repository = GunungRepository(
       api: FakeGunungApi(detail: sampleDetail()),
@@ -129,9 +148,16 @@ void main() {
         ),
       );
       await _pumpOfflinePage(tester);
-      expect(find.textContaining('Data API belum diperbarui'), findsOneWidget);
       expect(
-        find.textContaining('Terakhir diperbarui: 06/04/2025 12:34'),
+        find.textContaining('Pemeriksaan API belum berhasil diperbarui'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Waktu pemeriksaan perangkat: 06/04/2025 12:34'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Waktu pengambilan data sumber: belum tersedia'),
         findsOneWidget,
       );
       expect(find.textContaining('06/04/2025 12:34'), findsOneWidget);
@@ -162,20 +188,25 @@ void main() {
       ),
     );
     await tester.pumpWidget(
-      MaterialApp(home: GunungReportPage(gunungId: 11, repository: repository)),
+      MaterialApp(
+        home: GunungReportPage(
+          gunungId: 11,
+          repository: repository,
+          showMapTiles: false,
+        ),
+      ),
     );
     await _pumpOfflinePage(tester);
 
-    expect(find.textContaining('Data API belum diperbarui'), findsOneWidget);
     expect(
-      find.textContaining('Terakhir diperbarui: 06/04/2025 12:34'),
+      find.textContaining('Pemeriksaan API belum berhasil diperbarui'),
       findsOneWidget,
     );
-    await tester.scrollUntilVisible(
-      find.text('Arahan aman'),
-      300,
-      scrollable: find.byType(Scrollable).last,
+    expect(
+      find.textContaining('Waktu pemeriksaan perangkat: 06/04/2025 12:34'),
+      findsOneWidget,
     );
+    await _scrollReportContentUntilBuilt(tester, find.text('Arahan aman'));
     expect(find.text('Gunung Cache'), findsOneWidget);
     expect(find.text('Arahan aman'), findsOneWidget);
   });
@@ -223,16 +254,25 @@ void main() {
       ),
     );
     await tester.pumpWidget(
-      MaterialApp(home: GunungReportPage(gunungId: 11, repository: repository)),
+      MaterialApp(
+        home: GunungReportPage(
+          gunungId: 11,
+          repository: repository,
+          showMapTiles: false,
+        ),
+      ),
     );
     await _pumpOfflinePage(tester);
 
+    await _scrollReportContentUntilBuilt(
+      tester,
+      find.text('Belum ada laporan pengamatan'),
+    );
     expect(find.text('Belum ada laporan pengamatan'), findsOneWidget);
     expect(find.text('Belum diverifikasi'), findsOneWidget);
-    await tester.scrollUntilVisible(
+    await _scrollReportContentUntilBuilt(
+      tester,
       find.text('Koordinat belum tersedia'),
-      300,
-      scrollable: find.byType(Scrollable).last,
     );
     expect(find.text('Koordinat belum tersedia'), findsOneWidget);
   });
@@ -282,8 +322,11 @@ class OfflineGunungRepository implements GunungDataRepository {
       throw Exception('network unavailable');
 }
 
-Map<String, dynamic> sampleGunung({String nama = 'Gunung Cache'}) => {
-  'id': 11,
+Map<String, dynamic> sampleGunung({
+  int id = 11,
+  String nama = 'Gunung Cache',
+}) => {
+  'id': id,
   'nama': nama,
   'provinsi': 'Provinsi Contoh',
   'kabupaten': null,
@@ -322,4 +365,20 @@ Future<void> _pumpOfflinePage(WidgetTester tester) async {
   for (var attempt = 0; attempt < 20; attempt++) {
     await tester.pump(const Duration(milliseconds: 100));
   }
+}
+
+Future<void> _scrollReportContentUntilBuilt(
+  WidgetTester tester,
+  Finder target,
+) async {
+  final scaffold = find.byType(Scaffold).last;
+  for (var attempt = 0; attempt < 20 && target.evaluate().isEmpty; attempt++) {
+    final start = tester.getBottomLeft(scaffold) + const Offset(20, -20);
+    await tester.dragFrom(start, const Offset(0, -300));
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  if (target.evaluate().isEmpty) {
+    throw TestFailure('Report content was not built while scrolling: $target');
+  }
+  await tester.ensureVisible(target);
 }

@@ -22,7 +22,7 @@ class GunungLocalStore {
     final database = await (_factory ?? databaseFactory).openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 2,
+        version: 3,
         onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
         onCreate: (db, version) async {
           await db.execute('''
@@ -30,6 +30,7 @@ class GunungLocalStore {
               id INTEGER PRIMARY KEY,
               nama TEXT,
               aktif INTEGER NOT NULL DEFAULT 1,
+              tercantum INTEGER NOT NULL DEFAULT 1,
               payload TEXT NOT NULL
             )
           ''');
@@ -56,6 +57,11 @@ class GunungLocalStore {
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           if (oldVersion < 2) await _createNewsTable(db);
+          if (oldVersion < 3) {
+            await db.execute(
+              'ALTER TABLE gunung ADD COLUMN tercantum INTEGER NOT NULL DEFAULT 1',
+            );
+          }
         },
       ),
     );
@@ -67,7 +73,7 @@ class GunungLocalStore {
     final rows = await (await _db).query(
       'gunung',
       columns: ['payload'],
-      where: 'aktif = 1',
+      where: 'tercantum = 1',
       orderBy: 'nama COLLATE NOCASE ASC',
     );
     return rows.map((row) => _decode(row['payload'] as String)).toList();
@@ -79,10 +85,10 @@ class GunungLocalStore {
   }) async {
     final db = await _db;
     await db.transaction((transaction) async {
-      // A non-empty API list is the complete active-gunung set. Keep inactive
-      // rows in storage for details, but exclude them from the list cache.
+      // This flag tracks listing membership only. It is not an active/inactive
+      // volcano classification, and cached detail rows remain untouched.
       if (items.isNotEmpty) {
-        await transaction.update('gunung', {'aktif': 0});
+        await transaction.update('gunung', {'tercantum': 0});
       }
       for (final item in items) {
         final id = _requiredId(item['id'], 'gunung');
@@ -91,11 +97,16 @@ class GunungLocalStore {
           'id': id,
           'nama': item['nama']?.toString(),
           'aktif': 1,
+          'tercantum': 1,
           'payload': payload,
         }, conflictAlgorithm: ConflictAlgorithm.ignore);
         await transaction.update(
           'gunung',
-          {'nama': item['nama']?.toString(), 'aktif': 1, 'payload': payload},
+          {
+            'nama': item['nama']?.toString(),
+            'tercantum': 1,
+            'payload': payload,
+          },
           where: 'id = ?',
           whereArgs: [id],
         );
@@ -148,15 +159,12 @@ class GunungLocalStore {
         'id': id,
         'nama': gunung['nama']?.toString(),
         'aktif': 1,
+        'tercantum': 0,
         'payload': jsonEncode(gunung),
       }, conflictAlgorithm: ConflictAlgorithm.ignore);
       await transaction.update(
         'gunung',
-        {
-          'nama': gunung['nama']?.toString(),
-          'aktif': 1,
-          'payload': jsonEncode(gunung),
-        },
+        {'nama': gunung['nama']?.toString(), 'payload': jsonEncode(gunung)},
         where: 'id = ?',
         whereArgs: [id],
       );

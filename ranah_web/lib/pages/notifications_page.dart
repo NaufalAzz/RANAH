@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/sample_notifications.dart';
 import '../theme/ranah_theme.dart';
+import '../widgets/ranah_full_width_title_background.dart';
 
 class NotificationsPage extends StatelessWidget {
   const NotificationsPage({
@@ -18,57 +19,51 @@ class NotificationsPage extends StatelessWidget {
     builder: (context, constraints) {
       final width = constraints.maxWidth > 1000 ? 1000.0 : constraints.maxWidth;
       final horizontal = width < 600 ? 20.0 : 36.0;
-      return Align(
-        alignment: Alignment.topCenter,
-        child: SizedBox(
-          width: width,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _NotificationsBanner(onBack: onBack),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 0),
-                  child: const Text(
-                    'Semua Notifikasi',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+      return RanahPageScrollLayout(
+        maxContentWidth: width,
+        title: _NotificationsBanner(onBack: onBack, maxContentWidth: width),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 0),
+              child: const Text(
+                'Semua Notifikasi',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
                 ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(horizontal, 5, horizontal, 9),
-                  child: const Text(
-                    'DATA SIMULASI · Bukan peringatan bencana real-time',
-                    style: TextStyle(
-                      color: Color(0xFFFFD788),
-                      fontSize: 9,
-                      height: 1.25,
-                    ),
-                  ),
-                ),
-                for (var index = 0; index < sampleNotifications.length; index++)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      horizontal,
-                      0,
-                      horizontal,
-                      index == sampleNotifications.length - 1 ? 0 : 13,
-                    ),
-                    child: _NotificationCard(
-                      notification: sampleNotifications[index],
-                      index: index,
-                      onTap: sampleNotifications[index].destination == null
-                          ? null
-                          : () => onNotificationTap(sampleNotifications[index]),
-                    ),
-                  ),
-              ],
+              ),
             ),
-          ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(horizontal, 5, horizontal, 9),
+              child: const Text(
+                'DATA SIMULASI · Bukan peringatan bencana real-time',
+                style: TextStyle(
+                  color: Color(0xFFFFD788),
+                  fontSize: 12,
+                  height: 1.25,
+                ),
+              ),
+            ),
+            for (var index = 0; index < sampleNotifications.length; index++)
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontal,
+                  0,
+                  horizontal,
+                  index == sampleNotifications.length - 1 ? 0 : 13,
+                ),
+                child: _NotificationCard(
+                  notification: sampleNotifications[index],
+                  index: index,
+                  onTap: sampleNotifications[index].destination == null
+                      ? null
+                      : () => onNotificationTap(sampleNotifications[index]),
+                ),
+              ),
+          ],
         ),
       );
     },
@@ -76,56 +71,63 @@ class NotificationsPage extends StatelessWidget {
 }
 
 class _NotificationsBanner extends StatelessWidget {
-  const _NotificationsBanner({required this.onBack});
+  const _NotificationsBanner({
+    required this.onBack,
+    required this.maxContentWidth,
+  });
 
   final VoidCallback onBack;
+  final double maxContentWidth;
 
   @override
-  Widget build(BuildContext context) => Container(
-    height: 52,
-    padding: const EdgeInsets.only(left: 12, right: 6),
+  Widget build(BuildContext context) => RanahFullWidthTitleBackground(
     color: RanahColors.banner,
-    child: Row(
-      children: [
-        const Icon(Icons.notifications_none_rounded, size: 26),
-        const SizedBox(width: 10),
-        const Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'DISASTER EVACUATION',
-                maxLines: 1,
-                style: TextStyle(
-                  color: Color(0xFF91A8D0),
-                  fontSize: 8,
-                  letterSpacing: .45,
-                  fontWeight: FontWeight.w600,
+    maxContentWidth: maxContentWidth,
+    child: Container(
+      constraints: const BoxConstraints(minHeight: 76),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      color: RanahColors.banner,
+      child: Row(
+        children: [
+          const Icon(Icons.notifications_none_rounded, size: 26),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'SIAGA BENCANA',
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: Color(0xFF91A8D0),
+                    fontSize: 12,
+                    letterSpacing: .45,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              Text(
-                'Notifikasi',
-                maxLines: 1,
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-              ),
-              Text(
-                'Peringatan dan informasi terkini',
-                maxLines: 1,
-                style: TextStyle(color: Color(0xFFC1C8D7), fontSize: 8),
-              ),
-            ],
+                Text(
+                  'Notifikasi',
+                  maxLines: 1,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  'Peringatan dan informasi terkini',
+                  maxLines: 1,
+                  style: TextStyle(color: Color(0xFFC1C8D7), fontSize: 12),
+                ),
+              ],
+            ),
           ),
-        ),
-        IconButton(
-          onPressed: onBack,
-          tooltip: 'Kembali',
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints.tightFor(width: 34, height: 38),
-          padding: EdgeInsets.zero,
-          icon: const Icon(Icons.arrow_back, size: 17),
-        ),
-      ],
+          IconButton(
+            onPressed: onBack,
+            tooltip: 'Kembali',
+            constraints: const BoxConstraints.tightFor(width: 48, height: 48),
+            padding: EdgeInsets.zero,
+            icon: const Icon(Icons.arrow_back, size: 17),
+          ),
+        ],
+      ),
     ),
   );
 }
@@ -186,32 +188,32 @@ class _NotificationCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Row(
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 3,
                       children: [
                         Text(
                           notification.level,
                           style: TextStyle(
-                            color: accent,
-                            fontSize: 9,
+                            color: RanahColors.ink,
+                            fontSize: 12,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(width: 14),
                         Text(
                           notification.time,
                           style: const TextStyle(
-                            color: Color(0xFF718096),
-                            fontSize: 8,
+                            color: RanahColors.muted,
+                            fontSize: 12,
                           ),
                         ),
                         if (notification.kind ==
                             SampleNotificationKind.earthquake) ...[
-                          const SizedBox(width: 10),
                           const Text(
                             'GEMPA',
                             style: TextStyle(
-                              color: Color(0xFF718096),
-                              fontSize: 7,
+                              color: RanahColors.muted,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -225,7 +227,7 @@ class _NotificationCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF1D2636),
-                        fontSize: 8,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -235,8 +237,8 @@ class _NotificationCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Color(0xFF718096),
-                        fontSize: 8,
+                        color: RanahColors.muted,
+                        fontSize: 16,
                         height: 1.15,
                       ),
                     ),
@@ -246,8 +248,8 @@ class _NotificationCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Color(0xFF8993A2),
-                        fontSize: 7,
+                        color: RanahColors.muted,
+                        fontSize: 12,
                         height: 1.1,
                       ),
                     ),
