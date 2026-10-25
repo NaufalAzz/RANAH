@@ -1,0 +1,16 @@
+﻿kolom_sumber,kolom_tabel_berita,status_pemetaan,cara_pemetaan,risiko
+id_kandidat_asli,(tidak ada),BELUM TERSEDIA; jangan salin ke sumber_id,Pertahankan sebagai provenance CSV. sumber_id harus ID sumber resmi.,ID kurasi bukan ID BNPB; sumber_id unique nullable.
+judul,judul,LANGSUNG,"Salin judul, batas 200 karakter.",Validasi panjang.
+jenis_bencana,kategori,TRANSFORMASI,"Petakan taksonomi ke kategori aplikasi, max 50 karakter.",Perlu konsistensi kategori.
+jenis_konten,jenis_konten,TRANSFORMASI,Kejadian saja dipetakan sebagai berita kejadian; statistik/tindakan dipisahkan.,"varchar(20), default artikel."
+ringkasan+dampak+bukti+halaman,isi,TRANSFORMASI,"Susun ringkasan atribusi, skala dampak, PDF/halaman, catatan.",Tidak ada kolom dampak/provenance.
+sumber,sumber,TRANSFORMASI,Atribusikan ke Buletin BNPB dan BPBD bila dikutip.,Tidak menyatakan validasi independen.
+url_sumber,url_sumber,NULL,Biarkan NULL bila URL resmi tak terbukti.,Jangan mengarang URL.
+wilayah administratif,wilayah,TRANSFORMASI,Nama wilayah eksplisit; skala provinsi tetap regional.,"Satu string 255, tanpa geo relation."
+tanggal_kejadian_mulai,waktu_kejadian,BERSYARAT,Tanggal/jam terbukti; jangan tambahkan jam midnight; konflik tetap NULL.,Datetime DB tanpa zona; app UTC.
+tanggal_publikasi,waktu_publikasi,LANGSUNG JIKA TERBUKTI,Hanya tanggal publikasi eksplisit; bukan tanggal edisi/update/cutoff.,API memerlukan published dan tanggal publikasi.
+tanggal_kejadian_selesai,waktu_berakhir,NULL KECUALI TERBUKTI,Isi hanya akhir eksplisit.,Jangan simpulkan dari update.
+waktu_pengambilan,waktu_pengambilan,ISI SAAT INGEST,Catat waktu ingest aktual.,Tidak ada timestamp historis.
+status editorial,status_publikasi,JANGAN PETAKAN; draft,Tetap draft sampai persetujuan editorial.,Published tampil di API.
+gambar,gambar,NULL,Jangan membuat URL asset.,Asset belum diekstrak/diverifikasi.
+nama_file_pdf+halaman,(tidak ada),PROVENANCE EKSTERNAL/isi,Pertahankan di CSV dan isi staging.,Tidak dapat query khusus di API.

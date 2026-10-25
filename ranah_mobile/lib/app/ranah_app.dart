@@ -4,12 +4,24 @@ import '../pages/gunung_api_page.dart';
 import '../pages/intro_splash_page.dart';
 import '../theme/app_theme.dart';
 import '../services/news_repository.dart';
+import '../services/complaint_api.dart';
+import '../services/complaint_media_picker.dart';
+import '../services/internet_status_monitor.dart';
 import 'main_shell.dart';
 
 class RanahApp extends StatefulWidget {
-  const RanahApp({this.newsRepository, super.key});
+  const RanahApp({
+    this.newsRepository,
+    this.complaintApi,
+    this.mediaPicker,
+    this.internetStatusMonitor,
+    super.key,
+  });
 
   final NewsRepository? newsRepository;
+  final ComplaintApi? complaintApi;
+  final ComplaintMediaPicker? mediaPicker;
+  final InternetStatusMonitor? internetStatusMonitor;
 
   @override
   State<RanahApp> createState() => _RanahAppState();
@@ -54,6 +66,9 @@ class _RanahAppState extends State<RanahApp> {
                 : MainShell(
                     key: const ValueKey('main-shell'),
                     newsRepository: widget.newsRepository,
+                    complaintApi: widget.complaintApi,
+                    mediaPicker: widget.mediaPicker,
+                    internetStatusMonitor: widget.internetStatusMonitor,
                   ),
           );
         },

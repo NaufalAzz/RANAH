@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../pages/contact_complaint_page.dart';
 import '../pages/mitigation_page.dart';
 import '../pages/volcanic_activity_page.dart';
+import '../services/complaint_api.dart';
+import '../services/complaint_media_picker.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/app_card_surface.dart';
@@ -10,7 +12,10 @@ import '../widgets/app_card_surface.dart';
 enum _MenuSection { home, mitigation, contacts, volcanicActivity }
 
 class MenuPage extends StatefulWidget {
-  const MenuPage({super.key});
+  const MenuPage({this.complaintApi, this.mediaPicker, super.key});
+
+  final ComplaintApi? complaintApi;
+  final ComplaintMediaPicker? mediaPicker;
 
   @override
   State<MenuPage> createState() => _MenuPageState();
@@ -32,6 +37,8 @@ class _MenuPageState extends State<MenuPage> {
       ),
       _MenuSection.contacts => ContactComplaintPage(
         onBack: () => _openSection(_MenuSection.home),
+        complaintApi: widget.complaintApi,
+        mediaPicker: widget.mediaPicker,
       ),
       _MenuSection.volcanicActivity => VolcanicActivityPage(
         onBack: () => _openSection(_MenuSection.home),

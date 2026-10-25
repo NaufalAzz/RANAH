@@ -1,9 +1,10 @@
 <?php
 
+use App\Http\Controllers\BeritaController;
+use App\Http\Controllers\GunungController;
+use App\Http\Controllers\PengaduanController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\GunungController;
-use App\Http\Controllers\BeritaController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -18,3 +19,6 @@ Route::get('/berita', [BeritaController::class, 'index']);
 
 Route::get('/berita/{id}', [BeritaController::class, 'show'])
     ->whereNumber('id');
+
+Route::post('/pengaduan', [PengaduanController::class, 'store'])
+    ->middleware('throttle:5,1');

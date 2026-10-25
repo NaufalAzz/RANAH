@@ -16,16 +16,12 @@ class GunungFreshnessNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final source = hasError
-        ? 'Offline • data tersimpan mungkin sudah usang'
-        : isFromCache
-        ? 'Data lokal • sedang memeriksa pembaruan'
-        : apiReturnedEmpty
-        ? 'API mengembalikan daftar kosong • cache lama dipertahankan'
+    final source = hasError || isFromCache || apiReturnedEmpty
+        ? 'Data API belum diperbarui'
         : 'Data API berhasil diperbarui';
     final checkedAt = lastCheckedAt == null
-        ? 'Waktu pemeriksaan belum tersedia'
-        : 'Terakhir diperiksa ${_formatDate(lastCheckedAt!)}';
+        ? 'Terakhir diperbarui: belum tersedia'
+        : 'Terakhir diperbarui: ${_formatDate(lastCheckedAt!)}';
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -45,7 +41,7 @@ class GunungFreshnessNotice extends StatelessWidget {
           const SizedBox(width: 9),
           Expanded(
             child: Text(
-              '$source\n$checkedAt. Waktu ini adalah waktu pemeriksaan/simpan di perangkat, bukan waktu publikasi sumber.',
+              '$source\n$checkedAt',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 13,

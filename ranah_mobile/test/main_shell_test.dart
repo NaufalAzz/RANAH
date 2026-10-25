@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ranah_mobile/app/ranah_app.dart';
 
+import 'test_helpers.dart';
+
 void main() {
   testWidgets('Home and primary tab pages render inside the shell', (
     tester,
@@ -11,7 +13,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const RanahApp());
+    await tester.pumpWidget(
+      RanahApp(internetStatusMonitor: createTestInternetStatusMonitor()),
+    );
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
@@ -50,7 +54,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const RanahApp());
+    await tester.pumpWidget(
+      RanahApp(internetStatusMonitor: createTestInternetStatusMonitor()),
+    );
     await tester.pumpAndSettle();
 
     const firstTitle = 'Contoh: Kenali informasi resmi aktivitas gunung api';
@@ -87,7 +93,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const RanahApp());
+    await tester.pumpWidget(
+      RanahApp(internetStatusMonitor: createTestInternetStatusMonitor()),
+    );
     await tester.pumpAndSettle();
     await tester.tap(
       find.text('Contoh: Kenali informasi resmi aktivitas gunung api'),

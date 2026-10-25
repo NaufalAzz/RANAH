@@ -15,6 +15,7 @@ class NewsFeedSnapshot {
     this.cacheWriteFailed = false,
     this.lastSyncedAt,
     this.error,
+    this.hasUpdates = false,
   });
 
   final List<NewsItem> items;
@@ -23,6 +24,7 @@ class NewsFeedSnapshot {
   final bool cacheWriteFailed;
   final DateTime? lastSyncedAt;
   final Object? error;
+  final bool hasUpdates;
 }
 
 class NewsRepository {
@@ -45,6 +47,7 @@ class NewsRepository {
           throw const FormatException('Format item berita tidak sesuai.');
         }
         final json = Map<String, dynamic>.from(rawItem);
+        if (_isInactiveWarning(json)) continue;
         items.add(_parse(json));
         rawItems.add(json);
       }
@@ -53,13 +56,18 @@ class NewsRepository {
     }
 
     final checkedAt = DateTime.now();
+    var hasUpdates = true;
     try {
-      await _localStore.saveNews(rawItems, checkedAt: checkedAt);
+      hasUpdates = await _localStore.saveNewsIfChanged(
+        rawItems,
+        checkedAt: checkedAt,
+      );
       return NewsFeedSnapshot(
         items: items,
         isUsingFallback: false,
         isFromCache: false,
         lastSyncedAt: checkedAt,
+        hasUpdates: hasUpdates,
       );
     } catch (error) {
       // Display fresh server data even if SQLite could not persist it.
@@ -70,6 +78,7 @@ class NewsRepository {
         cacheWriteFailed: true,
         lastSyncedAt: checkedAt,
         error: error,
+        hasUpdates: hasUpdates,
       );
     }
   }
@@ -80,7 +89,10 @@ class NewsRepository {
       final lastSyncedAt = await _localStore.readLastSync('news_last_sync');
       if (cachedItems.isNotEmpty || lastSyncedAt != null) {
         return NewsFeedSnapshot(
-          items: cachedItems.map(_parse).toList(),
+          items: cachedItems
+              .where((item) => !_isInactiveWarning(item))
+              .map(_parse)
+              .toList(),
           isUsingFallback: false,
           isFromCache: true,
           lastSyncedAt: lastSyncedAt,
@@ -116,30 +128,38 @@ class NewsRepository {
     }
 
     final categoryKey = category.toLowerCase();
+    final type = json['jenis_konten']?.toString().trim();
+    final contentType =
+        const {'artikel', 'kejadian', 'peringatan'}.contains(type)
+        ? type!
+        : 'artikel';
     final accent =
         categoryKey.contains('erupsi') || categoryKey.contains('gunung')
         ? AppColors.eruption
-        : categoryKey.contains('pengungsian')
+        : categoryKey.contains('gempa') || categoryKey.contains('tsunami')
+        ? const Color(0xFFB7791F)
+        : categoryKey.contains('imbauan') || categoryKey.contains('bantuan')
         ? AppColors.teal
         : const Color(0xFFB7791F);
     final icon =
         categoryKey.contains('erupsi') || categoryKey.contains('gunung')
         ? Icons.landscape_rounded
-        : categoryKey.contains('pengungsian')
-        ? Icons.backpack_outlined
+        : categoryKey.contains('gempa') || categoryKey.contains('tsunami')
+        ? Icons.waves_rounded
+        : contentType == 'peringatan'
+        ? Icons.warning_amber_rounded
         : Icons.newspaper_rounded;
     final summaryText = body.replaceAll(RegExp(r'\s+'), ' ').trim();
     final summary = summaryText.length <= 180
         ? summaryText
         : '${summaryText.substring(0, 177)}…';
-    final localDate = published.toLocal();
-    final publishedAt =
-        '${localDate.day.toString().padLeft(2, '0')}-'
-        '${localDate.month.toString().padLeft(2, '0')}-'
-        '${localDate.year}';
-    final source = json['sumber']?.toString().trim();
+    final publishedAt = _formatPublicationDate(published);
+    final source = _optionalString(json['sumber']);
     final imageUrl = _validImageUrl(json['gambar']);
 
+    final expiresAt = DateTime.tryParse(
+      json['waktu_berakhir']?.toString() ?? '',
+    );
     return NewsItem(
       id: id,
       category: category,
@@ -149,9 +169,50 @@ class NewsRepository {
       publishedAt: publishedAt,
       icon: icon,
       accent: accent,
-      source: source == null || source.isEmpty ? null : source,
+      source: source,
+      contentType: contentType,
+      sourceUrl: _validHttpsUrl(json['url_sumber']),
+      region: _optionalString(json['wilayah']),
       imageUrl: imageUrl,
+      eventAt: DateTime.tryParse(json['waktu_kejadian']?.toString() ?? ''),
+      expiresAt: expiresAt,
+      retrievedAt: DateTime.tryParse(
+        json['waktu_pengambilan']?.toString() ?? '',
+      ),
     );
+  }
+
+  String _formatPublicationDate(DateTime published) {
+    final localDate = published.toLocal();
+    return '${localDate.day.toString().padLeft(2, '0')}-'
+        '${localDate.month.toString().padLeft(2, '0')}-'
+        '${localDate.year}';
+  }
+
+  bool _isInactiveWarning(Map<String, dynamic> json) {
+    if (json['jenis_konten']?.toString() != 'peringatan') return false;
+    final expiresAt = DateTime.tryParse(
+      json['waktu_berakhir']?.toString() ?? '',
+    );
+    return expiresAt == null || !expiresAt.isAfter(DateTime.now());
+  }
+
+  String? _optionalString(dynamic value) {
+    if (value is! String || value.trim().isEmpty) return null;
+    return value.trim();
+  }
+
+  String? _validHttpsUrl(dynamic value) {
+    if (value is! String || value.trim().isEmpty) return null;
+    final uri = Uri.tryParse(value.trim());
+    if (uri == null ||
+        !uri.hasAuthority ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty ||
+        uri.scheme != 'https') {
+      return null;
+    }
+    return uri.toString();
   }
 
   String? _validImageUrl(dynamic value) {

@@ -6,27 +6,20 @@ import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/app_card_surface.dart';
 import '../widgets/news_artwork.dart';
-import '../widgets/news_feed_notice.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
     required this.onOpenNews,
     this.items = sampleNews,
     this.isUsingFallback = true,
-    this.isLoadingNews = false,
     this.isFromCache = false,
-    this.cacheWriteFailed = false,
-    this.lastSyncedAt,
     super.key,
   });
 
   final ValueChanged<NewsItem> onOpenNews;
   final List<NewsItem> items;
   final bool isUsingFallback;
-  final bool isLoadingNews;
   final bool isFromCache;
-  final bool cacheWriteFailed;
-  final DateTime? lastSyncedAt;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -68,13 +61,6 @@ class _HomePageState extends State<HomePage> {
                 AppSpacing.xl,
               ),
               children: [
-                NewsFeedNotice(
-                  isUsingFallback: widget.isUsingFallback,
-                  isLoading: widget.isLoadingNews,
-                  isFromCache: widget.isFromCache,
-                  cacheWriteFailed: widget.cacheWriteFailed,
-                  lastSyncedAt: widget.lastSyncedAt,
-                ),
                 if (widget.items.isEmpty)
                   const _NoPublishedNews()
                 else

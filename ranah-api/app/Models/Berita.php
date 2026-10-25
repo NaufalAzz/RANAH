@@ -11,10 +11,17 @@ class Berita extends Model
     protected $fillable = [
         'judul',
         'kategori',
+        'jenis_konten',
         'isi',
         'gambar',
         'sumber',
+        'sumber_id',
+        'url_sumber',
+        'wilayah',
         'waktu_publikasi',
+        'waktu_kejadian',
+        'waktu_berakhir',
+        'waktu_pengambilan',
         'status_publikasi',
     ];
 
@@ -22,6 +29,9 @@ class Berita extends Model
     {
         return [
             'waktu_publikasi' => 'datetime',
+            'waktu_kejadian' => 'datetime',
+            'waktu_berakhir' => 'datetime',
+            'waktu_pengambilan' => 'datetime',
         ];
     }
 }

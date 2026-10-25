@@ -8,6 +8,7 @@ class BrandHeader extends StatelessWidget {
     this.onOpenNotifications,
     this.logo,
     this.notificationCount,
+    this.isOnline = false,
   });
 
   final VoidCallback? onOpenNotifications;
@@ -15,6 +16,7 @@ class BrandHeader extends StatelessWidget {
 
   /// Null keeps the current small indicator; a value enables a count badge.
   final int? notificationCount;
+  final bool isOnline;
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +74,17 @@ class BrandHeader extends StatelessWidget {
                     style: AppTypography.bannerSubtitle,
                   ),
                 ],
+              ),
+            ),
+          ),
+          Tooltip(
+            message: isOnline ? 'Online' : 'Offline',
+            child: Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.xs),
+              child: Icon(
+                isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+                size: 19,
+                color: isOnline ? const Color(0xFF67D391) : AppColors.danger,
               ),
             ),
           ),

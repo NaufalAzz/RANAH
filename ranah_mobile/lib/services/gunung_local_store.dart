@@ -227,6 +227,41 @@ class GunungLocalStore {
     });
   }
 
+  Future<bool> saveNewsIfChanged(
+    List<Map<String, dynamic>> items, {
+    required DateTime checkedAt,
+  }) async {
+    final db = await _db;
+    return db.transaction((transaction) async {
+      final rows = await transaction.query(
+        'news_cache',
+        columns: ['payload'],
+        orderBy: 'server_order ASC',
+      );
+      final cachedItems = rows
+          .map((row) => _decode(row['payload'] as String))
+          .toList();
+      final hasUpdates = jsonEncode(cachedItems) != jsonEncode(items);
+      if (hasUpdates) {
+        await transaction.delete('news_cache');
+        for (var index = 0; index < items.length; index++) {
+          final item = items[index];
+          final id = item['id']?.toString().trim();
+          if (id == null || id.isEmpty) {
+            throw const FormatException('ID berita tidak valid.');
+          }
+          await transaction.insert('news_cache', {
+            'id': id,
+            'server_order': index,
+            'payload': jsonEncode(item),
+          });
+        }
+      }
+      await _writeMetadata(transaction, 'news_last_sync', checkedAt);
+      return hasUpdates;
+    });
+  }
+
   Future<void> _writeMetadata(
     Transaction transaction,
     String key,

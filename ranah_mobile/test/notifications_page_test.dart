@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ranah_mobile/app/ranah_app.dart';
+
+import 'test_helpers.dart';
+
 import 'package:ranah_mobile/pages/notifications_page.dart';
 
 void main() {
@@ -12,7 +15,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const RanahApp());
+    await tester.pumpWidget(
+      RanahApp(internetStatusMonitor: createTestInternetStatusMonitor()),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Notifikasi'));
@@ -86,7 +91,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const RanahApp());
+    await tester.pumpWidget(
+      RanahApp(internetStatusMonitor: createTestInternetStatusMonitor()),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Notifikasi'));
     await tester.pumpAndSettle();
@@ -105,7 +112,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const RanahApp());
+    await tester.pumpWidget(
+      RanahApp(internetStatusMonitor: createTestInternetStatusMonitor()),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Notifikasi'));
     await tester.pumpAndSettle();

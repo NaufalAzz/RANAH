@@ -87,6 +87,23 @@ class BeritaApiTest extends TestCase
             ->assertJsonPath('data.sumber', null);
     }
 
+    public function test_local_image_paths_use_the_api_request_host_for_phone_clients(): void
+    {
+        $item = $this->createBerita([
+            'gambar' => 'news/bnpb/bnpb-2026-05-agam-p20.jpeg',
+        ]);
+        $apiHost = 'http://192.168.18.49:8000';
+        $imageUrl = $apiHost.'/storage/news/bnpb/bnpb-2026-05-agam-p20.jpeg';
+
+        $this->getJson($apiHost.'/api/berita')
+            ->assertOk()
+            ->assertJsonPath('data.0.gambar', $imageUrl);
+
+        $this->getJson($apiHost."/api/berita/{$item->id}")
+            ->assertOk()
+            ->assertJsonPath('data.gambar', $imageUrl);
+    }
+
     public function test_detail_hides_missing_draft_and_future_news(): void
     {
         $draft = $this->createBerita(['status_publikasi' => 'draft']);

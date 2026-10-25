@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../data/sample_emergency_contacts.dart';
-import '../models/complaint_draft.dart';
 import '../models/emergency_contact.dart';
+import '../services/api_service.dart';
+import '../services/complaint_api.dart';
+import '../services/complaint_media_picker.dart';
 import '../services/phone_dialer.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
@@ -11,9 +14,16 @@ import '../widgets/app_card_surface.dart';
 import '../widgets/app_page_banner.dart';
 
 class ContactComplaintPage extends StatefulWidget {
-  const ContactComplaintPage({required this.onBack, super.key});
+  const ContactComplaintPage({
+    required this.onBack,
+    this.complaintApi,
+    this.mediaPicker,
+    super.key,
+  });
 
   final VoidCallback onBack;
+  final ComplaintApi? complaintApi;
+  final ComplaintMediaPicker? mediaPicker;
 
   @override
   State<ContactComplaintPage> createState() => _ContactComplaintPageState();
@@ -26,11 +36,23 @@ class _ContactComplaintPageState extends State<ContactComplaintPage> {
   final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _phoneDialer = PhoneDialer();
-  final List<ComplaintDraft> _localSubmissions = [];
+  late final ComplaintApi _complaintApi;
+  late final ComplaintMediaPicker _mediaPicker;
 
   int _selectedTab = 0;
+  int _submissionCount = 0;
   String? _selectedCategory;
   bool _consented = false;
+  bool _isSubmitting = false;
+  bool _isPickingMedia = false;
+  List<XFile> _attachments = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _complaintApi = widget.complaintApi ?? ApiService();
+    _mediaPicker = widget.mediaPicker ?? GalleryComplaintMediaPicker();
+  }
 
   @override
   void dispose() {
@@ -105,71 +127,112 @@ class _ContactComplaintPageState extends State<ContactComplaintPage> {
     final valid = _formKey.currentState?.validate() ?? false;
     if (!valid) return;
     if (!_consented) {
-      _showMessage('Setujui penggunaan data untuk melanjutkan simulasi.');
+      _showMessage('Setujui pengiriman data untuk melanjutkan.');
       return;
     }
+    if (_isSubmitting) return;
 
+    setState(() => _isSubmitting = true);
     try {
-      setState(() {
-        _localSubmissions.add(
-          ComplaintDraft(
-            reporterName: _nameController.text.trim(),
-            phoneNumber: _phoneController.text.trim(),
-            category: _selectedCategory!,
-            location: _locationController.text.trim(),
-            description: _descriptionController.text.trim(),
-          ),
-        );
-      });
-    } catch (_) {
-      _showMessage(
-        'Pengaduan tidak dapat dicatat sementara. Data belum dikirim ke server.',
+      final receipt = await _complaintApi.submitComplaint(
+        reporterName: _nameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+        category: _selectedCategory!,
+        location: _locationController.text.trim(),
+        description: _descriptionController.text.trim(),
+        consented: _consented,
+        attachments: _attachments,
       );
-      return;
-    }
+      if (!mounted) return;
 
-    setState(() {
-      _nameController.clear();
-      _phoneController.clear();
-      _locationController.clear();
-      _descriptionController.clear();
-      _selectedCategory = null;
-      _consented = false;
-    });
+      setState(() {
+        _submissionCount++;
+        _nameController.clear();
+        _phoneController.clear();
+        _locationController.clear();
+        _descriptionController.clear();
+        _attachments = [];
+        _selectedCategory = null;
+        _consented = false;
+      });
 
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.darkPanel,
-        icon: const Icon(
-          Icons.save_outlined,
-          size: 36,
-          color: Color(0xFF91D4C8),
-        ),
-        title: const Text(
-          'Pengaduan Tersimpan Sementara',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
-        ),
-        content: const Text(
-          'Pengaduan dicatat di memori sesi aplikasi ini dan belum dikirim ke server. Data dapat hilang saat aplikasi ditutup.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.mutedOnDark, height: 1.45),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('OK'),
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: AppColors.darkPanel,
+          icon: const Icon(
+            Icons.cloud_done_outlined,
+            size: 36,
+            color: Color(0xFF91D4C8),
           ),
-        ],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.card),
-          side: const BorderSide(color: AppColors.darkPanelBorder),
+          title: const Text(
+            'Pengaduan Berhasil Dikirim',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+          ),
+          content: Text(
+            'Server menerima pengaduan. Nomor referensi: '
+            '#${receipt.id}. Waktu diterima: ${_formatReceivedAt(receipt.receivedAt)}.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.mutedOnDark, height: 1.45),
+          ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadii.card),
+            side: const BorderSide(color: AppColors.darkPanelBorder),
+          ),
         ),
-      ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      final message = error is ComplaintApiException
+          ? error.message
+          : error.toString().replaceFirst('Exception: ', '');
+      _showMessage(message);
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _pickAttachments() async {
+    if (_isPickingMedia || _isSubmitting) return;
+    setState(() => _isPickingMedia = true);
+    try {
+      final picked = await _mediaPicker.pickImages();
+      if (!mounted || picked.isEmpty) return;
+      setState(() {
+        _attachments = picked.take(3).toList(growable: false);
+      });
+    } on PlatformException {
+      if (mounted) _showMessage('Galeri tidak dapat dibuka. Coba lagi.');
+    } catch (_) {
+      if (mounted) _showMessage('Foto tidak dapat dipilih. Coba lagi.');
+    } finally {
+      if (mounted) setState(() => _isPickingMedia = false);
+    }
+  }
+
+  void _removeAttachment(XFile file) {
+    setState(
+      () => _attachments = _attachments
+          .where((item) => item.path != file.path)
+          .toList(),
     );
+  }
+
+  String _formatReceivedAt(DateTime value) {
+    final local = value.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$day/$month/${local.year} $hour:$minute';
   }
 
   void _showMessage(String message) {
@@ -238,13 +301,18 @@ class _ContactComplaintPageState extends State<ContactComplaintPage> {
                             phoneController: _phoneController,
                             locationController: _locationController,
                             descriptionController: _descriptionController,
+                            attachments: _attachments,
+                            onPickAttachments: _pickAttachments,
+                            onRemoveAttachment: _removeAttachment,
+                            isPickingMedia: _isPickingMedia,
                             selectedCategory: _selectedCategory,
                             onCategoryChanged: (category) =>
                                 setState(() => _selectedCategory = category),
                             consented: _consented,
                             onConsentChanged: (value) =>
                                 setState(() => _consented = value),
-                            submissionCount: _localSubmissions.length,
+                            submissionCount: _submissionCount,
+                            isSubmitting: _isSubmitting,
                             onSubmit: _submitComplaint,
                           ),
                   ),
@@ -502,11 +570,16 @@ class _ComplaintForm extends StatelessWidget {
     required this.phoneController,
     required this.locationController,
     required this.descriptionController,
+    required this.attachments,
+    required this.onPickAttachments,
+    required this.onRemoveAttachment,
+    required this.isPickingMedia,
     required this.selectedCategory,
     required this.onCategoryChanged,
     required this.consented,
     required this.onConsentChanged,
     required this.submissionCount,
+    required this.isSubmitting,
     required this.onSubmit,
   });
 
@@ -515,11 +588,16 @@ class _ComplaintForm extends StatelessWidget {
   final TextEditingController phoneController;
   final TextEditingController locationController;
   final TextEditingController descriptionController;
+  final List<XFile> attachments;
+  final VoidCallback onPickAttachments;
+  final ValueChanged<XFile> onRemoveAttachment;
+  final bool isPickingMedia;
   final String? selectedCategory;
   final ValueChanged<String?> onCategoryChanged;
   final bool consented;
   final ValueChanged<bool> onConsentChanged;
   final int submissionCount;
+  final bool isSubmitting;
   final VoidCallback onSubmit;
 
   @override
@@ -597,11 +675,13 @@ class _ComplaintForm extends StatelessWidget {
                   : null,
             ),
             const SizedBox(height: 12),
-            const _FormLabel(label: 'Foto & Video Kejadian'),
+            const _FormLabel(label: 'Foto Kejadian'),
             OutlinedButton.icon(
-              onPressed: null,
+              onPressed: isPickingMedia ? null : onPickAttachments,
               icon: const Icon(Icons.image_outlined, size: 18),
-              label: const Text('Lampiran belum tersedia'),
+              label: Text(
+                isPickingMedia ? 'Membuka galeri...' : 'Pilih foto dari galeri',
+              ),
               style: OutlinedButton.styleFrom(
                 alignment: Alignment.centerLeft,
                 backgroundColor: Colors.white,
@@ -615,10 +695,30 @@ class _ComplaintForm extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.only(top: 4),
               child: Text(
-                'Lampiran foto/video belum didukung pada tahap ini.',
+                'Pilih hingga 3 foto JPG, PNG, atau WebP (maksimal 5 MB per foto).',
                 style: TextStyle(color: Color(0xFFD0D9E1), fontSize: 13),
               ),
             ),
+            if (attachments.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              for (final file in attachments)
+                ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.image, color: Colors.white70),
+                  title: Text(
+                    file.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  trailing: IconButton(
+                    tooltip: 'Hapus foto',
+                    onPressed: () => onRemoveAttachment(file),
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                  ),
+                ),
+            ],
             const SizedBox(height: 12),
             _FormLabel(label: 'Deskripsi Kejadian'),
             _TextInput(
@@ -638,7 +738,8 @@ class _ComplaintForm extends StatelessWidget {
               dense: true,
               activeColor: AppColors.primary,
               title: const Text(
-                'Saya setuju data ini digunakan untuk pencatatan pengaduan. Data hanya disimpan sementara di aplikasi ini dan belum dikirim ke server.',
+                'Saya setuju data pengaduan dan foto terpilih dikirim ke server '
+                'RANAH untuk pencatatan laporan.',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 13,
@@ -648,7 +749,7 @@ class _ComplaintForm extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             FilledButton(
-              onPressed: onSubmit,
+              onPressed: isSubmitting ? null : onSubmit,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 minimumSize: const Size(0, AppSizes.minimumTapTarget),
@@ -656,13 +757,13 @@ class _ComplaintForm extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text('KIRIM LAPORAN'),
+              child: Text(isSubmitting ? 'MENGIRIM...' : 'KIRIM LAPORAN'),
             ),
             const SizedBox(height: 8),
             Text(
               submissionCount == 0
-                  ? 'Pengaduan belum dikirim ke server.'
-                  : 'Tersimpan sementara di sesi aplikasi: $submissionCount',
+                  ? 'Belum ada pengaduan yang terkirim dari sesi ini.'
+                  : 'Berhasil dikirim dari sesi ini: $submissionCount',
               textAlign: TextAlign.center,
               style: const TextStyle(color: Color(0xFFD0D9E1), fontSize: 13),
             ),

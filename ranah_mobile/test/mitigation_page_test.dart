@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ranah_mobile/app/ranah_app.dart';
 
+import 'test_helpers.dart';
+
 void main() {
   testWidgets('all mitigation stages open matching steps and return', (
     tester,
@@ -11,7 +13,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const RanahApp());
+    await tester.pumpWidget(
+      RanahApp(internetStatusMonitor: createTestInternetStatusMonitor()),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Menu').last);
     await tester.pumpAndSettle();

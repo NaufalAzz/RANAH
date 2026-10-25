@@ -122,30 +122,41 @@ class _IllustrativeMap extends StatelessWidget {
       child: AppCardSurface(
         variant: AppCardVariant.information,
         padding: const EdgeInsets.all(AppSpacing.lg),
-        child: AspectRatio(
-          aspectRatio: 1.78,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.map_outlined, color: Colors.white70, size: 42),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  'Peta geografis belum tersedia',
-                  textAlign: TextAlign.center,
-                  style: AppTypography.sectionTitle.copyWith(
-                    color: Colors.white,
+        child: LayoutBuilder(
+          builder: (context, constraints) => AspectRatio(
+            // Leave vertical room for the wrapped explanatory copy on phones.
+            aspectRatio: constraints.maxWidth < 300
+                ? 1.0
+                : constraints.maxWidth < 360
+                ? 1.35
+                : 1.55,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.map_outlined,
+                    color: Colors.white70,
+                    size: 42,
                   ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Sumber peta resmi belum terhubung. Zona, jalur, dan titik aman tidak ditampilkan tanpa data terverifikasi.',
-                  textAlign: TextAlign.center,
-                  style: AppTypography.bodyCompact.copyWith(
-                    color: AppColors.mutedOnDark,
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    'Peta geografis belum tersedia',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.sectionTitle.copyWith(
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Sumber peta resmi belum terhubung. Zona, jalur, dan titik aman tidak ditampilkan tanpa data terverifikasi.',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.bodyCompact.copyWith(
+                      color: AppColors.mutedOnDark,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -179,29 +190,41 @@ class _MapLevelLegend extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
-        Wrap(
-          spacing: AppSpacing.md,
-          runSpacing: AppSpacing.xs,
-          children: [
-            for (final level in levels)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.circle,
-                    size: AppSizes.iconSmall,
-                    color: level.color,
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Text(
-                    level.label,
-                    style: AppTypography.bodyCompact.copyWith(
-                      color: Colors.white,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final itemWidth = constraints.maxWidth < 340
+                ? constraints.maxWidth
+                : (constraints.maxWidth - AppSpacing.md) / 2;
+            return Wrap(
+              spacing: AppSpacing.md,
+              runSpacing: AppSpacing.xs,
+              children: [
+                for (final level in levels)
+                  SizedBox(
+                    width: itemWidth,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.circle,
+                          size: AppSizes.iconSmall,
+                          color: level.color,
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(
+                          child: Text(
+                            level.label,
+                            softWrap: true,
+                            style: AppTypography.bodyCompact.copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-          ],
+              ],
+            );
+          },
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(

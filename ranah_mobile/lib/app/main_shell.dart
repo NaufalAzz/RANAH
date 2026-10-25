@@ -10,14 +10,27 @@ import '../pages/news_page.dart';
 import '../pages/notifications_page.dart';
 import '../pages/volcanic_activity_page.dart';
 import '../services/news_repository.dart';
+import '../services/complaint_api.dart';
+import '../services/complaint_media_picker.dart';
+import '../services/internet_status_monitor.dart';
+import '../widgets/news_feed_notice.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_header.dart';
 import '../widgets/ranah_page_route.dart';
 
 class MainShell extends StatefulWidget {
-  const MainShell({this.newsRepository, super.key});
+  const MainShell({
+    this.newsRepository,
+    this.complaintApi,
+    this.mediaPicker,
+    this.internetStatusMonitor,
+    super.key,
+  });
 
   final NewsRepository? newsRepository;
+  final ComplaintApi? complaintApi;
+  final ComplaintMediaPicker? mediaPicker;
+  final InternetStatusMonitor? internetStatusMonitor;
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -29,17 +42,18 @@ class _MainShellState extends State<MainShell> {
   String? _notificationNewsId;
   int _notificationSelectionRevision = 0;
   late final NewsRepository _newsRepository;
+  late final InternetStatusMonitor _internetStatusMonitor;
   List<NewsItem> _newsItems = sampleNews;
   bool _newsUsingFallback = true;
-  bool _newsLoading = true;
   bool _newsFromCache = false;
-  bool _newsCacheWriteFailed = false;
-  DateTime? _newsLastSyncedAt;
 
   @override
   void initState() {
     super.initState();
     _newsRepository = widget.newsRepository ?? NewsRepository();
+    _internetStatusMonitor =
+        widget.internetStatusMonitor ?? InternetStatusMonitor();
+    _internetStatusMonitor.start();
     _loadNews();
   }
 
@@ -49,11 +63,23 @@ class _MainShellState extends State<MainShell> {
     setState(() {
       _newsItems = result.items;
       _newsUsingFallback = result.isUsingFallback;
-      _newsLoading = false;
       _newsFromCache = result.isFromCache;
-      _newsCacheWriteFailed = result.cacheWriteFailed;
-      _newsLastSyncedAt = result.lastSyncedAt;
     });
+    if (result.hasUpdates) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(NewsFeedNotice.updated());
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _internetStatusMonitor.dispose();
+    super.dispose();
   }
 
   void _openTab(int index) {
@@ -150,10 +176,7 @@ class _MainShellState extends State<MainShell> {
         onOpenNews: _openNews,
         items: _newsItems,
         isUsingFallback: _newsUsingFallback,
-        isLoadingNews: _newsLoading,
         isFromCache: _newsFromCache,
-        cacheWriteFailed: _newsCacheWriteFailed,
-        lastSyncedAt: _newsLastSyncedAt,
       ),
       MapPage(
         onOpenActivity: () => Navigator.of(context).push(
@@ -168,13 +191,11 @@ class _MainShellState extends State<MainShell> {
         initialNewsId: _notificationNewsId,
         selectionRevision: _notificationSelectionRevision,
         items: _newsItems,
-        isUsingFallback: _newsUsingFallback,
-        isLoadingNews: _newsLoading,
-        isFromCache: _newsFromCache,
-        cacheWriteFailed: _newsCacheWriteFailed,
-        lastSyncedAt: _newsLastSyncedAt,
       ),
-      const MenuPage(),
+      MenuPage(
+        complaintApi: widget.complaintApi,
+        mediaPicker: widget.mediaPicker,
+      ),
     ];
 
     return PopScope<Object?>(
@@ -199,7 +220,13 @@ class _MainShellState extends State<MainShell> {
                   height: constraints.maxHeight,
                   child: Column(
                     children: [
-                      BrandHeader(onOpenNotifications: _toggleNotifications),
+                      ValueListenableBuilder<bool>(
+                        valueListenable: _internetStatusMonitor.isOnline,
+                        builder: (context, isOnline, child) => BrandHeader(
+                          isOnline: isOnline,
+                          onOpenNotifications: _toggleNotifications,
+                        ),
+                      ),
                       Expanded(
                         child: Stack(
                           fit: StackFit.expand,
@@ -209,19 +236,24 @@ class _MainShellState extends State<MainShell> {
                                 key: ValueKey('main-tab-$index'),
                                 child: IgnorePointer(
                                   ignoring: index != _selectedIndex,
-                                  child: ExcludeSemantics(
-                                    excluding: index != _selectedIndex,
-                                    child: AnimatedOpacity(
-                                      opacity: index == _selectedIndex ? 1 : 0,
-                                      duration: transitionDuration,
-                                      curve: Curves.easeOutCubic,
-                                      child: AnimatedSlide(
-                                        offset: index == _selectedIndex
-                                            ? Offset.zero
-                                            : const Offset(0.025, 0),
+                                  child: Offstage(
+                                    offstage: index != _selectedIndex,
+                                    child: ExcludeSemantics(
+                                      excluding: index != _selectedIndex,
+                                      child: AnimatedOpacity(
+                                        opacity: index == _selectedIndex
+                                            ? 1
+                                            : 0,
                                         duration: transitionDuration,
                                         curve: Curves.easeOutCubic,
-                                        child: pages[index],
+                                        child: AnimatedSlide(
+                                          offset: index == _selectedIndex
+                                              ? Offset.zero
+                                              : const Offset(0.025, 0),
+                                          duration: transitionDuration,
+                                          curve: Curves.easeOutCubic,
+                                          child: pages[index],
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -230,21 +262,24 @@ class _MainShellState extends State<MainShell> {
                             Positioned.fill(
                               child: IgnorePointer(
                                 ignoring: !_showingNotifications,
-                                child: ExcludeSemantics(
-                                  excluding: !_showingNotifications,
-                                  child: AnimatedOpacity(
-                                    opacity: _showingNotifications ? 1 : 0,
-                                    duration: transitionDuration,
-                                    curve: Curves.easeOutCubic,
-                                    child: AnimatedSlide(
-                                      offset: _showingNotifications
-                                          ? Offset.zero
-                                          : const Offset(0, -0.025),
+                                child: Offstage(
+                                  offstage: !_showingNotifications,
+                                  child: ExcludeSemantics(
+                                    excluding: !_showingNotifications,
+                                    child: AnimatedOpacity(
+                                      opacity: _showingNotifications ? 1 : 0,
                                       duration: transitionDuration,
                                       curve: Curves.easeOutCubic,
-                                      child: NotificationsPage(
-                                        onNotificationTap:
-                                            _openNotificationDestination,
+                                      child: AnimatedSlide(
+                                        offset: _showingNotifications
+                                            ? Offset.zero
+                                            : const Offset(0, -0.025),
+                                        duration: transitionDuration,
+                                        curve: Curves.easeOutCubic,
+                                        child: NotificationsPage(
+                                          onNotificationTap:
+                                              _openNotificationDestination,
+                                        ),
                                       ),
                                     ),
                                   ),

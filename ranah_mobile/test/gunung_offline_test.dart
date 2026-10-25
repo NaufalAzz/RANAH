@@ -129,7 +129,11 @@ void main() {
         ),
       );
       await _pumpOfflinePage(tester);
-      expect(find.textContaining('mungkin sudah usang'), findsOneWidget);
+      expect(find.textContaining('Data API belum diperbarui'), findsOneWidget);
+      expect(
+        find.textContaining('Terakhir diperbarui: 06/04/2025 12:34'),
+        findsOneWidget,
+      );
       expect(find.textContaining('06/04/2025 12:34'), findsOneWidget);
       await tester.scrollUntilVisible(
         find.text('Gunung Cache'),
@@ -162,7 +166,11 @@ void main() {
     );
     await _pumpOfflinePage(tester);
 
-    expect(find.textContaining('mungkin sudah usang'), findsOneWidget);
+    expect(find.textContaining('Data API belum diperbarui'), findsOneWidget);
+    expect(
+      find.textContaining('Terakhir diperbarui: 06/04/2025 12:34'),
+      findsOneWidget,
+    );
     await tester.scrollUntilVisible(
       find.text('Arahan aman'),
       300,

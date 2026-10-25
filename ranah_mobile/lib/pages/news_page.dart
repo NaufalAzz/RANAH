@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../data/sample_news.dart';
 import '../models/news_item.dart';
@@ -7,7 +8,6 @@ import '../widgets/app_background.dart';
 import '../widgets/app_card_surface.dart';
 import '../widgets/app_page_banner.dart';
 import '../widgets/news_artwork.dart';
-import '../widgets/news_feed_notice.dart';
 
 class NewsPage extends StatefulWidget {
   const NewsPage({
@@ -15,33 +15,58 @@ class NewsPage extends StatefulWidget {
     this.initialNewsId,
     this.selectionRevision = 0,
     this.items = sampleNews,
-    this.isUsingFallback = true,
-    this.isLoadingNews = false,
-    this.isFromCache = false,
-    this.cacheWriteFailed = false,
-    this.lastSyncedAt,
   });
 
   final String? initialNewsId;
   final int selectionRevision;
   final List<NewsItem> items;
-  final bool isUsingFallback;
-  final bool isLoadingNews;
-  final bool isFromCache;
-  final bool cacheWriteFailed;
-  final DateTime? lastSyncedAt;
 
   @override
   State<NewsPage> createState() => _NewsPageState();
 }
 
 class _NewsPageState extends State<NewsPage> {
-  static const _categories = ['Semua', 'Erupsi', 'Pengungsian', 'Bantuan'];
+  static const _allCategories = '__all_categories__';
+  static const _allRegions = '__all_regions__';
 
   final _searchController = TextEditingController();
   String _query = '';
-  String _category = 'Semua';
+  String _category = _allCategories;
+  String _region = _allRegions;
+  DateTime? _dateStart;
+  DateTime? _dateEnd;
   NewsItem? _selectedItem;
+
+  List<String> get _categories =>
+      widget.items
+          .map((item) => item.category.trim())
+          .where((category) => category.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort(
+          (first, second) =>
+              first.toLowerCase().compareTo(second.toLowerCase()),
+        );
+
+  List<String> get _regions =>
+      widget.items
+          .map((item) => item.region?.trim() ?? '')
+          .where((region) => region.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort(
+          (first, second) =>
+              first.toLowerCase().compareTo(second.toLowerCase()),
+        );
+
+  List<DateTime> get _eventDates =>
+      widget.items
+          .map((item) => item.eventAt?.toLocal())
+          .whereType<DateTime>()
+          .map((date) => DateTime(date.year, date.month, date.day))
+          .toSet()
+          .toList()
+        ..sort();
 
   @override
   void initState() {
@@ -55,6 +80,10 @@ class _NewsPageState extends State<NewsPage> {
     if (oldWidget.selectionRevision != widget.selectionRevision ||
         oldWidget.items != widget.items) {
       _selectNewsById(widget.initialNewsId);
+      if (!_categories.contains(_category)) _category = _allCategories;
+      if (!_regions.contains(_region)) _region = _allRegions;
+      if (!_eventDates.contains(_dateStart)) _dateStart = null;
+      if (!_eventDates.contains(_dateEnd)) _dateEnd = null;
     }
   }
 
@@ -79,15 +108,55 @@ class _NewsPageState extends State<NewsPage> {
     final query = _query.trim().toLowerCase();
     return widget.items.where((item) {
       final matchesCategory =
-          _category == 'Semua' || item.category == _category;
+          _category == _allCategories || item.category == _category;
+      final matchesRegion = _region == _allRegions || item.region == _region;
+      final eventDate = item.eventAt?.toLocal();
+      final matchesDate =
+          (_dateStart == null ||
+              (eventDate != null && !eventDate.isBefore(_dateStart!))) &&
+          (_dateEnd == null ||
+              (eventDate != null && !eventDate.isAfter(_dateEnd!)));
       final matchesQuery =
           query.isEmpty ||
           item.title.toLowerCase().contains(query) ||
           item.summary.toLowerCase().contains(query) ||
           item.body.toLowerCase().contains(query) ||
           item.category.toLowerCase().contains(query);
-      return matchesCategory && matchesQuery;
+      return matchesCategory && matchesRegion && matchesDate && matchesQuery;
     }).toList();
+  }
+
+  void _selectStartDate(String value) {
+    setState(() {
+      _dateStart = value.isEmpty ? null : DateTime.parse(value);
+      if (_dateStart != null &&
+          _dateEnd != null &&
+          _dateEnd!.isBefore(_dateStart!)) {
+        _dateEnd = _dateStart;
+      }
+    });
+  }
+
+  void _selectEndDate(String value) {
+    setState(() {
+      _dateEnd = value.isEmpty ? null : DateTime.parse(value);
+      if (_dateStart != null &&
+          _dateEnd != null &&
+          _dateEnd!.isBefore(_dateStart!)) {
+        _dateStart = _dateEnd;
+      }
+    });
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _query = '';
+      _searchController.clear();
+      _category = _allCategories;
+      _region = _allRegions;
+      _dateStart = null;
+      _dateEnd = null;
+    });
   }
 
   @override
@@ -120,18 +189,23 @@ class _NewsPageState extends State<NewsPage> {
                   ? _NewsListContent(
                       key: const ValueKey('news-list'),
                       categories: _categories,
+                      regions: _regions,
                       selectedCategory: _category,
+                      selectedRegion: _region,
+                      dateOptions: _eventDates,
+                      selectedStartDate: _dateStart,
+                      selectedEndDate: _dateEnd,
                       searchController: _searchController,
                       items: _filteredNews,
                       hasPublishedNews: widget.items.isNotEmpty,
-                      isUsingFallback: widget.isUsingFallback,
-                      isLoadingNews: widget.isLoadingNews,
-                      isFromCache: widget.isFromCache,
-                      cacheWriteFailed: widget.cacheWriteFailed,
-                      lastSyncedAt: widget.lastSyncedAt,
                       onQueryChanged: (value) => setState(() => _query = value),
                       onCategorySelected: (value) =>
                           setState(() => _category = value),
+                      onRegionSelected: (value) =>
+                          setState(() => _region = value),
+                      onStartDateSelected: _selectStartDate,
+                      onEndDateSelected: _selectEndDate,
+                      onClearFilters: _clearFilters,
                       onItemSelected: (item) =>
                           setState(() => _selectedItem = item),
                     )
@@ -147,6 +221,29 @@ class _NewsPageState extends State<NewsPage> {
     );
   }
 }
+
+String _formatDate(DateTime value) =>
+    '${value.day.toString().padLeft(2, '0')}/'
+    '${value.month.toString().padLeft(2, '0')}/${value.year}';
+
+String _dateKey(DateTime value) =>
+    '${value.year.toString().padLeft(4, '0')}-'
+    '${value.month.toString().padLeft(2, '0')}-'
+    '${value.day.toString().padLeft(2, '0')}';
+
+InputDecoration _filterDecoration(String label) => InputDecoration(
+  labelText: label,
+  labelStyle: const TextStyle(color: AppColors.mutedOnDark),
+  filled: true,
+  fillColor: const Color(0x8C123D5B),
+  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  enabledBorder: const OutlineInputBorder(
+    borderSide: BorderSide(color: Color(0x6689A4BA)),
+  ),
+  focusedBorder: const OutlineInputBorder(
+    borderSide: BorderSide(color: AppColors.bannerEyebrow, width: 1.5),
+  ),
+);
 
 class _NewsBackgroundRing extends StatelessWidget {
   const _NewsBackgroundRing({required this.size});
@@ -171,36 +268,88 @@ class _NewsBackgroundRing extends StatelessWidget {
   }
 }
 
+class _DateFilterDropdown extends StatelessWidget {
+  const _DateFilterDropdown({
+    required this.label,
+    required this.selectedDate,
+    required this.dates,
+    required this.onChanged,
+    super.key,
+  });
+
+  final String label;
+  final DateTime? selectedDate;
+  final List<DateTime> dates;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = selectedDate == null ? '' : _dateKey(selectedDate!);
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      isExpanded: true,
+      style: const TextStyle(color: Colors.white, fontSize: 14),
+      dropdownColor: AppColors.darkPanel,
+      iconEnabledColor: Colors.white70,
+      decoration: _filterDecoration(label),
+      items: [
+        DropdownMenuItem(
+          value: '',
+          child: Text(
+            dates.isEmpty ? 'Tanggal belum tersedia' : 'Semua tanggal',
+          ),
+        ),
+        for (final date in dates)
+          DropdownMenuItem(
+            value: _dateKey(date),
+            child: Text(_formatDate(date)),
+          ),
+      ],
+      onChanged: (value) {
+        if (value != null) onChanged(value);
+      },
+    );
+  }
+}
+
 class _NewsListContent extends StatelessWidget {
   const _NewsListContent({
     required this.categories,
+    required this.regions,
     required this.selectedCategory,
+    required this.selectedRegion,
+    required this.dateOptions,
+    required this.selectedStartDate,
+    required this.selectedEndDate,
     required this.searchController,
     required this.items,
     required this.hasPublishedNews,
-    required this.isUsingFallback,
-    required this.isLoadingNews,
-    required this.isFromCache,
-    required this.cacheWriteFailed,
-    required this.lastSyncedAt,
     required this.onQueryChanged,
     required this.onCategorySelected,
+    required this.onRegionSelected,
+    required this.onStartDateSelected,
+    required this.onEndDateSelected,
+    required this.onClearFilters,
     required this.onItemSelected,
     super.key,
   });
 
   final List<String> categories;
+  final List<String> regions;
   final String selectedCategory;
+  final String selectedRegion;
+  final List<DateTime> dateOptions;
+  final DateTime? selectedStartDate;
+  final DateTime? selectedEndDate;
   final TextEditingController searchController;
   final List<NewsItem> items;
   final bool hasPublishedNews;
-  final bool isUsingFallback;
-  final bool isLoadingNews;
-  final bool isFromCache;
-  final bool cacheWriteFailed;
-  final DateTime? lastSyncedAt;
   final ValueChanged<String> onQueryChanged;
   final ValueChanged<String> onCategorySelected;
+  final ValueChanged<String> onRegionSelected;
+  final ValueChanged<String> onStartDateSelected;
+  final ValueChanged<String> onEndDateSelected;
+  final VoidCallback onClearFilters;
   final ValueChanged<NewsItem> onItemSelected;
 
   @override
@@ -210,13 +359,6 @@ class _NewsListContent extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
       children: [
         const _NewsSectionBanner(),
-        NewsFeedNotice(
-          isUsingFallback: isUsingFallback,
-          isLoading: isLoadingNews,
-          isFromCache: isFromCache,
-          cacheWriteFailed: cacheWriteFailed,
-          lastSyncedAt: lastSyncedAt,
-        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
           child: _NewsSearchField(
@@ -224,32 +366,101 @@ class _NewsListContent extends StatelessWidget {
             onChanged: onQueryChanged,
           ),
         ),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(18, 14, 18, 6),
-          child: Text(
-            'FILTER KATEGORI',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-            ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  key: const ValueKey('news-category-filter'),
+                  initialValue: selectedCategory,
+                  isExpanded: true,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  dropdownColor: AppColors.darkPanel,
+                  iconEnabledColor: Colors.white70,
+                  decoration: _filterDecoration('Kategori'),
+                  items: [
+                    const DropdownMenuItem(
+                      value: _NewsPageState._allCategories,
+                      child: Text('Semua kategori'),
+                    ),
+                    for (final category in categories)
+                      DropdownMenuItem(value: category, child: Text(category)),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) onCategorySelected(value);
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  key: const ValueKey('news-region-filter'),
+                  initialValue: selectedRegion,
+                  isExpanded: true,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  dropdownColor: AppColors.darkPanel,
+                  iconEnabledColor: Colors.white70,
+                  decoration: _filterDecoration('Wilayah'),
+                  items: [
+                    const DropdownMenuItem(
+                      value: _NewsPageState._allRegions,
+                      child: Text('Semua wilayah'),
+                    ),
+                    for (final region in regions)
+                      DropdownMenuItem(
+                        value: region,
+                        child: Text(
+                          region,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) onRegionSelected(value);
+                  },
+                ),
+              ),
+            ],
           ),
         ),
-        SizedBox(
-          height: AppSizes.minimumTapTarget,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            scrollDirection: Axis.horizontal,
-            itemCount: categories.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final category = categories[index];
-              return _CategoryFilterChip(
-                label: category,
-                selected: category == selectedCategory,
-                onTap: () => onCategorySelected(category),
-              );
-            },
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: _DateFilterDropdown(
+                  key: const ValueKey('news-date-start'),
+                  label: 'Dari tanggal',
+                  selectedDate: selectedStartDate,
+                  dates: dateOptions,
+                  onChanged: onStartDateSelected,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _DateFilterDropdown(
+                  key: const ValueKey('news-date-end'),
+                  label: 'Sampai tanggal',
+                  selectedDate: selectedEndDate,
+                  dates: dateOptions,
+                  onChanged: onEndDateSelected,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            key: const ValueKey('news-clear-filters'),
+            onPressed: onClearFilters,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.bannerEyebrow,
+            ),
+            icon: const Icon(Icons.filter_alt_off_rounded, size: 18),
+            label: const Text('Hapus semua filter'),
           ),
         ),
         const SizedBox(height: 30),
@@ -341,45 +552,6 @@ class _NewsSearchField extends StatelessWidget {
   }
 }
 
-class _CategoryFilterChip extends StatelessWidget {
-  const _CategoryFilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? AppColors.primary : const Color(0xFFE5EAF0),
-      borderRadius: BorderRadius.circular(AppRadii.control),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadii.control),
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(
-            minHeight: AppSizes.minimumTapTarget,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? Colors.white : const Color(0xFF68768A),
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _NewsArticleCard extends StatelessWidget {
   const _NewsArticleCard({required this.item, required this.onTap});
 
@@ -433,10 +605,11 @@ class _NewsArticleCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 5),
-                  Text(
-                    item.publishedAt,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  if (item.timeLabel != null)
+                    Text(
+                      item.timeLabel!,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                 ],
               ),
             ),
@@ -516,6 +689,7 @@ class _NewsDetailContent extends StatelessWidget {
           child: Container(
             color: const Color(0xFFF0F2F5),
             child: ListView(
+              key: const PageStorageKey('news-detail-scroll'),
               padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
               children: [
                 AspectRatio(
@@ -544,27 +718,67 @@ class _NewsDetailContent extends StatelessWidget {
                             ?.copyWith(fontSize: 20, height: 1.18),
                       ),
                       const SizedBox(height: 5),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.calendar_today_outlined,
-                            size: 14,
-                            color: AppColors.muted,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            item.publishedAt,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
+                      if (!(item.source?.toUpperCase().contains('BNPB') ??
+                              false) &&
+                          item.publishedAt.isNotEmpty)
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.calendar_today_outlined,
+                              size: 14,
+                              color: AppColors.muted,
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                item.publishedAt,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
+                          ],
+                        ),
                       const SizedBox(height: 8),
-                      Text(
-                        item.source == null
-                            ? 'Sumber berita: belum dicantumkan.'
-                            : 'Sumber berita: ${item.source}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
+                      if (item.timeLabel != null)
+                        Text(
+                          item.timeLabel!,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      if (item.expiresAt != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          'Berakhir: ${_formatSourceDate(item.expiresAt!)}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                      if (item.region != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          'Wilayah: ${item.region}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                      if (item.retrievedAt != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          'Data diambil: ${_formatSourceDate(item.retrievedAt!)}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      if (item.sourceUrl != null)
+                        TextButton.icon(
+                          onPressed: () =>
+                              _openSource(context, item.sourceUrl!),
+                          icon: const Icon(Icons.open_in_new, size: 16),
+                          label: Text('Sumber resmi: ${_displaySource(item)}'),
+                        )
+                      else
+                        Text(
+                          item.source == null
+                              ? 'Sumber berita: belum dicantumkan.'
+                              : 'Sumber berita: ${_displaySource(item)}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                       const SizedBox(height: 12),
                       Text(
                         item.body,
@@ -579,6 +793,30 @@ class _NewsDetailContent extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+String _formatSourceDate(DateTime value) {
+  final local = value.toLocal();
+  return '${local.day.toString().padLeft(2, '0')}/'
+      '${local.month.toString().padLeft(2, '0')}/${local.year} '
+      '${local.hour.toString().padLeft(2, '0')}:'
+      '${local.minute.toString().padLeft(2, '0')}';
+}
+
+String _displaySource(NewsItem item) =>
+    item.source?.toUpperCase().contains('BNPB') ?? false
+    ? 'BNPB'
+    : item.source ?? 'belum dicantumkan';
+
+Future<void> _openSource(BuildContext context, String value) async {
+  final uri = Uri.tryParse(value);
+  if (uri == null || uri.scheme != 'https' || !uri.hasAuthority) return;
+  final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  if (!opened && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Tautan sumber tidak dapat dibuka.')),
     );
   }
 }
