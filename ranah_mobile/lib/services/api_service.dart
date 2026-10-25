@@ -8,8 +8,9 @@ import 'package:image_picker/image_picker.dart';
 import 'complaint_api.dart';
 import 'gunung_api.dart';
 import 'news_api.dart';
+import 'notification_api.dart';
 
-class ApiService implements GunungApi, NewsApi, ComplaintApi {
+class ApiService implements GunungApi, NewsApi, NotificationApi, ComplaintApi {
   static const String baseUrl = String.fromEnvironment('RANAH_API_BASE_URL');
   static const Duration requestTimeout = Duration(seconds: 15);
 
@@ -157,6 +158,31 @@ class ApiService implements GunungApi, NewsApi, ComplaintApi {
       throw Exception('Format daftar berita tidak sesuai.');
     }
     return data;
+  }
+
+  @override
+  Future<NotificationApiFeed> getNotifications() async {
+    final response = await _get(_endpoint('notifikasi?per_page=100'));
+    if (response.statusCode != 200) {
+      throw Exception('Gagal mengambil notifikasi: ${response.statusCode}');
+    }
+    dynamic result;
+    try {
+      result = jsonDecode(response.body);
+    } on FormatException {
+      throw Exception('Respons API notifikasi tidak valid.');
+    }
+    if (result is! Map<String, dynamic> || result['success'] != true || result['data'] is! List) {
+      throw Exception('Format API notifikasi tidak sesuai.');
+    }
+    final meta = result['meta'];
+    final sourceUpdatedAt = meta is Map<String, dynamic>
+        ? DateTime.tryParse(meta['waktu_pembaruan_terakhir_bmkg']?.toString() ?? '')
+        : null;
+    return NotificationApiFeed(
+      items: result['data'] as List<dynamic>,
+      sourceUpdatedAt: sourceUpdatedAt,
+    );
   }
 
   @override

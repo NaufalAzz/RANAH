@@ -46,7 +46,7 @@ class RanahHeader extends StatelessWidget {
             _Brand(),
             const SizedBox(width: 10),
             SizedBox(
-              width: width < 760 ? 152 : 200,
+              width: width < 760 ? 180 : 220,
               height: 56,
               child: const _BrandLabel(),
             ),
@@ -72,14 +72,10 @@ class RanahHeader extends StatelessWidget {
 
   Widget _buildCompact(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    const navWidth = 55.0;
     const notificationWidth = 48.0;
-    final showBrand = width >= 380;
-    final labelWidth =
-        (width - 14 - 27 - 4 - navWidth * 4 - notificationWidth - 28).clamp(
-          56.0,
-          100.0,
-        );
+    final labelWidth = (width - 14 - 27 - 4 - notificationWidth)
+        .clamp(56.0, 240.0)
+        .toDouble();
     return SizedBox(
       height: 72,
       child: Padding(
@@ -96,25 +92,13 @@ class RanahHeader extends StatelessWidget {
                 semanticLabel: 'Logo RANAH',
               ),
             ),
-            if (showBrand) ...[
-              const SizedBox(width: 4),
-              SizedBox(
-                width: labelWidth,
-                height: 35,
-                child: const _BrandLabel(compact: true),
-              ),
-            ],
+            const SizedBox(width: 4),
+            SizedBox(
+              width: labelWidth,
+              height: 48,
+              child: const _BrandLabel(compact: true),
+            ),
             const Spacer(),
-            for (final destination in RanahDestination.values)
-              SizedBox(
-                width: navWidth,
-                child: _NavigationButton(
-                  destination: destination,
-                  selected: selected == destination,
-                  compact: true,
-                  onPressed: () => onSelect(destination),
-                ),
-              ),
             SizedBox(
               width: notificationWidth,
               child: _NotificationButton(
@@ -127,6 +111,46 @@ class RanahHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+class RanahBottomNavigation extends StatelessWidget {
+  const RanahBottomNavigation({
+    required this.selected,
+    required this.onSelect,
+    super.key,
+  });
+
+  final RanahDestination selected;
+  final ValueChanged<RanahDestination> onSelect;
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    top: false,
+    child: DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [RanahColors.headerEnd, RanahColors.headerStart],
+        ),
+        border: Border(top: BorderSide(color: Color(0x336E6594))),
+      ),
+      child: SizedBox(
+        height: 68,
+        child: Row(
+          children: [
+            for (final destination in RanahDestination.values)
+              Expanded(
+                child: _NavigationButton(
+                  destination: destination,
+                  selected: selected == destination,
+                  compact: true,
+                  onPressed: () => onSelect(destination),
+                ),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _Brand extends StatelessWidget {
@@ -155,7 +179,10 @@ class _BrandLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 10,
+        vertical: compact ? 3 : 5,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFF061D3B),
         borderRadius: BorderRadius.circular(5),
@@ -165,27 +192,26 @@ class _BrandLabel extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            compact ? 'RANAH' : 'Evakuasi Bencana RANAH',
+            'RANAH',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: compact ? 14 : 16,
               height: 1.1,
               fontWeight: FontWeight.w700,
             ),
           ),
-          if (!compact)
-            Text(
-              'Aplikasi Siaga Bencana Erupsi',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                height: 1.2,
-              ),
+          Text(
+            'Aplikasi Informasi Bencana dan Evakuasi',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: compact ? 9 : 10,
+              height: 1.1,
             ),
+          ),
         ],
       ),
     );
@@ -246,11 +272,12 @@ class _NavigationButton extends StatelessWidget {
                 ],
               ),
               if (selected)
-                const Positioned(
-                  bottom: 0,
+                Positioned(
+                  top: compact ? 0 : null,
+                  bottom: compact ? null : 0,
                   left: 7,
                   right: 7,
-                  child: DecoratedBox(
+                  child: const DecoratedBox(
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.all(Radius.circular(2)),

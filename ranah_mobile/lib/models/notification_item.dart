@@ -18,6 +18,16 @@ class NotificationItem {
     required this.summary,
     required this.icon,
     required this.accent,
+    this.category,
+    this.source,
+    this.sourceUrl,
+    this.region,
+    this.status,
+    this.importance,
+    this.eventAt,
+    this.publishedAt,
+    this.retrievedAt,
+    this.expiresAt,
   });
 
   final String id;
@@ -30,6 +40,16 @@ class NotificationItem {
   final String summary;
   final IconData icon;
   final Color accent;
+  final String? category;
+  final String? source;
+  final String? sourceUrl;
+  final String? region;
+  final String? status;
+  final String? importance;
+  final DateTime? eventAt;
+  final DateTime? publishedAt;
+  final DateTime? retrievedAt;
+  final DateTime? expiresAt;
 
   String get kindLabel => switch (kind) {
     NotificationKind.earthquake => 'Gempa bumi',

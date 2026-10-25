@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Berita;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use JsonException;
@@ -17,34 +18,39 @@ class BmkgInformationService
 
     private const string LATEST_QUAKE_URL = 'https://data.bmkg.go.id/DataMKG/TEWS/autogempa.json';
 
+    private const string LATEST_M5_QUAKES_URL = 'https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json';
+
     private const string WEATHER_ALERTS_URL = 'https://www.bmkg.go.id/alerts/nowcast/id';
 
     public function synchronizeFeltEarthquakes(): int
     {
         $feltPayload = $this->fetchJson(self::FELT_QUAKES_URL, 'felt_earthquakes');
         $latestPayload = $this->fetchJson(self::LATEST_QUAKE_URL, 'latest_earthquake');
+        $latestM5Payload = $this->fetchJson(self::LATEST_M5_QUAKES_URL, 'latest_m5_earthquakes');
 
         if (! is_array($feltPayload['Infogempa']['gempa'] ?? null)
-            || ! is_array($latestPayload['Infogempa']['gempa'] ?? null)) {
+            || ! is_array($latestPayload['Infogempa']['gempa'] ?? null)
+            || ! is_array($latestM5Payload['Infogempa']['gempa'] ?? null)) {
             throw $this->invalidFeed('earthquakes', 'json_structure', 'unexpected_root_structure');
         }
 
         $normalizedBySourceId = [];
         $outOfScope = 0;
         $invalidRecords = 0;
-        $considerEarthquake = function (mixed $earthquake) use (&$normalizedBySourceId, &$outOfScope, &$invalidRecords): void {
+        $considerEarthquake = function (mixed $earthquake, string $sourceUrl) use (&$normalizedBySourceId, &$outOfScope, &$invalidRecords): void {
             if (! is_array($earthquake)) {
                 $invalidRecords++;
 
                 return;
             }
             $feltAreas = trim((string) ($earthquake['Dirasakan'] ?? ''));
-            if (! $this->mentionsPadang($feltAreas)) {
+            $epicenterArea = trim((string) ($earthquake['Wilayah'] ?? ''));
+            if (! $this->hasWestSumatraLocality($feltAreas.' '.$epicenterArea)) {
                 $outOfScope++;
 
                 return;
             }
-            $normalized = $this->normalizeEarthquake($earthquake);
+            $normalized = $this->normalizeEarthquake($earthquake, $sourceUrl);
             if ($normalized === null) {
                 $invalidRecords++;
 
@@ -54,17 +60,20 @@ class BmkgInformationService
         };
 
         foreach ($feltPayload['Infogempa']['gempa'] as $earthquake) {
-            $considerEarthquake($earthquake);
+            $considerEarthquake($earthquake, self::FELT_QUAKES_URL);
         }
-        $considerEarthquake($latestPayload['Infogempa']['gempa']);
+        $considerEarthquake($latestPayload['Infogempa']['gempa'], self::LATEST_QUAKE_URL);
+        foreach ($latestM5Payload['Infogempa']['gempa'] as $earthquake) {
+            $considerEarthquake($earthquake, self::LATEST_M5_QUAKES_URL);
+        }
 
         Log::info('BMKG earthquake feed processed', [
             'feed' => 'earthquakes',
-            'records_received' => count($feltPayload['Infogempa']['gempa']) + 1,
-            'records_out_of_padang_scope' => $outOfScope,
+            'records_received' => count($feltPayload['Infogempa']['gempa']) + 1 + count($latestM5Payload['Infogempa']['gempa']),
+            'records_out_of_sumbar_scope' => $outOfScope,
             'records_invalid' => $invalidRecords,
-            'records_matching_padang' => count($normalizedBySourceId),
-            'result' => $normalizedBySourceId === [] ? 'valid_feed_no_padang_matches' : 'valid_feed_matches_found',
+            'records_matching_sumbar' => count($normalizedBySourceId),
+            'result' => $normalizedBySourceId === [] ? 'valid_feed_no_sumbar_matches' : 'valid_feed_matches_found',
         ]);
 
         if ($invalidRecords > 0) {
@@ -72,19 +81,22 @@ class BmkgInformationService
                 'feed' => 'earthquakes',
                 'records_invalid' => $invalidRecords,
             ]);
-            throw $this->invalidFeed('earthquakes', 'record_validation', 'invalid_padang_records');
+            throw $this->invalidFeed('earthquakes', 'record_validation', 'invalid_sumbar_records');
         }
 
-        return DB::transaction(function () use ($normalizedBySourceId): int {
+        $count = DB::transaction(function () use ($normalizedBySourceId): int {
             foreach ($normalizedBySourceId as $attributes) {
                 Berita::query()->updateOrCreate(['sumber_id' => $attributes['sumber_id']], $attributes);
             }
 
             return count($normalizedBySourceId);
         });
+        Cache::put('bmkg_earthquake_last_success_at', now()->toIso8601String(), now()->addDays(30));
+
+        return $count;
     }
 
-    public function synchronizePadangWeatherAlerts(): int
+    public function synchronizeWestSumatraWeatherAlerts(): int
     {
         $response = Http::timeout(10)
             ->accept('application/rss+xml, application/xml, text/xml')
@@ -135,41 +147,42 @@ class BmkgInformationService
             'feed' => 'weather_alerts',
             'records_received' => count($feedItems),
             'west_sumatra_candidates' => $sumatraCandidates,
-            'records_excluded_by_padang_or_expiry_filter' => $excludedRecords,
-            'active_padang_alerts' => count($normalizedBySourceId),
-            'result' => $normalizedBySourceId === [] ? 'valid_feed_no_active_padang_alerts' : 'valid_feed_active_alerts_found',
+            'records_excluded_by_sumbar_or_expiry_filter' => $excludedRecords,
+            'active_sumbar_alerts' => count($normalizedBySourceId),
+            'result' => $normalizedBySourceId === [] ? 'valid_feed_no_active_sumbar_alerts' : 'valid_feed_active_alerts_found',
         ]);
 
-        return DB::transaction(function () use ($normalizedBySourceId): int {
-            // An empty valid feed can mean the source currently has no matching
-            // items; it is not evidence that previously stored alerts were revoked.
-            if ($normalizedBySourceId !== []) {
-                Berita::query()->where('sumber_id', 'like', 'bmkg-cap:%')
-                    ->where('status_publikasi', 'published')
-                    ->get()
-                    ->each(function (Berita $item): void {
-                        if ($this->mentionsPadang((string) $item->wilayah)) {
-                            $item->update(['status_publikasi' => 'archived']);
-                        }
-                    });
-            }
+        $count = DB::transaction(function () use ($normalizedBySourceId): int {
+            $activeSourceIds = array_keys($normalizedBySourceId);
+            // A successfully parsed feed is the current active listing. Preserve
+            // prior records, but stop presenting omitted alerts as active.
+            Berita::query()->where('sumber_id', 'like', 'bmkg-cap:%')
+                ->where('status_publikasi', 'published')
+                ->get()
+                ->each(function (Berita $item) use ($activeSourceIds): void {
+                    if ($this->hasWestSumatraLocality((string) $item->wilayah)
+                        && ! in_array((string) $item->sumber_id, $activeSourceIds, true)) {
+                        $item->update(['status_publikasi' => 'archived']);
+                    }
+                });
             foreach ($normalizedBySourceId as $attributes) {
                 Berita::query()->updateOrCreate(['sumber_id' => $attributes['sumber_id']], $attributes);
             }
 
             return count($normalizedBySourceId);
         });
+        Cache::put('bmkg_weather_last_success_at', now()->toIso8601String(), now()->addDays(30));
+
+        return $count;
     }
 
     /** @param array<string, mixed> $earthquake
      * @return array<string, mixed>|null
      */
-    private function normalizeEarthquake(array $earthquake): ?array
+    private function normalizeEarthquake(array $earthquake, string $sourceUrl): ?array
     {
         $feltAreas = trim((string) ($earthquake['Dirasakan'] ?? ''));
-        if ($feltAreas === '') {
-            return null;
-        }
+        $epicenterArea = trim((string) ($earthquake['Wilayah'] ?? ''));
         $dateTime = $this->parseDate($earthquake['DateTime'] ?? null);
         $coordinates = trim((string) ($earthquake['Coordinates'] ?? ''));
         $magnitude = trim((string) ($earthquake['Magnitude'] ?? ''));
@@ -178,10 +191,15 @@ class BmkgInformationService
             || ! is_numeric($magnitude)) {
             return null;
         }
+        [$latitude, $longitude] = array_map('floatval', explode(',', $coordinates));
+        if ($latitude < -90 || $latitude > 90 || $longitude < -180 || $longitude > 180) {
+            return null;
+        }
 
         $sourceId = 'bmkg-quake:'.hash('sha256', $dateTime->toIso8601String().'|'.$coordinates);
         $potential = trim((string) ($earthquake['Potensi'] ?? ''));
-        $isTsunamiPotential = preg_match('/\bberpotensi\s+tsunami\b/i', $potential) === 1;
+        $isTsunamiPotential = preg_match('/\b(?:tidak|nihil)\s+berpotensi\s+tsunami\b/i', $potential) !== 1
+            && preg_match('/\bberpotensi\s+tsunami\b/i', $potential) === 1;
         $category = $isTsunamiPotential ? 'Tsunami' : 'Gempa';
         $body = 'Data kejadian BMKG mencatat gempa bermagnitudo M'.number_format((float) $magnitude, 1, '.', '').'.';
         foreach (['Kedalaman' => 'Kedalaman', 'Wilayah' => 'Keterangan lokasi episenter'] as $field => $label) {
@@ -190,7 +208,9 @@ class BmkgInformationService
                 $body .= ' '.$label.' menurut BMKG: '.$value.'.';
             }
         }
-        $body .= ' Wilayah yang dinyatakan merasakan: '.$feltAreas.'.';
+        if ($feltAreas !== '') {
+            $body .= ' Wilayah yang dinyatakan merasakan: '.$feltAreas.'.';
+        }
         if ($potential !== '') {
             $body .= ' Potensi menurut data BMKG: '.$potential.'.';
         }
@@ -198,17 +218,20 @@ class BmkgInformationService
 
         return [
             'judul' => $isTsunamiPotential
-                ? 'Laporan gempa dengan potensi tsunami dirasakan di Padang'
-                : 'Gempa dirasakan di Padang',
+                ? 'Laporan gempa BMKG relevan dengan Sumatera Barat dengan potensi tsunami'
+                : 'Informasi gempa BMKG relevan dengan Sumatera Barat',
             'kategori' => $category,
             'jenis_konten' => 'kejadian',
             'isi' => $body,
             'gambar' => null,
             'sumber' => 'BMKG',
             'sumber_id' => $sourceId,
-            'url_sumber' => self::FELT_QUAKES_URL,
-            'wilayah' => $feltAreas,
-            'waktu_publikasi' => $dateTime,
+            'url_sumber' => $sourceUrl,
+            'wilayah' => trim(implode('; ', array_filter([
+                $feltAreas === '' ? null : 'Dirasakan: '.$feltAreas,
+                $epicenterArea === '' ? null : 'Episenter: '.$epicenterArea,
+            ]))),
+            'waktu_publikasi' => null,
             'waktu_kejadian' => $dateTime,
             'waktu_berakhir' => null,
             'waktu_pengambilan' => now(),
@@ -216,8 +239,18 @@ class BmkgInformationService
         ];
     }
 
-    private function mentionsPadang(string $regions): bool
+    public function hasWestSumatraLocality(string $regions): bool
     {
+        foreach (config('bmkg.sumatera_barat.localities', []) as $locality) {
+            if (preg_match('/(?<![\pL\pN])'.preg_quote($locality, '/').'(?![\pL\pN])/iu', $regions) === 1) {
+                return true;
+            }
+        }
+
+        if (preg_match('/(?<![\pL\pN])(?:Kota\s+)?Padang(?=$|[,;:\s-])(?!\s+(?:Lawas|Sidempuan|Sidimpuan))/iu', $regions) === 1) {
+            return true;
+        }
+
         return preg_match(
             '/(?:^|[,;]\s*)(?:(?:[IVX]+(?:\s*[-–]\s*[IVX]+)?|[0-9]+(?:\s*-\s*[0-9]+)?)\s+)?(?:(?:Kota|Kecamatan|Kec\.)\s+)?Padang(?:\s*(?:[,;]|$)|\s+(?:Barat|Timur|Selatan|Utara)\s*(?:[,;]|$))/iu',
             $regions,
@@ -257,6 +290,7 @@ class BmkgInformationService
         $headline = $this->xmlValue($information, 'headline');
         $event = $this->xmlValue($information, 'event');
         $description = $this->xmlValue($information, 'description');
+        $severity = $this->xmlValue($information, 'severity');
         $effective = $this->parseDate($this->xmlValue($information, 'effective'));
         $expires = $this->parseDate($this->xmlValue($information, 'expires'));
         $areaNodes = $information->xpath('.//*[local-name()="areaDesc"]');
@@ -268,7 +302,7 @@ class BmkgInformationService
         if ($headline === '' || $description === '' || $effective === null || $expires === null || $region === '') {
             throw $this->invalidFeed('weather_alerts', 'cap_validation', 'missing_required_fields');
         }
-        if ($expires->lessThanOrEqualTo(now()) || ! $this->mentionsPadang($region)) {
+        if ($expires->lessThanOrEqualTo(now()) || ! $this->hasWestSumatraLocality($region)) {
             return null;
         }
 
@@ -280,6 +314,9 @@ class BmkgInformationService
             'gambar' => null,
             'sumber' => 'BMKG',
             'sumber_id' => 'bmkg-cap:'.hash('sha256', $identifier),
+            'tingkat_kepentingan' => in_array($severity, ['Extreme', 'Severe', 'Moderate', 'Minor', 'Unknown'], true)
+                ? $severity
+                : null,
             'url_sumber' => $sourceUrl,
             'wilayah' => $region,
             'waktu_publikasi' => $publishedAt,

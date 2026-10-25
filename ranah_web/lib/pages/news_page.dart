@@ -4,7 +4,87 @@ import '../data/home_stories.dart';
 import '../theme/ranah_theme.dart';
 import '../widgets/ranah_full_width_title_background.dart';
 
-const _newsCategories = <String>['Semua', 'Erupsi', 'Pengungsian', 'Bantuan'];
+const _newsCategories = <String>[
+  'Semua',
+  'ERUPSI',
+  'PENGUNGSIAN',
+  'BANTUAN',
+];
+
+DateTime _storyDate(HomeStory story) {
+  final parts = story.date.split(' ');
+  const months = {
+    'Januari': 1,
+    'Februari': 2,
+    'Maret': 3,
+    'April': 4,
+    'Mei': 5,
+    'Juni': 6,
+    'Juli': 7,
+    'Agustus': 8,
+    'September': 9,
+    'Oktober': 10,
+    'November': 11,
+    'Desember': 12,
+  };
+  return DateTime(int.parse(parts[2]), months[parts[1]]!, int.parse(parts[0]));
+}
+
+String _dateKey(DateTime date) =>
+    '${date.year.toString().padLeft(4, '0')}-'
+    '${date.month.toString().padLeft(2, '0')}-'
+    '${date.day.toString().padLeft(2, '0')}';
+
+String _formatDate(DateTime date) =>
+    '${date.day.toString().padLeft(2, '0')}/'
+    '${date.month.toString().padLeft(2, '0')}/${date.year}';
+
+InputDecoration _newsFilterDecoration(String label) => InputDecoration(
+  labelText: label,
+  labelStyle: const TextStyle(color: Color(0xFFD0C9E7)),
+  filled: true,
+  fillColor: const Color(0x8C123D5B),
+  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  enabledBorder: const OutlineInputBorder(
+    borderSide: BorderSide(color: Color(0x6689A4BA)),
+  ),
+  focusedBorder: const OutlineInputBorder(
+    borderSide: BorderSide(color: Color(0xFF82C7FF), width: 1.5),
+  ),
+);
+
+class _NewsDateFilter extends StatelessWidget {
+  const _NewsDateFilter({
+    required this.label,
+    required this.selectedDate,
+    required this.dates,
+    required this.onChanged,
+    super.key,
+  });
+
+  final String label;
+  final DateTime? selectedDate;
+  final List<DateTime> dates;
+  final ValueChanged<DateTime?> onChanged;
+
+  @override
+  Widget build(BuildContext context) => DropdownButtonFormField<String>(
+    initialValue: selectedDate == null ? '' : _dateKey(selectedDate!),
+    isExpanded: true,
+    style: const TextStyle(color: Colors.white, fontSize: 14),
+    dropdownColor: RanahColors.headerStart,
+    iconEnabledColor: Colors.white70,
+    decoration: _newsFilterDecoration(label),
+    items: [
+      const DropdownMenuItem(value: '', child: Text('Semua tanggal')),
+      for (final date in dates)
+        DropdownMenuItem(value: _dateKey(date), child: Text(_formatDate(date))),
+    ],
+    onChanged: (value) => onChanged(value == null || value.isEmpty
+        ? null
+        : DateTime.parse(value)),
+  );
+}
 
 class NewsPage extends StatefulWidget {
   const NewsPage({required this.onStoryTap, super.key});
@@ -19,6 +99,21 @@ class _NewsPageState extends State<NewsPage> {
   final _searchController = TextEditingController();
   String _query = '';
   String _category = 'Semua';
+  DateTime? _dateStart;
+  DateTime? _dateEnd;
+
+  List<DateTime> get _dates => newsStories.map(_storyDate).toSet().toList()
+    ..sort();
+
+  void _clearFilters() {
+    setState(() {
+      _query = '';
+      _searchController.clear();
+      _category = 'Semua';
+      _dateStart = null;
+      _dateEnd = null;
+    });
+  }
 
   @override
   void dispose() {
@@ -29,17 +124,18 @@ class _NewsPageState extends State<NewsPage> {
   @override
   Widget build(BuildContext context) {
     final filteredStories = newsStories.where((story) {
-      final categoryKey = switch (_category) {
-        'Semua' => null,
-        'Pengungsian' => 'PENGUNGSIAN',
-        _ => _category.toUpperCase(),
-      };
       final matchesCategory =
-          categoryKey == null || story.category == categoryKey;
+          _category == 'Semua' || story.category == _category;
+      final date = _storyDate(story);
+      final matchesDate =
+          (_dateStart == null || !date.isBefore(_dateStart!)) &&
+          (_dateEnd == null || !date.isAfter(_dateEnd!));
       final searchableText =
           '${story.title} ${story.summary} ${story.category} ${story.date}'
               .toLowerCase();
-      return matchesCategory && searchableText.contains(_query.toLowerCase());
+      return matchesCategory &&
+          matchesDate &&
+          searchableText.contains(_query.toLowerCase());
     }).toList();
 
     return LayoutBuilder(
@@ -85,19 +181,103 @@ class _NewsPageState extends State<NewsPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'FILTER',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
+                LayoutBuilder(
+                  builder: (context, filterConstraints) {
+                    final narrow = filterConstraints.maxWidth < 520;
+                    const gap = 10.0;
+                    final categoryWidth = narrow
+                        ? filterConstraints.maxWidth
+                        : (filterConstraints.maxWidth - gap * 2) / 3;
+                    final dateWidth = narrow
+                        ? (filterConstraints.maxWidth - gap) / 2
+                        : categoryWidth;
+                    return Wrap(
+                      spacing: gap,
+                      runSpacing: 10,
+                      children: [
+                        SizedBox(
+                          width: categoryWidth,
+                          height: 56,
+                          child: DropdownButtonFormField<String>(
+                            key: const ValueKey('web-news-category-filter'),
+                            initialValue: _category,
+                            isExpanded: true,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                            dropdownColor: RanahColors.headerStart,
+                            iconEnabledColor: Colors.white70,
+                            decoration: _newsFilterDecoration('Kategori'),
+                            items: [
+                              for (final category in _newsCategories)
+                                DropdownMenuItem(
+                                  value: category,
+                                  child: Text(
+                                    category == 'Semua'
+                                        ? 'Semua kategori'
+                                        : category,
+                                  ),
+                                ),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() => _category = value);
+                              }
+                            },
+                          ),
+                        ),
+                        SizedBox(
+                          width: dateWidth,
+                          height: 56,
+                          child: _NewsDateFilter(
+                            key: const ValueKey('web-news-date-start'),
+                            label: 'Dari tanggal',
+                            selectedDate: _dateStart,
+                            dates: _dates,
+                            onChanged: (value) => setState(() {
+                              _dateStart = value;
+                              if (_dateStart != null &&
+                                  _dateEnd != null &&
+                                  _dateEnd!.isBefore(_dateStart!)) {
+                                _dateEnd = _dateStart;
+                              }
+                            }),
+                          ),
+                        ),
+                        SizedBox(
+                          width: dateWidth,
+                          height: 56,
+                          child: _NewsDateFilter(
+                            key: const ValueKey('web-news-date-end'),
+                            label: 'Sampai tanggal',
+                            selectedDate: _dateEnd,
+                            dates: _dates,
+                            onChanged: (value) => setState(() {
+                              _dateEnd = value;
+                              if (_dateStart != null &&
+                                  _dateEnd != null &&
+                                  _dateEnd!.isBefore(_dateStart!)) {
+                                _dateStart = _dateEnd;
+                              }
+                            }),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
-                const SizedBox(height: 4),
-                _CategoryFilterBar(
-                  selected: _category,
-                  onSelected: (category) =>
-                      setState(() => _category = category),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    key: const ValueKey('web-news-clear-filters'),
+                    onPressed: _clearFilters,
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF91A8D0),
+                    ),
+                    icon: const Icon(Icons.filter_alt_off_rounded, size: 18),
+                    label: const Text('Hapus semua filter'),
+                  ),
                 ),
                 const SizedBox(height: 22),
                 if (filteredStories.isEmpty)
@@ -150,7 +330,7 @@ class NewsPageBanner extends StatelessWidget {
       color: RanahColors.banner,
       child: const Row(
         children: [
-          Icon(Icons.library_books_rounded, size: 27, color: Colors.white),
+          Icon(Icons.newspaper_rounded, size: 27, color: Colors.white),
           SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -158,7 +338,7 @@ class NewsPageBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'SIAGA BENCANA',
+                  'INFORMASI RANAH',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -169,12 +349,12 @@ class NewsPageBanner extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Berita & Peristiwa',
+                  'Berita dan Event',
                   maxLines: 1,
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
                 Text(
-                  'Informasi seputar kebencanaan · konten demonstrasi',
+                  'Informasi terkini seputar bencana',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: Color(0xFFC1C8D7), fontSize: 12),
@@ -183,92 +363,6 @@ class NewsPageBanner extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    ),
-  );
-}
-
-class _CategoryFilterBar extends StatelessWidget {
-  const _CategoryFilterBar({required this.selected, required this.onSelected});
-
-  final String selected;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final spacing = constraints.maxWidth >= 356 ? 12.0 : 8.0;
-      final chipWidth =
-          ((constraints.maxWidth - spacing * (_newsCategories.length - 1)) /
-                  _newsCategories.length)
-              .clamp(0.0, 80.0);
-      return Row(
-        children: [
-          for (var index = 0; index < _newsCategories.length; index++) ...[
-            if (index > 0) SizedBox(width: spacing),
-            SizedBox(
-              width: chipWidth,
-              height: 48,
-              child: _CategoryChip(
-                label: _newsCategories[index],
-                selected: selected == _newsCategories[index],
-                onTap: () => onSelected(_newsCategories[index]),
-              ),
-            ),
-          ],
-        ],
-      );
-    },
-  );
-}
-
-class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: selected ? RanahColors.primary : const Color(0xFFE1E7EF),
-    borderRadius: BorderRadius.circular(16),
-    child: InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Semantics(
-        selected: selected,
-        button: true,
-        label: label,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: selected ? Colors.white : RanahColors.muted,
-                  fontSize: 12,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                ),
-              ),
-              if (selected)
-                Container(
-                  width: 26,
-                  height: 2,
-                  margin: const EdgeInsets.only(top: 2),
-                  color: Colors.white,
-                ),
-            ],
-          ),
-        ),
       ),
     ),
   );

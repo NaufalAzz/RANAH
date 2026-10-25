@@ -68,6 +68,8 @@ class BeritaController extends Controller
             'isi' => $item->isi,
             'gambar' => $this->publicImageUrl($item->gambar, $request),
             'sumber' => $item->sumber,
+            'sumber_id' => $item->sumber_id,
+            'tingkat_kepentingan' => $item->tingkat_kepentingan,
             'url_sumber' => $item->url_sumber,
             'wilayah' => $item->wilayah,
             'waktu_publikasi' => $item->waktu_publikasi,

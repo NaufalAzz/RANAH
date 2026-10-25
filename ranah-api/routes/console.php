@@ -6,6 +6,11 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('ranah:sync-bmkg')
     ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command('ranah:sync-magma')
+    ->everySixHours()
     ->withoutOverlapping();
 
 Artisan::command('inspire', function () {

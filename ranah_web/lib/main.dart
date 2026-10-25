@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app/ranah_app.dart';
+import 'pages/welcome_page.dart';
 import 'theme/ranah_theme.dart';
 
 void main() {
@@ -17,6 +18,12 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   double _textScale = 1;
   bool _showTextSizes = false;
+  bool _showWelcome = true;
+
+  void _finishWelcome() {
+    if (!mounted || !_showWelcome) return;
+    setState(() => _showWelcome = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +31,29 @@ class _MyAppState extends State<MyApp> {
       title: 'RANAH',
       debugShowCheckedModeBanner: false,
       theme: RanahTheme.light,
-      home: const RanahShell(),
+      home: Builder(
+        builder: (context) => AnimatedSwitcher(
+          duration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : const Duration(milliseconds: 420),
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.015),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+          ),
+          child: _showWelcome
+              ? WelcomePage(
+                  key: const ValueKey('web-welcome'),
+                  onFinished: _finishWelcome,
+                )
+              : const RanahShell(key: ValueKey('ranah-shell')),
+        ),
+      ),
       builder: (context, child) {
         final media = MediaQuery.of(context);
         return MediaQuery(
@@ -33,32 +62,33 @@ class _MyAppState extends State<MyApp> {
             fit: StackFit.expand,
             children: [
               child ?? const SizedBox.shrink(),
-              Positioned(
-                right: 12,
-                bottom: 12,
-                child: SafeArea(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      if (_showTextSizes)
-                        _TextSizeOptions(
-                          selectedScale: _textScale,
-                          onSelected: (scale) => setState(() {
-                            _textScale = scale;
-                            _showTextSizes = false;
+              if (!_showWelcome)
+                Positioned(
+                  right: 12,
+                  bottom: media.size.width < 600 ? 80 : 12,
+                  child: SafeArea(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (_showTextSizes)
+                          _TextSizeOptions(
+                            selectedScale: _textScale,
+                            onSelected: (scale) => setState(() {
+                              _textScale = scale;
+                              _showTextSizes = false;
+                            }),
+                          ),
+                        if (_showTextSizes) const SizedBox(height: 8),
+                        _TextSizeControl(
+                          onPressed: () => setState(() {
+                            _showTextSizes = !_showTextSizes;
                           }),
                         ),
-                      if (_showTextSizes) const SizedBox(height: 8),
-                      _TextSizeControl(
-                        onPressed: () => setState(() {
-                          _showTextSizes = !_showTextSizes;
-                        }),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         );

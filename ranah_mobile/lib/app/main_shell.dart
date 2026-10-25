@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../data/sample_news.dart';
-import '../models/notification_item.dart';
 import '../models/news_item.dart';
 import '../pages/home_page.dart';
 import '../pages/map_page.dart';
@@ -10,6 +9,7 @@ import '../pages/news_page.dart';
 import '../pages/notifications_page.dart';
 import '../pages/volcanic_activity_page.dart';
 import '../services/news_repository.dart';
+import '../services/notifications_repository.dart';
 import '../services/complaint_api.dart';
 import '../services/complaint_media_picker.dart';
 import '../services/internet_status_monitor.dart';
@@ -21,6 +21,7 @@ import '../widgets/ranah_page_route.dart';
 class MainShell extends StatefulWidget {
   const MainShell({
     this.newsRepository,
+    this.notificationsRepository,
     this.complaintApi,
     this.mediaPicker,
     this.internetStatusMonitor,
@@ -28,6 +29,7 @@ class MainShell extends StatefulWidget {
   });
 
   final NewsRepository? newsRepository;
+  final NotificationsRepository? notificationsRepository;
   final ComplaintApi? complaintApi;
   final ComplaintMediaPicker? mediaPicker;
   final InternetStatusMonitor? internetStatusMonitor;
@@ -100,60 +102,6 @@ class _MainShellState extends State<MainShell> {
       _selectedIndex = 2;
       _showingNotifications = false;
     });
-  }
-
-  void _openNotificationDestination(NotificationItem item) {
-    switch (item.kind) {
-      case NotificationKind.latestNews:
-        final newsId = item.targetId;
-        final exists = _newsItems.any((news) => news.id == newsId);
-
-        if (newsId == null || !exists) {
-          _showDestinationUnavailable('Artikel berita terkait tidak tersedia.');
-          return;
-        }
-
-        setState(() {
-          _notificationNewsId = newsId;
-          _notificationSelectionRevision++;
-          _selectedIndex = 2;
-          _showingNotifications = false;
-        });
-        return;
-
-      case NotificationKind.earthquake:
-      case NotificationKind.evacuation:
-        setState(() {
-          _selectedIndex = 1;
-          _showingNotifications = false;
-        });
-
-        _showDestinationUnavailable(
-          item.kind == NotificationKind.earthquake
-              ? 'Peta masih berupa ilustrasi; rincian gempa resmi belum tersedia.'
-              : 'Peta masih berupa ilustrasi; rute dan titik aman resmi belum tersedia.',
-        );
-        return;
-
-      case NotificationKind.volcanoActivity:
-      case NotificationKind.volcanoStatus:
-        setState(() => _showingNotifications = false);
-
-        Navigator.of(context).push(
-          RanahPageRoute<void>(
-            context: context,
-            builder: (_) =>
-                VolcanicActivityPage(onBack: () => Navigator.of(context).pop()),
-          ),
-        );
-        return;
-    }
-  }
-
-  void _showDestinationUnavailable(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -277,8 +225,7 @@ class _MainShellState extends State<MainShell> {
                                         duration: transitionDuration,
                                         curve: Curves.easeOutCubic,
                                         child: NotificationsPage(
-                                          onNotificationTap:
-                                              _openNotificationDestination,
+                                          repository: widget.notificationsRepository,
                                         ),
                                       ),
                                     ),

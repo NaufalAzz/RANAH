@@ -36,6 +36,35 @@ class MagmaSynchronizationTest extends TestCase
             ->assertJsonStructure(['data' => [['waktu_pengambilan']]]);
     }
 
+    public function test_activity_status_change_is_notified_with_source_capture_time_only(): void
+    {
+        Gunung::query()->create([
+            'nama' => 'Gunung Merapi',
+            'provinsi' => 'Jawa Tengah',
+            'status_aktivitas' => 'Level II (Waspada)',
+            'sumber_data' => 'MAGMA Indonesia',
+            'aktif' => true,
+        ]);
+        $this->fakeListing();
+
+        $service = app(MagmaInformationService::class);
+        self::assertSame(1, $service->synchronizeActivityListing());
+        self::assertSame(1, $service->synchronizeActivityListing());
+        self::assertDatabaseCount('berita', 1);
+        self::assertDatabaseHas('berita', [
+            'sumber_id' => 'magma-status:'.hash('sha256', '123|Level II (Waspada)|Level III (Siaga)'),
+            'waktu_publikasi' => null,
+            'waktu_kejadian' => null,
+        ]);
+        $this->getJson('/api/notifikasi')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.judul', 'Perubahan tingkat aktivitas Merapi')
+            ->assertJsonPath('data.0.waktu_publikasi', null)
+            ->assertJsonPath('data.0.waktu_pengambilan', fn ($value) => is_string($value))
+            ->assertJsonPath('data.0.url_sumber', 'https://magma.esdm.go.id/v1/gunung-api/laporan/123?signature=fixture');
+    }
+
     public function test_sanitized_actual_page_excerpt_is_persisted_and_exposed_by_the_normal_api(): void
     {
         $html = file_get_contents(__DIR__.'/../Fixtures/magma_activity_listing_capture_2026-10-25.html');
@@ -185,6 +214,44 @@ class MagmaSynchronizationTest extends TestCase
             ->assertJsonPath('data.laporan.0.pengamatan_visual', 'Asap kawah teramati.')
             ->assertJsonPath('data.laporan.0.url_sumber', 'https://magma.esdm.go.id/v1/gunung-api/laporan/123?signature=fixture')
             ->assertJsonPath('data.laporan.0.waktu_publikasi', '2026-10-25T00:00:00.000000Z');
+    }
+
+    public function test_verified_magma_report_creates_one_feed_record_only_when_status_changed(): void
+    {
+        $gunung = Gunung::query()->create([
+            'nama' => 'Gunung Merapi',
+            'provinsi' => 'Jawa Tengah',
+            'status_aktivitas' => 'Level II (Waspada)',
+            'sumber_data' => 'MAGMA Indonesia',
+            'aktif' => true,
+        ]);
+        Http::fake([
+            'magma.esdm.go.id/v1/gunung-api/tingkat-aktivitas' => Http::response(
+                $this->activityHtml(), 200, ['Content-Type' => 'text/html'],
+            ),
+            'magma.esdm.go.id/v1/gunung-api/laporan/123*' => Http::response(
+                '<html><head><title>Laporan Aktivitas Gunung Api - Gunung Merapi, Minggu - 25 Oktober 2026, periode 06:00-12:00 WIB</title></head>'
+                .'<body><h2>Level III (Siaga)</h2><h3>Pengamatan Visual</h3><p>Asap kawah teramati.</p>'
+                .'<h3>Rekomendasi</h3><p>Masyarakat mengikuti arahan resmi.</p></body></html>',
+                200, ['Content-Type' => 'text/html'],
+            ),
+        ]);
+
+        $service = app(MagmaInformationService::class);
+        self::assertSame(1, $service->synchronizeActivityListing('Merapi'));
+        self::assertSame(1, $service->synchronizeActivityListing('Merapi'));
+
+        self::assertDatabaseCount('berita', 1);
+        $this->getJson('/api/notifikasi')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.sumber', 'MAGMA Indonesia')
+            ->assertJsonPath('data.0.sumber_id', 'magma-status:'.hash('sha256', '123|Level II (Waspada)|Level III (Siaga)'))
+            ->assertJsonPath('data.0.status', 'informasi');
+        self::assertDatabaseHas('gunung', [
+            'id' => $gunung->id,
+            'status_aktivitas' => 'Level III (Siaga)',
+        ]);
     }
 
     private function fakeListing(): void

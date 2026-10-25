@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Gunung;
+use App\Models\Berita;
 use App\Models\LaporanGunung;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\RequestException;
@@ -28,9 +29,19 @@ class MagmaInformationService
         }
 
         $fetchedAt = now();
-        DB::transaction(function () use ($activity, $fetchedAt): void {
+        $previousStatuses = [];
+        foreach ($activity as $row) {
+            $existing = $this->findByNameAndProvince($row['name'], $row['province']);
+            $key = $this->volcanoKey($row['name'], $row['province']);
+            $previousStatuses[$key] = $existing?->status_aktivitas;
+        }
+
+        DB::transaction(function () use ($activity, $fetchedAt, $previousStatuses): void {
             foreach ($activity as $row) {
                 $gunung = $this->findByNameAndProvince($row['name'], $row['province']);
+                $previousStatus = trim((string) ($previousStatuses[$this->volcanoKey($row['name'], $row['province'])] ?? ''));
+                $statusChanged = $this->isKnownActivityStatus($previousStatus)
+                    && $previousStatus !== $row['status'];
                 $attributes = [
                     'nama' => $row['name'],
                     'provinsi' => $row['province'],
@@ -45,11 +56,37 @@ class MagmaInformationService
                 } else {
                     $gunung->fill($attributes)->save();
                 }
+
+                if ($statusChanged && $gunung !== null) {
+                    Berita::query()->updateOrCreate(
+                        ['sumber_id' => $this->statusChangeSourceId($row['report_id'], $previousStatus, $row['status'])],
+                        [
+                            'judul' => 'Perubahan tingkat aktivitas '.$gunung->nama,
+                            'kategori' => 'Aktivitas gunung api',
+                            'jenis_konten' => 'kejadian',
+                            'isi' => 'Daftar aktivitas MAGMA berubah dari '.$previousStatus.' menjadi '.$row['status'].'. Periksa tautan laporan sumber untuk rincian dan rekomendasi.',
+                            'gambar' => null,
+                            'sumber' => self::SOURCE,
+                            'url_sumber' => $row['report_url'],
+                            'wilayah' => $gunung->provinsi,
+                            // The listing provides no publication/event time; retain that uncertainty.
+                            'waktu_publikasi' => null,
+                            'waktu_kejadian' => null,
+                            'waktu_berakhir' => null,
+                            'waktu_pengambilan' => $fetchedAt,
+                            'status_publikasi' => 'published',
+                        ],
+                    );
+                }
             }
         });
 
         if ($reportFor !== null && trim($reportFor) !== '') {
-            $this->synchronizeReportFromActivity($activity, $reportFor);
+            $selected = $this->findActivityRow($activity, $reportFor);
+            $previousStatus = $selected === null
+                ? null
+                : ($previousStatuses[$this->volcanoKey($selected['name'], $selected['province'])] ?? null);
+            $this->synchronizeReportFromActivity($activity, $reportFor, $previousStatus);
         }
 
         return count($activity);
@@ -65,7 +102,11 @@ class MagmaInformationService
     }
 
     /** @param list<array{name:string,province:string,status:string,report_id:string,report_url:string}> $activity */
-    private function synchronizeReportFromActivity(array $activity, string $volcanoName): int
+    private function synchronizeReportFromActivity(
+        array $activity,
+        string $volcanoName,
+        ?string $previousStatusOverride = null,
+    ): int
     {
         $selected = null;
         foreach ($activity as $row) {
@@ -84,11 +125,14 @@ class MagmaInformationService
         $date = $this->parseIndonesianDate($detail['period_date']);
         $fetchedAt = now();
 
-        DB::transaction(function () use ($selected, $detail, $date, $fetchedAt): void {
+        DB::transaction(function () use ($selected, $detail, $date, $fetchedAt, $previousStatusOverride): void {
             $gunung = $this->findByNameAndProvince($selected['name'], $selected['province']);
             if ($gunung === null) {
                 throw new RuntimeException('The selected volcano must first be synchronized from the MAGMA listing.');
             }
+            $previousStatus = trim((string) ($previousStatusOverride ?? $gunung->status_aktivitas));
+            $statusChanged = $this->isKnownActivityStatus($previousStatus)
+                && $previousStatus !== $detail['status'];
             $attributes = [
                 'status_aktivitas' => $detail['status'],
                 'sumber_data' => self::SOURCE,
@@ -115,6 +159,27 @@ class MagmaInformationService
                     'waktu_pengambilan' => $fetchedAt,
                 ],
             );
+
+            if ($statusChanged && $previousStatusOverride === null) {
+                Berita::query()->updateOrCreate(
+                    ['sumber_id' => $this->statusChangeSourceId($selected['report_id'], $previousStatus, $detail['status'])],
+                    [
+                        'judul' => 'Pembaruan tingkat aktivitas '.$gunung->nama,
+                        'kategori' => 'Aktivitas gunung api',
+                        'jenis_konten' => 'kejadian',
+                        'isi' => 'Laporan MAGMA mencatat perubahan status dari '.$previousStatus.' menjadi '.$detail['status'].'. Rekomendasi dan pengamatan terbaru tersedia pada laporan sumber.',
+                        'gambar' => null,
+                        'sumber' => self::SOURCE,
+                        'url_sumber' => $selected['report_url'],
+                        'wilayah' => $gunung->provinsi,
+                        'waktu_publikasi' => $date->startOfDay(),
+                        'waktu_kejadian' => $date->startOfDay(),
+                        'waktu_berakhir' => null,
+                        'waktu_pengambilan' => $fetchedAt,
+                        'status_publikasi' => 'published',
+                    ],
+                );
+            }
         });
 
         return 1;
@@ -139,6 +204,35 @@ class MagmaInformationService
         $name = preg_replace('/^Gunung\s+/iu', '', trim($name)) ?? trim($name);
 
         return mb_strtolower(preg_replace('/[^\pL\pN]+/u', '', $name) ?? $name);
+    }
+
+    private function volcanoKey(string $name, string $province): string
+    {
+        return $this->normalizeName($name).'|'.mb_strtolower(trim($province));
+    }
+
+    private function statusChangeSourceId(string $reportId, string $previousStatus, string $currentStatus): string
+    {
+        return 'magma-status:'.hash('sha256', $reportId.'|'.$previousStatus.'|'.$currentStatus);
+    }
+
+    private function isKnownActivityStatus(string $status): bool
+    {
+        return preg_match('/^Level\s+(?:I|II|III|IV)\b/i', trim($status)) === 1;
+    }
+
+    /** @param list<array{name:string,province:string,status:string,report_id:string,report_url:string}> $activity
+     * @return array{name:string,province:string,status:string,report_id:string,report_url:string}|null
+     */
+    private function findActivityRow(array $activity, string $volcanoName): ?array
+    {
+        foreach ($activity as $row) {
+            if ($this->normalizeName($row['name']) === $this->normalizeName($volcanoName)) {
+                return $row;
+            }
+        }
+
+        return null;
     }
 
     private function findByNameAndProvince(string $name, string $province): ?Gunung
