@@ -2,8 +2,10 @@ import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 
-/// Local SQLite cache for volcanoes, news, and sync timestamps.
-class GunungLocalStore {
+import 'notification_cache_store.dart';
+
+/// Local SQLite cache for volcanoes, news, notifications, and sync timestamps.
+class GunungLocalStore implements NotificationCacheStore {
   factory GunungLocalStore({DatabaseFactory? factory, String? databasePath}) =>
       GunungLocalStore._(factory, databasePath);
 
@@ -22,7 +24,7 @@ class GunungLocalStore {
     final database = await (_factory ?? databaseFactory).openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 3,
+        version: 4,
         onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
         onCreate: (db, version) async {
           await db.execute('''
@@ -54,6 +56,7 @@ class GunungLocalStore {
             )
           ''');
           await _createNewsTable(db);
+          await _createNotificationsTable(db);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           if (oldVersion < 2) await _createNewsTable(db);
@@ -62,6 +65,7 @@ class GunungLocalStore {
               'ALTER TABLE gunung ADD COLUMN tercantum INTEGER NOT NULL DEFAULT 1',
             );
           }
+          if (oldVersion < 4) await _createNotificationsTable(db);
         },
       ),
     );
@@ -270,6 +274,54 @@ class GunungLocalStore {
     });
   }
 
+  @override
+  Future<List<Map<String, dynamic>>> readNotifications() async {
+    final rows = await (await _db).query(
+      'notification_cache',
+      columns: ['payload'],
+      orderBy: 'server_order ASC',
+    );
+    return rows.map((row) => _decode(row['payload'] as String)).toList();
+  }
+
+  @override
+  Future<void> saveNotifications(
+    List<Map<String, dynamic>> items, {
+    required DateTime checkedAt,
+    DateTime? sourceUpdatedAt,
+  }) async {
+    final db = await _db;
+    await db.transaction((transaction) async {
+      await transaction.delete('notification_cache');
+      for (var index = 0; index < items.length; index++) {
+        final item = items[index];
+        final id = item['id']?.toString().trim();
+        if (id == null || id.isEmpty) {
+          throw const FormatException('ID notifikasi tidak valid.');
+        }
+        await transaction.insert('notification_cache', {
+          'id': id,
+          'server_order': index,
+          'payload': jsonEncode(item),
+        });
+      }
+      await _writeMetadata(transaction, 'notifications_last_sync', checkedAt);
+      if (sourceUpdatedAt == null) {
+        await transaction.delete(
+          'metadata',
+          where: 'key = ?',
+          whereArgs: ['notifications_source_last_sync'],
+        );
+      } else {
+        await _writeMetadata(
+          transaction,
+          'notifications_source_last_sync',
+          sourceUpdatedAt,
+        );
+      }
+    });
+  }
+
   Future<void> _writeMetadata(
     Transaction transaction,
     String key,
@@ -286,6 +338,14 @@ class GunungLocalStore {
 
   Future<void> _createNewsTable(DatabaseExecutor db) => db.execute('''
     CREATE TABLE news_cache (
+      id TEXT PRIMARY KEY,
+      server_order INTEGER NOT NULL,
+      payload TEXT NOT NULL
+    )
+  ''');
+
+  Future<void> _createNotificationsTable(DatabaseExecutor db) => db.execute('''
+    CREATE TABLE notification_cache (
       id TEXT PRIMARY KEY,
       server_order INTEGER NOT NULL,
       payload TEXT NOT NULL

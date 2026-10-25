@@ -16,6 +16,7 @@ class Berita extends Model
         'gambar',
         'sumber',
         'sumber_id',
+        'tingkat_kepentingan',
         'url_sumber',
         'wilayah',
         'waktu_publikasi',

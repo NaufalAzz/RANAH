@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 #[Signature('ranah:sync-bmkg')]
-#[Description('Sinkronkan laporan gempa dan peringatan cuaca resmi BMKG untuk Padang.')]
+#[Description('Sinkronkan laporan gempa dan peringatan cuaca resmi BMKG yang relevan dengan Sumatera Barat.')]
 class SyncBmkgInformation extends Command
 {
     public function handle(BmkgInformationService $service): int
@@ -22,8 +22,8 @@ class SyncBmkgInformation extends Command
         try {
             $count = $service->synchronizeFeltEarthquakes();
             $this->info($count === 0
-                ? 'Feed gempa BMKG valid; tidak ada catatan yang memenuhi cakupan Padang.'
-                : "Feed gempa BMKG valid; catatan yang memenuhi cakupan Padang: {$count}.");
+                ? 'Feed gempa BMKG valid; tidak ada catatan yang memenuhi cakupan Sumatera Barat.'
+                : "Feed gempa BMKG valid; catatan yang memenuhi cakupan Sumatera Barat: {$count}.");
         } catch (Throwable $exception) {
             $hasFailures = true;
             $this->logFailure('earthquakes', $exception);
@@ -31,10 +31,10 @@ class SyncBmkgInformation extends Command
         }
 
         try {
-            $count = $service->synchronizePadangWeatherAlerts();
+            $count = $service->synchronizeWestSumatraWeatherAlerts();
             $this->info($count === 0
-                ? 'Feed peringatan BMKG valid; tidak ada peringatan aktif untuk Padang.'
-                : "Feed peringatan BMKG valid; peringatan aktif untuk Padang: {$count}.");
+                ? 'Feed peringatan BMKG valid; tidak ada peringatan aktif untuk Sumatera Barat.'
+                : "Feed peringatan BMKG valid; peringatan aktif untuk Sumatera Barat: {$count}.");
         } catch (Throwable $exception) {
             $hasFailures = true;
             $this->logFailure('weather_alerts', $exception);
