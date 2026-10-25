@@ -195,6 +195,7 @@ class GunungLocalStore implements NotificationCacheStore {
     });
   }
 
+  @override
   Future<DateTime?> readLastSync(String key) async {
     final rows = await (await _db).query(
       'metadata',
