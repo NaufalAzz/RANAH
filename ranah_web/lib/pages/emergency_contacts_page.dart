@@ -4,6 +4,7 @@ import '../data/emergency_contacts.dart';
 import '../theme/ranah_theme.dart';
 import '../utils/emergency_call.dart';
 import '../utils/complaint_file_picker.dart';
+import '../widgets/ranah_full_width_title_background.dart';
 
 const _complaintCategories = [
   'Erupsi gunung api',
@@ -46,85 +47,79 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
     builder: (context, constraints) {
       final width = constraints.maxWidth > 1000 ? 1000.0 : constraints.maxWidth;
       final horizontal = width < 600 ? 20.0 : 34.0;
-      return Align(
-        alignment: Alignment.topCenter,
-        child: SizedBox(
-          width: width,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _ContactsBanner(onBack: widget.onBack),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _ContactTab(
-                          selected: !_showComplaint,
-                          onTap: () => setState(() => _showComplaint = false),
-                        ),
-                      ),
-                      SizedBox(width: 14),
-                      Expanded(
-                        child: _ComplaintTab(
-                          selected: _showComplaint,
-                          onTap: () => setState(() => _showComplaint = true),
-                        ),
-                      ),
-                    ],
+      return RanahPageScrollLayout(
+        maxContentWidth: width,
+        title: _ContactsBanner(maxContentWidth: width),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _ContactTab(
+                      selected: !_showComplaint,
+                      onTap: () => setState(() => _showComplaint = false),
+                    ),
+                  ),
+                  SizedBox(width: 14),
+                  Expanded(
+                    child: _ComplaintTab(
+                      selected: _showComplaint,
+                      onTap: () => setState(() => _showComplaint = true),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_showComplaint)
+              Padding(
+                padding: EdgeInsets.fromLTRB(horizontal, 15, horizontal, 0),
+                child: _ComplaintForm(
+                  formKey: _formKey,
+                  nameController: _nameController,
+                  phoneController: _phoneController,
+                  locationController: _locationController,
+                  descriptionController: _descriptionController,
+                  selectedCategory: _selectedCategory,
+                  onCategoryChanged: (value) =>
+                      setState(() => _selectedCategory = value),
+                  selectedFiles: _selectedFiles,
+                  onPickFiles: _pickFiles,
+                  onSubmit: _submitComplaint,
+                ),
+              )
+            else ...[
+              Padding(
+                padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 0),
+                child: const _EmergencyNotice(),
+              ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 7),
+                child: const Text(
+                  'Kontak Darurat',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                if (_showComplaint)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(horizontal, 15, horizontal, 0),
-                    child: _ComplaintForm(
-                      formKey: _formKey,
-                      nameController: _nameController,
-                      phoneController: _phoneController,
-                      locationController: _locationController,
-                      descriptionController: _descriptionController,
-                      selectedCategory: _selectedCategory,
-                      onCategoryChanged: (value) =>
-                          setState(() => _selectedCategory = value),
-                      selectedFiles: _selectedFiles,
-                      onPickFiles: _pickFiles,
-                      onSubmit: _submitComplaint,
-                    ),
-                  )
-                else ...[
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 0),
-                    child: const _EmergencyNotice(),
+              ),
+              for (var index = 0; index < emergencyContacts.length; index++)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontal,
+                    0,
+                    horizontal,
+                    index == emergencyContacts.length - 1 ? 0 : 8,
                   ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 7),
-                    child: const Text(
-                      'Kontak Darurat',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                  child: _EmergencyContactCard(
+                    contact: emergencyContacts[index],
                   ),
-                  for (var index = 0; index < emergencyContacts.length; index++)
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        horizontal,
-                        0,
-                        horizontal,
-                        index == emergencyContacts.length - 1 ? 0 : 8,
-                      ),
-                      child: _EmergencyContactCard(
-                        contact: emergencyContacts[index],
-                      ),
-                    ),
-                ],
-              ],
-            ),
-          ),
+                ),
+            ],
+          ],
         ),
       );
     },
@@ -153,56 +148,52 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
 }
 
 class _ContactsBanner extends StatelessWidget {
-  const _ContactsBanner({required this.onBack});
+  const _ContactsBanner({required this.maxContentWidth});
 
-  final VoidCallback onBack;
+  final double maxContentWidth;
 
   @override
-  Widget build(BuildContext context) => Container(
-    height: 52,
-    padding: const EdgeInsets.only(left: 12, right: 6),
+  Widget build(BuildContext context) => RanahFullWidthTitleBackground(
     color: RanahColors.banner,
-    child: Row(
-      children: [
-        const Icon(Icons.phone_in_talk_outlined, size: 26),
-        const SizedBox(width: 10),
-        const Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'DISASTER EVACUATION',
-                maxLines: 1,
-                style: TextStyle(
-                  color: Color(0xFF91A8D0),
-                  fontSize: 8,
-                  letterSpacing: .45,
-                  fontWeight: FontWeight.w600,
+    maxContentWidth: maxContentWidth,
+    child: Container(
+      constraints: const BoxConstraints(minHeight: 76),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      color: RanahColors.banner,
+      child: Row(
+        children: [
+          const Icon(Icons.phone_in_talk_outlined, size: 26),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'SIAGA BENCANA',
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: Color(0xFF91A8D0),
+                    fontSize: 12,
+                    letterSpacing: .45,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              Text(
-                'Kontak & Pengaduan',
-                maxLines: 1,
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-              ),
-              Text(
-                'Hubungi kami atau kirim laporan',
-                maxLines: 1,
-                style: TextStyle(color: Color(0xFFC1C8D7), fontSize: 8),
-              ),
-            ],
+                Text(
+                  'Kontak & Pengaduan',
+                  maxLines: 1,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  'Hubungi kami atau kirim laporan',
+                  maxLines: 1,
+                  style: TextStyle(color: Color(0xFFC1C8D7), fontSize: 12),
+                ),
+              ],
+            ),
           ),
-        ),
-        IconButton(
-          onPressed: onBack,
-          tooltip: 'Kembali',
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints.tightFor(width: 34, height: 38),
-          padding: EdgeInsets.zero,
-          icon: const Icon(Icons.arrow_back, size: 17),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }
@@ -221,13 +212,13 @@ class _ContactTab extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: SizedBox(
-        height: 34,
+        height: 48,
         child: Center(
           child: Text(
             'Kontak Darurat',
             style: TextStyle(
               color: selected ? Colors.white : const Color(0xFFB9C3CE),
-              fontSize: 9,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -251,13 +242,13 @@ class _ComplaintTab extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: SizedBox(
-        height: 34,
+        height: 48,
         child: Center(
           child: Text(
             'Pengaduan',
             style: TextStyle(
               color: selected ? Colors.white : const Color(0xFFB9C3CE),
-              fontSize: 9,
+              fontSize: 12,
               fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
             ),
           ),
@@ -279,7 +270,7 @@ class _EmergencyNotice extends StatelessWidget {
     ),
     child: RichText(
       text: TextSpan(
-        style: TextStyle(color: Colors.white, fontSize: 9, height: 1.3),
+        style: TextStyle(color: Colors.white, fontSize: 12, height: 1.3),
         children: [
           TextSpan(
             text: 'Catatan: ',
@@ -337,7 +328,7 @@ class _EmergencyContactCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 9,
+                  fontSize: 16,
                   height: 1.1,
                   fontWeight: FontWeight.w700,
                 ),
@@ -347,7 +338,7 @@ class _EmergencyContactCard extends StatelessWidget {
                 maxLines: 1,
                 style: const TextStyle(
                   color: Color(0xFFB0BAC8),
-                  fontSize: 8,
+                  fontSize: 12,
                   height: 1.2,
                 ),
               ),
@@ -363,7 +354,7 @@ class _EmergencyContactCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFFD0B8C1),
-                    fontSize: 7,
+                    fontSize: 12,
                     height: 1.1,
                   ),
                 ),
@@ -378,7 +369,7 @@ class _EmergencyContactCard extends StatelessWidget {
           const Text(
             'Nomor belum diverifikasi',
             textAlign: TextAlign.right,
-            style: TextStyle(color: Color(0xFFFF8585), fontSize: 8),
+            style: TextStyle(color: Color(0xFFFF8585), fontSize: 12),
           ),
       ],
     ),
@@ -424,11 +415,11 @@ class _PhoneNumberButton extends StatelessWidget {
     },
     style: TextButton.styleFrom(
       foregroundColor: const Color(0xFFFF2025),
-      minimumSize: const Size(36, 32),
+      minimumSize: const Size(48, 48),
       padding: const EdgeInsets.symmetric(horizontal: 4),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       textStyle: const TextStyle(
-        fontSize: 11,
+        fontSize: 12,
         fontStyle: FontStyle.italic,
         fontWeight: FontWeight.w800,
       ),
@@ -490,7 +481,7 @@ class _ComplaintForm extends StatelessWidget {
           initialValue: selectedCategory,
           isExpanded: true,
           dropdownColor: const Color(0xFF26394D),
-          style: const TextStyle(color: Colors.white, fontSize: 12),
+          style: const TextStyle(color: Colors.white, fontSize: 16),
           decoration: _fieldDecoration('Pilih kategori pengaduan'),
           items: [
             for (final category in _complaintCategories)
@@ -510,7 +501,7 @@ class _ComplaintForm extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.white,
             alignment: Alignment.centerLeft,
-            minimumSize: const Size.fromHeight(40),
+            minimumSize: const Size.fromHeight(48),
             side: const BorderSide(color: Color(0xFF687B91)),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(6),
@@ -521,7 +512,7 @@ class _ComplaintForm extends StatelessWidget {
           const SizedBox(height: 5),
           Text(
             selectedFiles.join(', '),
-            style: const TextStyle(color: Color(0xFFCFD7E2), fontSize: 10),
+            style: const TextStyle(color: Color(0xFFCFD7E2), fontSize: 12),
           ),
         ],
         _label('Deskripsi Kejadian'),
@@ -541,7 +532,7 @@ class _ComplaintForm extends StatelessWidget {
         ),
         const SizedBox(height: 15),
         SizedBox(
-          height: 42,
+          height: 48,
           child: ElevatedButton(
             key: const ValueKey('complaint-submit'),
             onPressed: onSubmit,
@@ -554,7 +545,7 @@ class _ComplaintForm extends StatelessWidget {
             ),
             child: const Text(
               'KIRIM LAPORAN',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
             ),
           ),
         ),
@@ -562,7 +553,7 @@ class _ComplaintForm extends StatelessWidget {
         const Text(
           'Simulasi lokal: data dan lampiran tidak dikirim ke server.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Color(0xFFCCD4DF), fontSize: 9),
+          style: TextStyle(color: Color(0xFFCCD4DF), fontSize: 12),
         ),
       ],
     ),
@@ -574,7 +565,7 @@ class _ComplaintForm extends StatelessWidget {
       text,
       style: const TextStyle(
         color: Colors.white,
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: FontWeight.w700,
       ),
     ),
@@ -594,13 +585,13 @@ class _ComplaintForm extends StatelessWidget {
         validator ??
         (value) =>
             (value ?? '').trim().isEmpty ? 'Kolom ini wajib diisi' : null,
-    style: const TextStyle(color: Colors.white, fontSize: 12),
+    style: const TextStyle(color: Colors.white, fontSize: 16),
     decoration: _fieldDecoration(hint),
   );
 
   InputDecoration _fieldDecoration(String hint) => InputDecoration(
     hintText: hint,
-    hintStyle: const TextStyle(color: Color(0xFF9AA8B8), fontSize: 11),
+    hintStyle: const TextStyle(color: Color(0xFFCFD7E2), fontSize: 12),
     filled: true,
     fillColor: const Color(0xFF304358),
     contentPadding: const EdgeInsets.symmetric(horizontal: 11, vertical: 11),
@@ -616,6 +607,6 @@ class _ComplaintForm extends StatelessWidget {
       borderRadius: BorderRadius.circular(6),
       borderSide: const BorderSide(color: Color(0xFF92A8C0)),
     ),
-    errorStyle: const TextStyle(fontSize: 10),
+    errorStyle: const TextStyle(fontSize: 12),
   );
 }

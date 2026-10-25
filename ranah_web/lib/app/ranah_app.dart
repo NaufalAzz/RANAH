@@ -4,11 +4,14 @@ import '../data/volcanic_activity_data.dart';
 import '../data/home_stories.dart';
 import '../data/sample_notifications.dart';
 import '../pages/map_page.dart';
+import '../pages/evacuation_route_page.dart';
 import '../pages/news_detail_page.dart';
 import '../pages/news_page.dart';
 import '../pages/notifications_page.dart';
 import '../pages/home_page.dart';
 import '../pages/emergency_contacts_page.dart';
+import '../pages/admin_login_page.dart';
+import '../pages/admin_panel_page.dart';
 import '../pages/mitigation_guide_page.dart';
 import '../pages/volcanic_activity_page.dart';
 import '../pages/volcano_report_page.dart';
@@ -19,6 +22,7 @@ import '../widgets/ranah_header.dart';
 enum _Page {
   home,
   map,
+  evacuationRoute,
   activity,
   volcanoReport,
   news,
@@ -26,6 +30,8 @@ enum _Page {
   mitigation,
   notifications,
   story,
+  adminLogin,
+  adminPreview,
 }
 
 class RanahShell extends StatefulWidget {
@@ -36,13 +42,17 @@ class RanahShell extends StatefulWidget {
 }
 
 class _RanahShellState extends State<RanahShell> {
-  _Page _page = _Page.home;
+  late _Page _page;
   _Page _reportReturnPage = _Page.map;
   _Page _storyReturnPage = _Page.home;
   _Page _mitigationReturnPage = _Page.home;
   _Page _notificationsReturnPage = _Page.home;
   _Page _activityReturnPage = _Page.map;
   _Page _contactsReturnPage = _Page.home;
+  _Page _routeReturnPage = _Page.map;
+  bool _mapLocationDetails = false;
+  Offset _manualMapPinPosition = const Offset(.23, .60);
+  bool _manualMapLocationChosen = false;
   late VolcanoActivitySample _selectedVolcano;
   HomeStory? _selectedStory;
   bool _menuOpen = false;
@@ -50,6 +60,9 @@ class _RanahShellState extends State<RanahShell> {
   @override
   void initState() {
     super.initState();
+    _page = Uri.base.path == '/admin' || Uri.base.path.startsWith('/admin/')
+        ? _Page.adminLogin
+        : _Page.home;
     _selectedVolcano = volcanicActivitySamples.firstWhere(
       (volcano) => volcano.name == 'Gunung Marapi',
     );
@@ -109,6 +122,14 @@ class _RanahShellState extends State<RanahShell> {
     });
   }
 
+  void _openEvacuationRoute(_Page returnPage) {
+    setState(() {
+      _routeReturnPage = returnPage;
+      _page = _Page.evacuationRoute;
+      _menuOpen = false;
+    });
+  }
+
   void _openNotificationDestination(SampleNotification notification) {
     switch (notification.destination) {
       case SampleNotificationDestination.volcanicActivity:
@@ -146,6 +167,15 @@ class _RanahShellState extends State<RanahShell> {
 
   @override
   Widget build(BuildContext context) {
+    if (_page == _Page.adminLogin) {
+      return AdminLoginPage(
+        onBack: () => _navigate(_Page.home),
+        onPreview: () => _navigate(_Page.adminPreview),
+      );
+    }
+    if (_page == _Page.adminPreview) {
+      return AdminPanelPage(onExit: () => _navigate(_Page.adminLogin));
+    }
     return Scaffold(
       body: Stack(
         children: [
@@ -177,6 +207,22 @@ class _RanahShellState extends State<RanahShell> {
                           onActivityTap: () => _openActivity(_Page.map),
                           onMountainTap: (mountain) =>
                               _openVolcanoReport(mountain.name, _Page.map),
+                          onEvacuationRouteTap: () =>
+                              _openEvacuationRoute(_Page.map),
+                          showLocationDetails: _mapLocationDetails,
+                          onLocationDetailsChanged: (show) {
+                            _mapLocationDetails = show;
+                          },
+                          manualPinPosition: _manualMapPinPosition,
+                          manualLocationChosen: _manualMapLocationChosen,
+                          onManualPinChanged: (position) => setState(() {
+                            _manualMapPinPosition = position;
+                            _manualMapLocationChosen = true;
+                          }),
+                        )
+                      : _page == _Page.evacuationRoute
+                      ? EvacuationRoutePage(
+                          onBack: () => _navigate(_routeReturnPage),
                         )
                       : _page == _Page.activity
                       ? VolcanicActivityPage(
@@ -250,7 +296,7 @@ class _MenuPopup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    width: 112,
+    width: 190,
     padding: const EdgeInsets.all(4),
     decoration: const BoxDecoration(
       color: Color(0xE9092240),
@@ -266,14 +312,14 @@ class _MenuPopup extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         _MenuOption(
-          label: 'CONTACT',
+          label: 'KONTAK DARURAT',
           color: RanahColors.eruption,
           onTap: onContact,
         ),
         const SizedBox(height: 3),
         _MenuOption(
-          label: 'MITIGATION GUIDE',
-          color: const Color(0xFF0F8178),
+          label: 'PANDUAN MITIGASI',
+          color: const Color(0xFF00695C),
           onTap: onMitigation,
         ),
       ],
@@ -295,14 +341,14 @@ class _MenuOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox(
     width: double.infinity,
-    height: 22,
+    height: 48,
     child: Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         child: Center(
           child: Container(
-            height: 22,
+            height: 48,
             width: double.infinity,
             decoration: BoxDecoration(
               color: color,
@@ -313,7 +359,7 @@ class _MenuOption extends StatelessWidget {
               label,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 7,
+                fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -333,7 +379,11 @@ class _PlaceholderPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (title, subtitle) = switch (page) {
-      _Page.map => ('Map', 'Halaman peta belum diimplementasikan.'),
+      _Page.map => ('Peta', 'Halaman peta belum diimplementasikan.'),
+      _Page.evacuationRoute => (
+        'Jalur Evakuasi',
+        'Detail jalur evakuasi tidak tersedia.',
+      ),
       _Page.activity => (
         'Laporan Aktivitas Gunung',
         'Daftar aktivitas gunung belum diimplementasikan.',
@@ -342,10 +392,13 @@ class _PlaceholderPage extends StatelessWidget {
         'Laporan Gunung',
         'Detail laporan gunung belum diimplementasikan.',
       ),
-      _Page.news => ('News', 'Halaman berita belum diimplementasikan.'),
-      _Page.contact => ('Contact', 'Halaman kontak belum diimplementasikan.'),
+      _Page.news => ('Berita', 'Halaman berita belum diimplementasikan.'),
+      _Page.contact => (
+        'Kontak Darurat',
+        'Halaman kontak belum diimplementasikan.',
+      ),
       _Page.mitigation => (
-        'Mitigation Guide',
+        'Panduan Mitigasi',
         'Halaman panduan mitigasi belum diimplementasikan.',
       ),
       _Page.notifications => (
@@ -356,7 +409,9 @@ class _PlaceholderPage extends StatelessWidget {
         'Detail Berita',
         'Halaman detail berita belum diimplementasikan.',
       ),
-      _Page.home => ('Home', ''),
+      _Page.home => ('Beranda', ''),
+      _Page.adminLogin => ('Masuk Admin', ''),
+      _Page.adminPreview => ('Pratinjau Admin', ''),
     };
     return Center(
       child: ConstrainedBox(
@@ -386,7 +441,7 @@ class _PlaceholderPage extends StatelessWidget {
                 OutlinedButton.icon(
                   onPressed: onBack,
                   icon: const Icon(Icons.arrow_back),
-                  label: const Text('Kembali ke Home'),
+                  label: const Text('Kembali ke Beranda'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                   ),

@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../data/home_stories.dart';
 import '../theme/ranah_theme.dart';
+import '../widgets/ranah_full_width_title_background.dart';
 
-const _newsCategories = <String>['Semua', 'Erupsi', 'Ngungsi', 'Bantuan'];
+const _newsCategories = <String>['Semua', 'Erupsi', 'Pengungsian', 'Bantuan'];
 
 class NewsPage extends StatefulWidget {
   const NewsPage({required this.onStoryTap, super.key});
@@ -30,7 +31,7 @@ class _NewsPageState extends State<NewsPage> {
     final filteredStories = newsStories.where((story) {
       final categoryKey = switch (_category) {
         'Semua' => null,
-        'Ngungsi' => 'PENGUNGSIAN',
+        'Pengungsian' => 'PENGUNGSIAN',
         _ => _category.toUpperCase(),
       };
       final matchesCategory =
@@ -48,100 +49,84 @@ class _NewsPageState extends State<NewsPage> {
         final maxWidth = constraints.maxWidth > 1200
             ? 1200.0
             : constraints.maxWidth;
-        return Align(
-          alignment: Alignment.topCenter,
-          child: SizedBox(
-            width: maxWidth,
-            child: SingleChildScrollView(
-              padding: EdgeInsets.only(bottom: 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const NewsPageBanner(),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(horizontal, 10, horizontal, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          height: 36,
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: (value) =>
-                                setState(() => _query = value.trim()),
-                            style: const TextStyle(
-                              color: RanahColors.ink,
-                              fontSize: 14,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Search',
-                              hintStyle: const TextStyle(
-                                color: Color(0xFF9AA0A8),
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.search,
-                                color: Color(0xFF9AA0A8),
-                                size: 19,
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: EdgeInsets.zero,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(24),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'FILTER',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        _CategoryFilterBar(
-                          selected: _category,
-                          onSelected: (category) =>
-                              setState(() => _category = category),
-                        ),
-                        const SizedBox(height: 22),
-                        if (filteredStories.isEmpty)
-                          const _EmptyNewsState()
-                        else
-                          LayoutBuilder(
-                            builder: (context, gridConstraints) {
-                              final columns = gridConstraints.maxWidth < 560
-                                  ? 1
-                                  : 2;
-                              final gap = columns == 1 ? 14.0 : 20.0;
-                              final cardWidth = columns == 1
-                                  ? gridConstraints.maxWidth
-                                  : (gridConstraints.maxWidth - gap) / 2;
-                              return Wrap(
-                                spacing: gap,
-                                runSpacing: 26,
-                                children: [
-                                  for (final story in filteredStories)
-                                    SizedBox(
-                                      width: cardWidth,
-                                      child: _NewsStoryCard(
-                                        story: story,
-                                        onTap: () => widget.onStoryTap(story),
-                                      ),
-                                    ),
-                                ],
-                              );
-                            },
-                          ),
-                      ],
+        return RanahPageScrollLayout(
+          maxContentWidth: maxWidth,
+          title: NewsPageBanner(maxContentWidth: maxWidth),
+          content: Padding(
+            padding: EdgeInsets.fromLTRB(horizontal, 10, horizontal, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: 48,
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) => setState(() => _query = value.trim()),
+                    style: const TextStyle(
+                      color: RanahColors.ink,
+                      fontSize: 16,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Cari berita',
+                      hintStyle: const TextStyle(color: Color(0xFF9AA0A8)),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Color(0xFF9AA0A8),
+                        size: 19,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.zero,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'FILTER',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                _CategoryFilterBar(
+                  selected: _category,
+                  onSelected: (category) =>
+                      setState(() => _category = category),
+                ),
+                const SizedBox(height: 22),
+                if (filteredStories.isEmpty)
+                  const _EmptyNewsState()
+                else
+                  LayoutBuilder(
+                    builder: (context, gridConstraints) {
+                      final columns = gridConstraints.maxWidth < 560 ? 1 : 2;
+                      final gap = columns == 1 ? 14.0 : 20.0;
+                      final cardWidth = columns == 1
+                          ? gridConstraints.maxWidth
+                          : (gridConstraints.maxWidth - gap) / 2;
+                      return Wrap(
+                        spacing: gap,
+                        runSpacing: 26,
+                        children: [
+                          for (final story in filteredStories)
+                            SizedBox(
+                              width: cardWidth,
+                              child: _NewsStoryCard(
+                                story: story,
+                                onTap: () => widget.onStoryTap(story),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+              ],
             ),
           ),
         );
@@ -151,48 +136,54 @@ class _NewsPageState extends State<NewsPage> {
 }
 
 class NewsPageBanner extends StatelessWidget {
-  const NewsPageBanner({super.key});
+  const NewsPageBanner({this.maxContentWidth, super.key});
+
+  final double? maxContentWidth;
 
   @override
-  Widget build(BuildContext context) => Container(
-    height: 66,
-    padding: const EdgeInsets.symmetric(horizontal: 18),
+  Widget build(BuildContext context) => RanahFullWidthTitleBackground(
     color: RanahColors.banner,
-    child: const Row(
-      children: [
-        Icon(Icons.library_books_rounded, size: 27, color: Colors.white),
-        SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'DISASTER EVACUATION',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Color(0xFF91A8D0),
-                  fontSize: 9,
-                  letterSpacing: .5,
-                  fontWeight: FontWeight.w600,
+    maxContentWidth: maxContentWidth,
+    child: Container(
+      constraints: const BoxConstraints(minHeight: 76),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      color: RanahColors.banner,
+      child: const Row(
+        children: [
+          Icon(Icons.library_books_rounded, size: 27, color: Colors.white),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'SIAGA BENCANA',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Color(0xFF91A8D0),
+                    fontSize: 12,
+                    letterSpacing: .5,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              Text(
-                'News & Event',
-                maxLines: 1,
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-              ),
-              Text(
-                'Informasi seputar kebencanaan · konten demonstrasi',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: Color(0xFFC1C8D7), fontSize: 9),
-              ),
-            ],
+                Text(
+                  'Berita & Peristiwa',
+                  maxLines: 1,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  'Informasi seputar kebencanaan · konten demonstrasi',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Color(0xFFC1C8D7), fontSize: 12),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }
@@ -217,7 +208,7 @@ class _CategoryFilterBar extends StatelessWidget {
             if (index > 0) SizedBox(width: spacing),
             SizedBox(
               width: chipWidth,
-              height: 24,
+              height: 48,
               child: _CategoryChip(
                 label: _newsCategories[index],
                 selected: selected == _newsCategories[index],
@@ -249,13 +240,33 @@ class _CategoryChip extends StatelessWidget {
     child: InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
-      child: Center(
-        child: Text(
-          label,
-          maxLines: 1,
-          style: TextStyle(
-            color: selected ? Colors.white : const Color(0xFF95A0B0),
-            fontSize: 12,
+      child: Semantics(
+        selected: selected,
+        button: true,
+        label: label,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: selected ? Colors.white : RanahColors.muted,
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                ),
+              ),
+              if (selected)
+                Container(
+                  width: 26,
+                  height: 2,
+                  margin: const EdgeInsets.only(top: 2),
+                  color: Colors.white,
+                ),
+            ],
           ),
         ),
       ),
@@ -291,8 +302,8 @@ class _NewsStoryCard extends StatelessWidget {
                 Text(
                   'CONTOH · ${story.category}',
                   style: TextStyle(
-                    color: Color(story.color),
-                    fontSize: 12,
+                    color: RanahColors.ink,
+                    fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -303,7 +314,7 @@ class _NewsStoryCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: RanahColors.ink,
-                    fontSize: 13,
+                    fontSize: 16,
                     height: 1.05,
                     fontWeight: FontWeight.w700,
                   ),
@@ -315,7 +326,7 @@ class _NewsStoryCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: RanahColors.ink,
-                    fontSize: 12,
+                    fontSize: 16,
                     height: 1.08,
                   ),
                 ),
@@ -324,7 +335,7 @@ class _NewsStoryCard extends StatelessWidget {
                   story.date,
                   style: const TextStyle(
                     color: Color(0xFF647083),
-                    fontSize: 10,
+                    fontSize: 12,
                   ),
                 ),
               ],

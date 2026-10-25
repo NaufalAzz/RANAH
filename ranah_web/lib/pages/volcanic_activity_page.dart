@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/volcanic_activity_data.dart';
 import '../theme/ranah_theme.dart';
+import '../widgets/ranah_full_width_title_background.dart';
 
 class VolcanicActivityPage extends StatefulWidget {
   const VolcanicActivityPage({
@@ -33,57 +34,49 @@ class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
       final width = constraints.maxWidth;
       final compact = width < 700;
       final contentWidth = width > 1120 ? 1120.0 : width;
+      final horizontalInset = compact ? 8.0 : 28.0;
+      final innerWidth = contentWidth - horizontalInset * 2;
       final query = _query.trim().toLowerCase();
       final visible = volcanicActivitySamples.where((sample) {
         return sample.name.toLowerCase().contains(query) ||
             sample.province.toLowerCase().contains(query);
       }).toList();
 
-      return Align(
-        alignment: Alignment.topCenter,
-        child: SizedBox(
-          width: contentWidth,
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              compact ? 8 : 28,
-              0,
-              compact ? 8 : 28,
-              28,
+      return RanahPageScrollLayout(
+        maxContentWidth: contentWidth,
+        horizontalInset: horizontalInset,
+        title: _ActivityTitleBanner(maxContentWidth: innerWidth),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _ActivityBackBar(onBack: widget.onBack),
+            const SizedBox(height: 12),
+            const _SampleDataNotice(),
+            const SizedBox(height: 10),
+            _LevelSummaryRow(
+              compact: compact,
+              counts: {
+                for (final level in activityLevelSamples)
+                  level.level: visible
+                      .where((item) => item.level == level.level)
+                      .length,
+              },
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const _ActivityTitleBanner(),
-                _ActivityBackBar(onBack: widget.onBack),
-                const SizedBox(height: 12),
-                const _SampleDataNotice(),
-                const SizedBox(height: 10),
-                _LevelSummaryRow(
-                  compact: compact,
-                  counts: {
-                    for (final level in activityLevelSamples)
-                      level.level: visible
-                          .where((item) => item.level == level.level)
-                          .length,
-                  },
-                ),
-                const SizedBox(height: 12),
-                _SearchField(
-                  controller: _searchController,
-                  onChanged: (value) => setState(() => _query = value),
-                ),
-                const SizedBox(height: 12),
-                if (visible.isEmpty)
-                  const _EmptySearchResult()
-                else
-                  _ActivityGroups(
-                    samples: visible,
-                    compact: compact,
-                    onViewReport: widget.onViewReport,
-                  ),
-              ],
+            const SizedBox(height: 12),
+            _SearchField(
+              controller: _searchController,
+              onChanged: (value) => setState(() => _query = value),
             ),
-          ),
+            const SizedBox(height: 12),
+            if (visible.isEmpty)
+              const _EmptySearchResult()
+            else
+              _ActivityGroups(
+                samples: visible,
+                compact: compact,
+                onViewReport: widget.onViewReport,
+              ),
+          ],
         ),
       );
     },
@@ -91,48 +84,54 @@ class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
 }
 
 class _ActivityTitleBanner extends StatelessWidget {
-  const _ActivityTitleBanner();
+  const _ActivityTitleBanner({required this.maxContentWidth});
+
+  final double maxContentWidth;
 
   @override
-  Widget build(BuildContext context) => Container(
-    height: 52,
-    padding: const EdgeInsets.symmetric(horizontal: 10),
+  Widget build(BuildContext context) => RanahFullWidthTitleBackground(
     color: const Color(0xFF17003E),
-    child: const Row(
-      children: [
-        Icon(Icons.landscape_outlined, size: 27),
-        SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'DISASTER EVACUATION',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 8,
-                  letterSpacing: .9,
-                  color: Color(0xFF91A8D0),
+    maxContentWidth: maxContentWidth,
+    child: Container(
+      constraints: const BoxConstraints(minHeight: 76),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      color: const Color(0xFF17003E),
+      child: const Row(
+        children: [
+          Icon(Icons.landscape_outlined, size: 27),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'SIAGA BENCANA',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    letterSpacing: .9,
+                    color: Color(0xFF91A8D0),
+                  ),
                 ),
-              ),
-              Text(
-                'Volcanic Activity',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-              ),
-              Text(
-                'Memantau aktivitas gunung api',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 9, color: Color(0xFFC1C8D7)),
-              ),
-            ],
+                Text(
+                  'Aktivitas Gunung Api',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  'Memantau aktivitas gunung api',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: Color(0xFFC1C8D7)),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }
@@ -144,18 +143,18 @@ class _ActivityBackBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: 30,
+    height: 48,
     child: Align(
       alignment: Alignment.centerLeft,
       child: TextButton.icon(
         onPressed: onBack,
         icon: const Icon(Icons.arrow_back, size: 14),
-        label: const Text('Kembali', style: TextStyle(fontSize: 10)),
+        label: const Text('Kembali', style: TextStyle(fontSize: 12)),
         style: TextButton.styleFrom(
           foregroundColor: RanahColors.ink,
           backgroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          minimumSize: const Size(0, 26),
+          minimumSize: const Size(48, 48),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         ),
       ),
@@ -181,7 +180,7 @@ class _SampleDataNotice extends StatelessWidget {
         Expanded(
           child: Text(
             'DATA CONTOH - bukan status gunung terkini atau informasi resmi.',
-            style: TextStyle(fontSize: 10, color: Colors.white),
+            style: TextStyle(fontSize: 12, color: Colors.white),
           ),
         ),
       ],
@@ -261,7 +260,7 @@ class _LevelSummaryCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: compact ? 8 : 11,
+                  fontSize: 12,
                   color: Color(level.color),
                   fontWeight: FontWeight.w700,
                 ),
@@ -282,16 +281,16 @@ class _SearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: 42,
+    height: 48,
     child: TextField(
       controller: controller,
       onChanged: onChanged,
-      style: const TextStyle(color: RanahColors.ink, fontSize: 13),
+      style: const TextStyle(color: RanahColors.ink, fontSize: 16),
       decoration: InputDecoration(
         filled: true,
         fillColor: Colors.white,
         hintText: 'Cari nama gunung atau provinsi',
-        hintStyle: const TextStyle(color: Color(0xFF818A98), fontSize: 12),
+        hintStyle: TextStyle(color: RanahColors.muted, fontSize: 16),
         prefixIcon: const Icon(
           Icons.search,
           size: 20,
@@ -346,7 +345,7 @@ class _ActivityGroups extends StatelessWidget {
           ),
           child: const Text(
             'Daftar Tingkat Aktivitas Gunung Api',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
           ),
         ),
         for (final level in activityLevelSamples)
@@ -390,20 +389,20 @@ class _ActivityLevelGroup extends StatelessWidget {
           Text(
             'Level ${level.level} - ${level.name}',
             style: TextStyle(
-              color: Color(level.color),
-              fontSize: 13,
+              color: Colors.white,
+              fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 3),
           Text(
             level.description,
-            style: const TextStyle(fontSize: 11, color: Color(0xFFE0E6EF)),
+            style: const TextStyle(fontSize: 12, color: Color(0xFFE0E6EF)),
           ),
           const SizedBox(height: 3),
           Text(
             '${samples.length} gunung contoh',
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
           ),
           if (samples.isEmpty)
             const Padding(
@@ -468,7 +467,7 @@ class _ActivityVolcanoRow extends StatelessWidget {
           child: Image.asset(
             sample.image,
             width: 48,
-            height: 40,
+            height: 48,
             fit: BoxFit.cover,
           ),
         ),
@@ -481,17 +480,17 @@ class _ActivityVolcanoRow extends StatelessWidget {
               Text(
                 sample.name,
                 style: const TextStyle(
-                  fontSize: 11,
+                  fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               Text(
                 'Provinsi contoh: ${sample.province}',
-                style: const TextStyle(fontSize: 10),
+                style: const TextStyle(fontSize: 12),
               ),
               Text(
                 'Status contoh: Level ${level.level} (${level.name})',
-                style: TextStyle(fontSize: 9, color: Color(level.color)),
+                style: const TextStyle(fontSize: 12, color: RanahColors.ink),
               ),
             ],
           ),
@@ -499,11 +498,11 @@ class _ActivityVolcanoRow extends StatelessWidget {
         TextButton(
           onPressed: onViewReport,
           style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFF0E9AE8),
+            foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 7),
-            minimumSize: const Size(0, 44),
+            minimumSize: const Size(48, 48),
           ),
-          child: const Text('Lihat Laporan', style: TextStyle(fontSize: 10)),
+          child: const Text('Lihat Laporan', style: TextStyle(fontSize: 12)),
         ),
       ],
     ),

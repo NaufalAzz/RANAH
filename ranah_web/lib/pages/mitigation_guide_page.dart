@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/mitigation_guides.dart';
 import '../theme/ranah_theme.dart';
+import '../widgets/ranah_full_width_title_background.dart';
 
 class MitigationGuidePage extends StatefulWidget {
   const MitigationGuidePage({required this.onBack, super.key});
@@ -27,73 +28,66 @@ class _MitigationGuidePageState extends State<MitigationGuidePage> {
             ? 1000.0
             : constraints.maxWidth;
         final listInset = (width * .07).clamp(12.0, 48.0);
-        return Align(
-          alignment: Alignment.topCenter,
-          child: SizedBox(
-            width: width,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 12),
-                  _MitigationBanner(onBack: widget.onBack),
-                  const SizedBox(height: 32),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: _StageSelector(
-                      selected: _selectedStage,
-                      onSelected: (stage) =>
-                          setState(() => _selectedStage = stage),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(listInset, 7, listInset, 7),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          guide.placeholder
-                              ? Icons.info_outline_rounded
-                              : Icons.verified_user_outlined,
-                          size: 13,
-                          color: const Color(0xFFFFC85A),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            guide.notice,
-                            style: const TextStyle(
-                              color: Color(0xFFFFD788),
-                              fontSize: 9,
-                              height: 1.2,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: listInset),
-                    child: Column(
-                      children: [
-                        for (var index = 0; index < guide.steps.length; index++)
-                          Padding(
-                            padding: EdgeInsets.only(
-                              bottom: index == guide.steps.length - 1 ? 0 : 14,
-                            ),
-                            child: _GuideStepCard(
-                              number: index + 1,
-                              text: guide.steps[index],
-                              guide: guide,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+        return RanahPageScrollLayout(
+          maxContentWidth: width,
+          bottomPadding: 24,
+          title: _MitigationBanner(maxContentWidth: width),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 32),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: _StageSelector(
+                  selected: _selectedStage,
+                  onSelected: (stage) => setState(() => _selectedStage = stage),
+                ),
               ),
-            ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(listInset, 7, listInset, 7),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      guide.placeholder
+                          ? Icons.info_outline_rounded
+                          : Icons.verified_user_outlined,
+                      size: 13,
+                      color: const Color(0xFFFFC85A),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        guide.notice,
+                        style: const TextStyle(
+                          color: Color(0xFFFFD788),
+                          fontSize: 12,
+                          height: 1.2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: listInset),
+                child: Column(
+                  children: [
+                    for (var index = 0; index < guide.steps.length; index++)
+                      Padding(
+                        padding: EdgeInsets.only(
+                          bottom: index == guide.steps.length - 1 ? 0 : 14,
+                        ),
+                        child: _GuideStepCard(
+                          number: index + 1,
+                          text: guide.steps[index],
+                          guide: guide,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -102,58 +96,54 @@ class _MitigationGuidePageState extends State<MitigationGuidePage> {
 }
 
 class _MitigationBanner extends StatelessWidget {
-  const _MitigationBanner({required this.onBack});
+  const _MitigationBanner({required this.maxContentWidth});
 
-  final VoidCallback onBack;
+  final double maxContentWidth;
 
   @override
-  Widget build(BuildContext context) => Container(
-    height: 52,
-    padding: const EdgeInsets.only(left: 12, right: 6),
+  Widget build(BuildContext context) => RanahFullWidthTitleBackground(
     color: RanahColors.banner,
-    child: Row(
-      children: [
-        const Icon(Icons.shield_outlined, size: 28, color: Colors.white),
-        const SizedBox(width: 10),
-        const Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'DISASTER EVACUATION',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Color(0xFF91A8D0),
-                  fontSize: 8,
-                  letterSpacing: .45,
-                  fontWeight: FontWeight.w600,
+    maxContentWidth: maxContentWidth,
+    child: Container(
+      constraints: const BoxConstraints(minHeight: 76),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      color: RanahColors.banner,
+      child: Row(
+        children: [
+          const Icon(Icons.shield_outlined, size: 28, color: Colors.white),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'SIAGA BENCANA',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Color(0xFF91A8D0),
+                    fontSize: 12,
+                    letterSpacing: .45,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              Text(
-                'Panduan Mitigasi',
-                maxLines: 1,
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-              ),
-              Text(
-                'Jalur Evakuasi & Langkah Keselamatan',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: Color(0xFFC1C8D7), fontSize: 8),
-              ),
-            ],
+                Text(
+                  'Panduan Mitigasi',
+                  maxLines: 1,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  'Jalur Evakuasi & Langkah Keselamatan',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Color(0xFFC1C8D7), fontSize: 12),
+                ),
+              ],
+            ),
           ),
-        ),
-        IconButton(
-          onPressed: onBack,
-          tooltip: 'Kembali',
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints.tightFor(width: 34, height: 38),
-          padding: EdgeInsets.zero,
-          icon: const Icon(Icons.arrow_back, size: 17, color: Colors.white),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }
@@ -179,7 +169,7 @@ class _StageSelector extends StatelessWidget {
             if (index > 0) const SizedBox(width: spacing),
             SizedBox(
               width: buttonWidth,
-              height: 42,
+              height: 48,
               child: _StageButton(
                 guide: mitigationGuides[index],
                 selected: selected == mitigationGuides[index].stage,
@@ -222,7 +212,7 @@ class _StageButton extends StatelessWidget {
             color: selected
                 ? Colors.white
                 : Colors.white.withValues(alpha: .68),
-            fontSize: 11,
+            fontSize: 12,
             height: 1.05,
             fontWeight: FontWeight.w700,
           ),
@@ -273,7 +263,7 @@ class _GuideStepCard extends StatelessWidget {
             '$number',
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -284,7 +274,7 @@ class _GuideStepCard extends StatelessWidget {
             text,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 12,
+              fontSize: 16,
               height: 1.15,
             ),
           ),

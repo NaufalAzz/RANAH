@@ -6,11 +6,15 @@ class IllustrativeMap extends StatelessWidget {
   const IllustrativeMap({
     required this.padang,
     required this.onSampleLocationTap,
+    this.manualPinPosition = const Offset(.23, .60),
+    this.onManualPinChanged,
     super.key,
   });
 
   final bool padang;
   final VoidCallback onSampleLocationTap;
+  final Offset manualPinPosition;
+  final ValueChanged<Offset>? onManualPinChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -104,23 +108,63 @@ class IllustrativeMap extends StatelessWidget {
                 ),
               ] else ...[
                 Positioned(
-                  left: constraints.maxWidth * .23,
-                  top: constraints.maxHeight * .38,
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEB3037),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
-                      boxShadow: const [
-                        BoxShadow(color: Color(0x77000000), blurRadius: 6),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.place,
-                      color: Colors.white,
-                      size: 18,
+                  left: constraints.maxWidth * manualPinPosition.dx - 24,
+                  top: constraints.maxHeight * manualPinPosition.dy - 24,
+                  child: Listener(
+                    key: const ValueKey('manual-location-pin'),
+                    behavior: HitTestBehavior.opaque,
+                    onPointerMove: onManualPinChanged == null
+                        ? null
+                        : (event) {
+                            if (event.buttons == 0) return;
+                            final box =
+                                context.findRenderObject() as RenderBox?;
+                            if (box == null || !box.hasSize) return;
+                            final point = box.globalToLocal(event.position);
+                            onManualPinChanged!(
+                              Offset(
+                                (point.dx / constraints.maxWidth).clamp(
+                                  .05,
+                                  .95,
+                                ),
+                                (point.dy / constraints.maxHeight).clamp(
+                                  .12,
+                                  .88,
+                                ),
+                              ),
+                            );
+                          },
+                    child: Semantics(
+                      button: onManualPinChanged != null,
+                      label: onManualPinChanged == null
+                          ? 'Penanda lokasi contoh'
+                          : 'Geser pin untuk memilih lokasi manual',
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Center(
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEB3037),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 3),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x77000000),
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.place,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -402,7 +446,7 @@ class _MapText extends StatelessWidget {
         text,
         style: TextStyle(
           color: Colors.white.withValues(alpha: .76),
-          fontSize: 8,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
           letterSpacing: .7,
           shadows: const [Shadow(color: Colors.black87, blurRadius: 3)],
@@ -428,7 +472,7 @@ class _MapTag extends StatelessWidget {
       text,
       style: const TextStyle(
         color: Colors.white,
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: FontWeight.w700,
         letterSpacing: .4,
       ),
@@ -470,7 +514,7 @@ class _ActivityLegend extends StatelessWidget {
                   '${item.label} · ${item.detail}',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: compact ? 9 : 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -480,7 +524,7 @@ class _ActivityLegend extends StatelessWidget {
         const SizedBox(height: 2),
         const Text(
           'Contoh level · bukan status terkini',
-          style: TextStyle(color: Colors.white70, fontSize: 8),
+          style: TextStyle(color: Colors.white70, fontSize: 12),
         ),
       ],
     ),
