@@ -108,7 +108,6 @@ void main() {
       expect(tester.takeException(), isNull, reason: 'viewport $size');
       await tester.pumpWidget(const SizedBox.shrink());
     }
-
   });
 
   testWidgets('admin login validates required fields and never grants access', (
@@ -286,6 +285,9 @@ void main() {
       await tester.pumpWidget(const MyApp());
       await tester.tap(find.text('Peta').first);
       await tester.pumpAndSettle();
+      final mapSize = tester.getSize(find.byType(IllustrativeMap));
+      expect(mapSize.width, greaterThan(size.width * .9));
+      expect(mapSize.height, greaterThan(size.width < 700 ? 300 : 500));
       await tester.tap(find.text('Temukan Lokasi Saya'));
       await tester.pumpAndSettle();
       expect(find.textContaining('Geser pin merah'), findsOneWidget);
@@ -330,21 +332,24 @@ void main() {
     tester.view.resetDevicePixelRatio();
   });
 
-  testWidgets('news does not substitute local examples when API is unavailable', (tester) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(const MyApp());
-    await tester.tap(find.text('Berita').first);
-    await tester.pumpAndSettle();
-    expect(find.text('Berita dan Event'), findsOneWidget);
-    expect(find.textContaining('Berita belum dapat dimuat'), findsOneWidget);
-    expect(find.textContaining('Contoh Berita:'), findsNothing);
-    expect(find.textContaining('CONTOH'), findsNothing);
-    expect(find.text('Coba lagi'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+  testWidgets(
+    'news does not substitute local examples when API is unavailable',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(const MyApp());
+      await tester.tap(find.text('Berita').first);
+      await tester.pumpAndSettle();
+      expect(find.text('Berita dan Event'), findsOneWidget);
+      expect(find.textContaining('Berita belum dapat dimuat'), findsOneWidget);
+      expect(find.textContaining('Contoh Berita:'), findsNothing);
+      expect(find.textContaining('CONTOH'), findsNothing);
+      expect(find.text('Coba lagi'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('news error state fits a desktop viewport', (tester) async {
     tester.view.physicalSize = const Size(1280, 900);
@@ -394,7 +399,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('live notifications error state fits a desktop viewport', (tester) async {
+  testWidgets('live notifications error state fits a desktop viewport', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);

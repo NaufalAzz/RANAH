@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../theme/ranah_theme.dart';
+
 class WelcomePage extends StatefulWidget {
   const WelcomePage({required this.onFinished, super.key});
 
@@ -110,8 +112,8 @@ class _WelcomePageState extends State<WelcomePage>
                 Center(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 28,
+                      horizontal: RanahSpacing.xl,
+                      vertical: RanahSpacing.xxl,
                     ),
                     child: ConstrainedBox(
                       constraints: BoxConstraints(
@@ -142,8 +144,9 @@ class _WelcomePageState extends State<WelcomePage>
                                         height: markSize,
                                         clipBehavior: Clip.antiAlias,
                                         decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(22),
+                                          borderRadius: BorderRadius.circular(
+                                            22,
+                                          ),
                                           boxShadow: const [
                                             BoxShadow(
                                               color: Color(0x66713CC6),
@@ -162,7 +165,7 @@ class _WelcomePageState extends State<WelcomePage>
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: RanahSpacing.lg),
                             FadeTransition(
                               opacity: _titleOpacity,
                               child: const Text(
@@ -177,7 +180,7 @@ class _WelcomePageState extends State<WelcomePage>
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: RanahSpacing.lg),
                             FadeTransition(
                               opacity: _copyOpacity,
                               child: const Column(
@@ -191,7 +194,7 @@ class _WelcomePageState extends State<WelcomePage>
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  SizedBox(height: 8),
+                                  SizedBox(height: RanahSpacing.sm),
                                   Text(
                                     'Informasi Gunung Api dan Mitigasi Bencana',
                                     textAlign: TextAlign.center,
@@ -248,14 +251,15 @@ class _WelcomeAtmospherePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width * 0.5, size.height * 0.48);
     final glow = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          const Color(0xFF633DB8).withValues(alpha: 0.2),
-          const Color(0xFF633DB8).withValues(alpha: 0),
-        ],
-      ).createShader(
-        Rect.fromCircle(center: center, radius: size.shortestSide * 0.52),
-      );
+      ..shader =
+          RadialGradient(
+            colors: [
+              const Color(0xFF633DB8).withValues(alpha: 0.2),
+              const Color(0xFF633DB8).withValues(alpha: 0),
+            ],
+          ).createShader(
+            Rect.fromCircle(center: center, radius: size.shortestSide * 0.52),
+          );
     canvas.drawCircle(center, size.shortestSide * 0.52, glow);
 
     final ridge = Path()
@@ -274,7 +278,8 @@ class _WelcomeAtmospherePainter extends CustomPainter {
     final particles = Paint();
     for (var index = 0; index < 30; index++) {
       final seed = index * 41;
-      final x = ((seed % 103) / 103 + progress * (0.012 + index % 3 * 0.006)) % 1;
+      final x =
+          ((seed % 103) / 103 + progress * (0.012 + index % 3 * 0.006)) % 1;
       final y = 0.1 + ((seed * 17) % 75) / 100;
       final ember = index % 8 == 0;
       final pulse = 0.65 + 0.35 * math.sin(progress * math.pi * 4 + index);
@@ -307,9 +312,8 @@ class _WelcomeRingsPainter extends CustomPainter {
     for (var index = 0; index < 3; index++) {
       final phase = ((progress - 0.12 - index * 0.13) / 0.43).clamp(0.0, 1.0);
       if (phase <= 0 || phase >= 1) continue;
-      paint.color = const Color(0xFFBCA6FF).withValues(
-        alpha: 0.3 * (1 - phase),
-      );
+      paint.color = const Color(0xFFBCA6FF)
+          .withValues(alpha: 0.3 * (1 - phase));
       canvas.drawCircle(
         center,
         size.shortestSide * (0.2 + phase * 0.29),

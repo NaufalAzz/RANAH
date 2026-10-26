@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../theme/ranah_theme.dart';
+
 /// Extends a page title's background to the viewport while keeping the title
 /// content constrained to the width it had in its page layout.
 class RanahFullWidthTitleBackground extends StatelessWidget {
@@ -48,7 +50,7 @@ class RanahPageScrollLayout extends StatelessWidget {
     required this.content,
     this.horizontalInset = 0,
     this.titleTopPadding = 0,
-    this.bottomPadding = 28,
+    this.bottomPadding = RanahSpacing.xxl,
     super.key,
   });
 

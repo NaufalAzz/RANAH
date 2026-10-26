@@ -4,13 +4,10 @@ import '../models/bmkg_notification.dart';
 import '../services/notifications_repository.dart';
 import '../theme/ranah_theme.dart';
 import '../widgets/ranah_full_width_title_background.dart';
+import '../widgets/ranah_header.dart';
 
 class NotificationsPage extends StatefulWidget {
-  const NotificationsPage({
-    required this.onBack,
-    this.repository,
-    super.key,
-  });
+  const NotificationsPage({required this.onBack, this.repository, super.key});
 
   final VoidCallback onBack;
   final BmkgNotificationRepository? repository;
@@ -50,21 +47,41 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final width = constraints.maxWidth > 1000 ? 1000.0 : constraints.maxWidth;
+      final width = constraints.maxWidth > RanahLayout.maxContentWidth
+          ? RanahLayout.maxContentWidth
+          : constraints.maxWidth;
       final horizontal = width < 600 ? 20.0 : 36.0;
       final feed = _feed;
       return RanahPageScrollLayout(
         maxContentWidth: width,
         title: _NotificationsBanner(
-          onBack: widget.onBack,
           maxContentWidth: width,
-          onRefresh: _loading ? null : () => _load(page: feed?.currentPage ?? 1),
+          onRefresh: _loading
+              ? null
+              : () => _load(page: feed?.currentPage ?? 1),
         ),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 0),
+              padding: EdgeInsets.fromLTRB(
+                horizontal,
+                RanahSpacing.md,
+                horizontal,
+                0,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: RanahBackButton(onPressed: widget.onBack),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                horizontal,
+                RanahSpacing.md,
+                horizontal,
+                0,
+              ),
               child: const Text(
                 'Notifikasi BMKG · Sumatera Barat',
                 style: TextStyle(
@@ -76,25 +93,43 @@ class _NotificationsPageState extends State<NotificationsPage> {
             ),
             if (_loading && feed == null)
               const Padding(
-                padding: EdgeInsets.all(40),
+                padding: EdgeInsets.all(RanahSpacing.xxxl),
                 child: Center(child: CircularProgressIndicator()),
               )
             else if (_error != null && feed == null)
               Padding(
-                padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 0),
-                child: _FeedError(error: _error!, onRetry: () => _load(page: 1)),
+                padding: EdgeInsets.fromLTRB(
+                  horizontal,
+                  RanahSpacing.md,
+                  horizontal,
+                  0,
+                ),
+                child: _FeedError(
+                  error: _error!,
+                  onRetry: () => _load(page: 1),
+                ),
               )
             else ...[
               if (_error != null)
                 Padding(
-                  padding: EdgeInsets.fromLTRB(horizontal, 8, horizontal, 0),
+                  padding: EdgeInsets.fromLTRB(
+                    horizontal,
+                    RanahSpacing.sm,
+                    horizontal,
+                    0,
+                  ),
                   child: _FeedMessage(
                     text: 'Pembaruan gagal. Menampilkan hasil permintaan terakhir yang berhasil.',
                     color: const Color(0xFFFFE0A6),
                   ),
                 ),
               Padding(
-                padding: EdgeInsets.fromLTRB(horizontal, 5, horizontal, 10),
+                padding: EdgeInsets.fromLTRB(
+                  horizontal,
+                  RanahSpacing.sm,
+                  horizontal,
+                  RanahSpacing.sm,
+                ),
                 child: _FeedMessage(
                   text: feed?.sourceUpdatedAt == null
                       ? 'Waktu sinkronisasi BMKG belum tersedia dari server.'
@@ -109,14 +144,25 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ),
               if (feed == null || feed.items.isEmpty)
                 Padding(
-                  padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 0),
+                  padding: EdgeInsets.fromLTRB(
+                    horizontal,
+                    RanahSpacing.md,
+                    horizontal,
+                    0,
+                  ),
                   child: const _EmptyFeed(),
                 )
               else ...[
                 Padding(
-                  padding: EdgeInsets.fromLTRB(horizontal, 0, horizontal, 10),
+                  padding: EdgeInsets.fromLTRB(
+                    horizontal,
+                    0,
+                    horizontal,
+                    RanahSpacing.sm,
+                  ),
                   child: _FeedMessage(
-                    text: '${feed.total} informasi aktif · halaman ${feed.currentPage} dari ${feed.lastPage}',
+                    text:
+                        '${feed.total} informasi aktif · halaman ${feed.currentPage} dari ${feed.lastPage}',
                     color: const Color(0xFFD7E0EA),
                   ),
                 ),
@@ -126,7 +172,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       horizontal,
                       0,
                       horizontal,
-                      index == feed.items.length - 1 ? 0 : 13,
+                      index == feed.items.length - 1 ? 0 : RanahSpacing.lg,
                     ),
                     child: _NotificationCard(
                       notification: feed.items[index],
@@ -135,7 +181,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   ),
                 if (feed.lastPage > 1)
                   Padding(
-                    padding: EdgeInsets.fromLTRB(horizontal, 14, horizontal, 18),
+                    padding: EdgeInsets.fromLTRB(
+                      horizontal,
+                      RanahSpacing.lg,
+                      horizontal,
+                      RanahSpacing.lg,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -153,7 +204,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
                           ),
                         ),
                         OutlinedButton(
-                          onPressed: _loading || feed.currentPage >= feed.lastPage
+                          onPressed:
+                              _loading || feed.currentPage >= feed.lastPage
                               ? null
                               : () => _load(page: feed.currentPage + 1),
                           child: const Text('Berikutnya'),
@@ -172,12 +224,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
 class _NotificationsBanner extends StatelessWidget {
   const _NotificationsBanner({
-    required this.onBack,
     required this.maxContentWidth,
     required this.onRefresh,
   });
 
-  final VoidCallback onBack;
   final double maxContentWidth;
   final VoidCallback? onRefresh;
 
@@ -228,13 +278,6 @@ class _NotificationsBanner extends StatelessWidget {
             padding: EdgeInsets.zero,
             icon: const Icon(Icons.refresh, size: 19),
           ),
-          IconButton(
-            onPressed: onBack,
-            tooltip: 'Kembali',
-            constraints: const BoxConstraints.tightFor(width: 44, height: 48),
-            padding: EdgeInsets.zero,
-            icon: const Icon(Icons.arrow_back, size: 17),
-          ),
         ],
       ),
     ),
@@ -242,10 +285,7 @@ class _NotificationsBanner extends StatelessWidget {
 }
 
 class _NotificationCard extends StatelessWidget {
-  const _NotificationCard({
-    required this.notification,
-    required this.index,
-  });
+  const _NotificationCard({required this.notification, required this.index});
 
   final BmkgNotification notification;
   final int index;
@@ -277,113 +317,118 @@ class _NotificationCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-              Container(
-                width: 58,
-                height: 58,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF9F8),
-                  border: Border.all(color: accent, width: .8),
-                ),
-                child: Icon(
-                  danger
-                      ? Icons.warning_amber_rounded
-                      : notification.category.toLowerCase().contains('gempa')
-                          ? Icons.vibration_rounded
-                          : Icons.info_outline_rounded,
-                  color: accent,
-                  size: 24,
-                ),
+            Container(
+              width: 58,
+              height: 58,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF9F8),
+                border: Border.all(color: accent, width: .8),
               ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 3,
-                      children: [
-                        Text(
-                          danger ? 'PERINGATAN AKTIF' : notification.category.toUpperCase(),
-                          style: TextStyle(
-                            color: RanahColors.ink,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        Text(
-                          itemTime == null
-                              ? 'Waktu sumber tidak tersedia'
-                              : '${notification.eventAt == null ? 'Terbit' : 'Kejadian'} ${_formatTime(itemTime)}',
-                          style: const TextStyle(
-                            color: RanahColors.muted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      notification.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF1D2636),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      notification.summary,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: RanahColors.muted,
-                        fontSize: 16,
-                        height: 1.15,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      notification.region ?? 'Wilayah dari sumber tidak tersedia',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: RanahColors.muted,
-                        fontSize: 12,
-                        height: 1.1,
-                      ),
-                    ),
-                    Text(
-                      notification.source ?? 'Sumber tidak tersedia',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: RanahColors.muted,
-                        fontSize: 12,
-                        height: 1.1,
-                      ),
-                    ),
-                    if (notification.retrievedAt != null)
+              child: Icon(
+                danger
+                    ? Icons.warning_amber_rounded
+                    : notification.category.toLowerCase().contains('gempa')
+                    ? Icons.vibration_rounded
+                    : Icons.info_outline_rounded,
+                color: accent,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: RanahSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Wrap(
+                    spacing: RanahSpacing.md,
+                    runSpacing: RanahSpacing.xs,
+                    children: [
                       Text(
-                        'Data diambil ${_formatTime(notification.retrievedAt!)}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        danger
+                            ? 'PERINGATAN AKTIF'
+                            : notification.category.toUpperCase(),
+                        style: TextStyle(
+                          color: RanahColors.ink,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        itemTime == null
+                            ? 'Waktu sumber tidak tersedia'
+                            : '${notification.eventAt == null ? 'Terbit' : 'Kejadian'} ${_formatTime(itemTime)}',
                         style: const TextStyle(
                           color: RanahColors.muted,
-                          fontSize: 11,
-                          height: 1.1,
+                          fontSize: 12,
                         ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: RanahSpacing.xs),
+                  Text(
+                    notification.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF1D2636),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: RanahSpacing.xs),
+                  Text(
+                    notification.summary,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: RanahColors.muted,
+                      fontSize: 16,
+                      height: 1.15,
+                    ),
+                  ),
+                  const SizedBox(height: RanahSpacing.xs),
+                  Text(
+                    notification.region ?? 'Wilayah dari sumber tidak tersedia',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: RanahColors.muted,
+                      fontSize: 12,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: RanahSpacing.xs),
+                  Text(
+                    notification.source ?? 'Sumber tidak tersedia',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: RanahColors.muted,
+                      fontSize: 12,
+                      height: 1.1,
+                    ),
+                  ),
+                  if (notification.retrievedAt != null) ...[
+                    const SizedBox(height: RanahSpacing.xs),
+                    Text(
+                      'Data diambil ${_formatTime(notification.retrievedAt!)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: RanahColors.muted,
+                        fontSize: 11,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ],
         ),
-              ),
-            ],
-          ),
-        ),
+      ),
     );
   }
 }
@@ -395,10 +440,8 @@ class _FeedMessage extends StatelessWidget {
   final Color color;
 
   @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: TextStyle(color: color, fontSize: 12, height: 1.35),
-  );
+  Widget build(BuildContext context) =>
+      Text(text, style: TextStyle(color: color, fontSize: 12, height: 1.35));
 }
 
 class _FeedError extends StatelessWidget {
@@ -422,9 +465,9 @@ class _FeedError extends StatelessWidget {
           'Notifikasi BMKG belum dapat dimuat.',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: RanahSpacing.sm),
         Text('$error', style: const TextStyle(color: Colors.white)),
-        const SizedBox(height: 12),
+        const SizedBox(height: RanahSpacing.md),
         FilledButton.icon(
           onPressed: onRetry,
           icon: const Icon(Icons.refresh),
@@ -448,7 +491,7 @@ class _EmptyFeed extends StatelessWidget {
     child: const Column(
       children: [
         Icon(Icons.notifications_none, size: 34, color: RanahColors.muted),
-        SizedBox(height: 8),
+        SizedBox(height: RanahSpacing.sm),
         Text(
           'Tidak ada informasi aktif yang relevan untuk Sumatera Barat saat ini.',
           textAlign: TextAlign.center,

@@ -1,25 +1,25 @@
+
 <?php
 
 return [
-    'paths' => [
-        'api/notifikasi',
-        'api/berita',
-        'api/berita/*',
-        'api/gunung',
-        'api/gunung/*',
-        'api/pengaduan',
+    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+
+    'allowed_methods' => ['*'],
+
+    'allowed_origins' => [
+        'http://localhost:59910',
+        'http://127.0.0.1:59910',
+        'http://localhost:5000',
+        'http://127.0.0.1:5000',
     ],
-    'allowed_methods' => ['GET', 'POST', 'OPTIONS'],
-    'allowed_origins' => array_values(array_filter(array_map(
-        'trim',
-        explode(',', (string) env(
-            'RANAH_CORS_ALLOWED_ORIGINS',
-            'http://localhost:5000,http://127.0.0.1:5000',
-        )),
-    ))),
+
     'allowed_origins_patterns' => [],
-    'allowed_headers' => ['Accept', 'Content-Type', 'Origin'],
+
+    'allowed_headers' => ['*'],
+
     'exposed_headers' => [],
+
     'max_age' => 600,
+
     'supports_credentials' => false,
 ];

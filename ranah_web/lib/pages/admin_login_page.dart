@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../theme/ranah_theme.dart';
+import '../widgets/ranah_background.dart';
+import '../widgets/ranah_header.dart';
 
 class AdminLoginPage extends StatefulWidget {
   const AdminLoginPage({
@@ -32,22 +34,11 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              RanahColors.backgroundStart,
-              RanahColors.backgroundMiddle,
-              RanahColors.backgroundEnd,
-            ],
-          ),
-        ),
+      body: RanahBackground(
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(RanahSpacing.lg),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 470),
                 child: Card(
@@ -57,7 +48,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(28),
+                    padding: const EdgeInsets.all(RanahSpacing.xl),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -71,13 +62,9 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                               alignment: Alignment.centerLeft,
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          const Icon(
-                            Icons.shield_outlined,
-                            size: 48,
-                            color: RanahColors.primary,
-                          ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: RanahSpacing.md),
+                          const Center(child: RanahBrandMark(size: 64)),
+                          const SizedBox(height: RanahSpacing.md),
                           Text(
                             'Masuk Admin RANAH',
                             textAlign: TextAlign.center,
@@ -87,13 +74,13 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                                   fontWeight: FontWeight.w700,
                                 ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: RanahSpacing.sm),
                           const Text(
                             'Panel ini hanya dapat digunakan setelah layanan autentikasi admin tersedia.',
                             textAlign: TextAlign.center,
                             style: TextStyle(color: RanahColors.muted),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: RanahSpacing.xl),
                           TextFormField(
                             key: const ValueKey('admin-username'),
                             controller: _usernameController,
@@ -107,7 +94,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                                 ? 'Nama pengguna atau email wajib diisi.'
                                 : null,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: RanahSpacing.lg),
                           TextFormField(
                             key: const ValueKey('admin-password'),
                             controller: _passwordController,
@@ -121,7 +108,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                                 ? 'Kata sandi wajib diisi.'
                                 : null,
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: RanahSpacing.lg),
                           FilledButton(
                             onPressed: () {
                               if (_formKey.currentState?.validate() ?? false) {
@@ -131,7 +118,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                             child: const Text('Masuk'),
                           ),
                           if (_connectionMessage) ...[
-                            const SizedBox(height: 14),
+                            const SizedBox(height: RanahSpacing.md),
                             const Text(
                               'Layanan autentikasi belum terhubung. Tidak ada akses admin yang diberikan.',
                               key: ValueKey('admin-auth-unavailable'),
@@ -142,13 +129,13 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                               ),
                             ),
                           ],
-                          const Divider(height: 32),
+                          const Divider(height: RanahSpacing.xxl),
                           OutlinedButton.icon(
                             onPressed: widget.onPreview,
                             icon: const Icon(Icons.visibility_outlined),
                             label: const Text('Lihat pratinjau kerangka'),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: RanahSpacing.sm),
                           const Text(
                             'Pratinjau tidak memverifikasi identitas dan tidak memberi hak akses admin.',
                             textAlign: TextAlign.center,

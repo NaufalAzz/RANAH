@@ -45,7 +45,9 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final width = constraints.maxWidth > 1000 ? 1000.0 : constraints.maxWidth;
+      final width = constraints.maxWidth > RanahLayout.maxContentWidth
+          ? RanahLayout.maxContentWidth
+          : constraints.maxWidth;
       final horizontal = width < 600 ? 20.0 : 34.0;
       return RanahPageScrollLayout(
         maxContentWidth: width,
@@ -54,7 +56,12 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 0),
+              padding: EdgeInsets.fromLTRB(
+                horizontal,
+                RanahSpacing.md,
+                horizontal,
+                0,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -63,7 +70,7 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
                       onTap: () => setState(() => _showComplaint = false),
                     ),
                   ),
-                  SizedBox(width: 14),
+                  SizedBox(width: RanahSpacing.md),
                   Expanded(
                     child: _ComplaintTab(
                       selected: _showComplaint,
@@ -75,28 +82,48 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
             ),
             if (_showComplaint)
               Padding(
-                padding: EdgeInsets.fromLTRB(horizontal, 15, horizontal, 0),
-                child: _ComplaintForm(
-                  formKey: _formKey,
-                  nameController: _nameController,
-                  phoneController: _phoneController,
-                  locationController: _locationController,
-                  descriptionController: _descriptionController,
-                  selectedCategory: _selectedCategory,
-                  onCategoryChanged: (value) =>
-                      setState(() => _selectedCategory = value),
-                  selectedFiles: _selectedFiles,
-                  onPickFiles: _pickFiles,
-                  onSubmit: _submitComplaint,
+                padding: EdgeInsets.fromLTRB(
+                  horizontal,
+                  RanahSpacing.lg,
+                  horizontal,
+                  0,
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 960),
+                    child: _ComplaintForm(
+                      formKey: _formKey,
+                      nameController: _nameController,
+                      phoneController: _phoneController,
+                      locationController: _locationController,
+                      descriptionController: _descriptionController,
+                      selectedCategory: _selectedCategory,
+                      onCategoryChanged: (value) =>
+                          setState(() => _selectedCategory = value),
+                      selectedFiles: _selectedFiles,
+                      onPickFiles: _pickFiles,
+                      onSubmit: _submitComplaint,
+                    ),
+                  ),
                 ),
               )
             else ...[
               Padding(
-                padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 0),
+                padding: EdgeInsets.fromLTRB(
+                  horizontal,
+                  RanahSpacing.md,
+                  horizontal,
+                  0,
+                ),
                 child: const _EmergencyNotice(),
               ),
               Padding(
-                padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 7),
+                padding: EdgeInsets.fromLTRB(
+                  horizontal,
+                  RanahSpacing.md,
+                  horizontal,
+                  RanahSpacing.sm,
+                ),
                 child: const Text(
                   'Kontak Darurat',
                   style: TextStyle(
@@ -112,7 +139,7 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
                     horizontal,
                     0,
                     horizontal,
-                    index == emergencyContacts.length - 1 ? 0 : 8,
+                    index == emergencyContacts.length - 1 ? 0 : RanahSpacing.sm,
                   ),
                   child: _EmergencyContactCard(
                     contact: emergencyContacts[index],
@@ -509,7 +536,7 @@ class _ComplaintForm extends StatelessWidget {
           ),
         ),
         if (selectedFiles.isNotEmpty) ...[
-          const SizedBox(height: 5),
+          const SizedBox(height: RanahSpacing.sm),
           Text(
             selectedFiles.join(', '),
             style: const TextStyle(color: Color(0xFFCFD7E2), fontSize: 12),
@@ -530,7 +557,7 @@ class _ComplaintForm extends StatelessWidget {
             return null;
           },
         ),
-        const SizedBox(height: 15),
+        const SizedBox(height: RanahSpacing.lg),
         SizedBox(
           height: 48,
           child: ElevatedButton(
@@ -549,7 +576,7 @@ class _ComplaintForm extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 9),
+        const SizedBox(height: RanahSpacing.sm),
         const Text(
           'Simulasi lokal: data dan lampiran tidak dikirim ke server.',
           textAlign: TextAlign.center,
@@ -560,7 +587,10 @@ class _ComplaintForm extends StatelessWidget {
   );
 
   Widget _label(String text) => Padding(
-    padding: const EdgeInsets.only(top: 11, bottom: 5),
+    padding: const EdgeInsets.only(
+      top: RanahSpacing.md,
+      bottom: RanahSpacing.xs,
+    ),
     child: Text(
       text,
       style: const TextStyle(
@@ -594,7 +624,10 @@ class _ComplaintForm extends StatelessWidget {
     hintStyle: const TextStyle(color: Color(0xFFCFD7E2), fontSize: 12),
     filled: true,
     fillColor: const Color(0xFF304358),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 11, vertical: 11),
+    contentPadding: const EdgeInsets.symmetric(
+      horizontal: RanahSpacing.md,
+      vertical: RanahSpacing.md,
+    ),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(6),
       borderSide: const BorderSide(color: Color(0xFF687B91)),

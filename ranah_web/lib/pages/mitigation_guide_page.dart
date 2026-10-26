@@ -24,18 +24,18 @@ class _MitigationGuidePageState extends State<MitigationGuidePage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth > 1000
-            ? 1000.0
+        final width = constraints.maxWidth > RanahLayout.maxContentWidth
+            ? RanahLayout.maxContentWidth
             : constraints.maxWidth;
         final listInset = (width * .07).clamp(12.0, 48.0);
         return RanahPageScrollLayout(
           maxContentWidth: width,
-          bottomPadding: 24,
+          bottomPadding: RanahSpacing.xl,
           title: _MitigationBanner(maxContentWidth: width),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 32),
+              const SizedBox(height: RanahSpacing.xxl),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: _StageSelector(
@@ -44,7 +44,12 @@ class _MitigationGuidePageState extends State<MitigationGuidePage> {
                 ),
               ),
               Padding(
-                padding: EdgeInsets.fromLTRB(listInset, 7, listInset, 7),
+                padding: EdgeInsets.fromLTRB(
+                  listInset,
+                  RanahSpacing.sm,
+                  listInset,
+                  RanahSpacing.sm,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -55,7 +60,7 @@ class _MitigationGuidePageState extends State<MitigationGuidePage> {
                       size: 13,
                       color: const Color(0xFFFFC85A),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: RanahSpacing.sm),
                     Expanded(
                       child: Text(
                         guide.notice,
@@ -76,7 +81,9 @@ class _MitigationGuidePageState extends State<MitigationGuidePage> {
                     for (var index = 0; index < guide.steps.length; index++)
                       Padding(
                         padding: EdgeInsets.only(
-                          bottom: index == guide.steps.length - 1 ? 0 : 14,
+                          bottom: index == guide.steps.length - 1
+                              ? 0
+                              : RanahSpacing.lg,
                         ),
                         child: _GuideStepCard(
                           number: index + 1,
@@ -157,16 +164,17 @@ class _StageSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      const spacing = 10.0;
-      final buttonWidth = ((constraints.maxWidth - spacing * 3) / 4).clamp(
-        0.0,
-        170.0,
-      );
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      const spacing = RanahSpacing.sm;
+      final compact = constraints.maxWidth < 520;
+      final buttonWidth = compact
+          ? (constraints.maxWidth - spacing) / 2
+          : ((constraints.maxWidth - spacing * 3) / 4).clamp(0.0, 170.0);
+      return Wrap(
+        alignment: WrapAlignment.center,
+        spacing: spacing,
+        runSpacing: spacing,
         children: [
-          for (var index = 0; index < mitigationGuides.length; index++) ...[
-            if (index > 0) const SizedBox(width: spacing),
+          for (var index = 0; index < mitigationGuides.length; index++)
             SizedBox(
               width: buttonWidth,
               height: 48,
@@ -176,7 +184,6 @@ class _StageSelector extends StatelessWidget {
                 onTap: () => onSelected(mitigationGuides[index].stage),
               ),
             ),
-          ],
         ],
       );
     },

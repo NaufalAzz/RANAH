@@ -4,6 +4,7 @@ import '../data/evacuation_route_sample.dart';
 import '../theme/ranah_theme.dart';
 import '../widgets/illustrative_map.dart';
 import '../widgets/ranah_full_width_title_background.dart';
+import '../widgets/ranah_header.dart';
 
 class EvacuationRoutePage extends StatelessWidget {
   const EvacuationRoutePage({required this.onBack, super.key});
@@ -14,7 +15,9 @@ class EvacuationRoutePage extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final mobile = constraints.maxWidth < 700;
-      final width = constraints.maxWidth > 1100 ? 1100.0 : constraints.maxWidth;
+      final width = constraints.maxWidth > RanahLayout.maxContentWidth
+          ? RanahLayout.maxContentWidth
+          : constraints.maxWidth;
       final horizontalInset = mobile ? 12.0 : 28.0;
       final innerWidth = width - horizontalInset * 2;
       final mapHeight = mobile
@@ -27,27 +30,18 @@ class EvacuationRoutePage extends StatelessWidget {
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SizedBox(height: RanahSpacing.md),
             Container(
               height: 48,
               alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: RanahSpacing.xs),
               color: const Color(0xFF12304C),
-              child: TextButton.icon(
+              child: RanahBackButton(
                 key: const ValueKey('evacuation-route-back'),
                 onPressed: onBack,
-                icon: const Icon(Icons.arrow_back, size: 14),
-                label: const Text('Kembali', style: TextStyle(fontSize: 12)),
-                style: TextButton.styleFrom(
-                  foregroundColor: RanahColors.ink,
-                  backgroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  minimumSize: const Size(48, 48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
               ),
             ),
-            SizedBox(height: mobile ? 8 : 14),
+            SizedBox(height: mobile ? RanahSpacing.lg : RanahSpacing.xl),
             SizedBox(
               height: mapHeight,
               child: const IllustrativeMap(
@@ -55,9 +49,9 @@ class EvacuationRoutePage extends StatelessWidget {
                 onSampleLocationTap: _ignoreMapTap,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: RanahSpacing.sm),
             const _SimulationNotice(),
-            const SizedBox(height: 12),
+            const SizedBox(height: RanahSpacing.md),
             const _RouteDetailCard(),
           ],
         ),
@@ -88,7 +82,7 @@ class _RouteBanner extends StatelessWidget {
       child: const Row(
         children: [
           Icon(Icons.alt_route_rounded, size: 28, color: Colors.white),
-          SizedBox(width: 12),
+          SizedBox(width: RanahSpacing.md),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -152,7 +146,7 @@ class _RouteDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(13),
+    padding: const EdgeInsets.all(RanahSpacing.md),
     decoration: BoxDecoration(
       color: const Color(0xFF174A7D),
       borderRadius: BorderRadius.circular(9),
@@ -164,7 +158,7 @@ class _RouteDetailCard extends StatelessWidget {
         const Row(
           children: [
             Icon(Icons.route_rounded, color: Color(0xFF40B9D2), size: 20),
-            SizedBox(width: 8),
+            SizedBox(width: RanahSpacing.sm),
             Expanded(
               child: Text(
                 'Rute Evakuasi Terdekat',
@@ -174,7 +168,7 @@ class _RouteDetailCard extends StatelessWidget {
             _ExampleChip(),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: RanahSpacing.md),
         _RouteEndpoint(
           number: '1',
           title: 'Lokasi awal',
@@ -188,10 +182,10 @@ class _RouteDetailCard extends StatelessWidget {
           value: sampleEvacuationRoute.destination,
           color: const Color(0xFFB080E6),
         ),
-        const SizedBox(height: 13),
+        const SizedBox(height: RanahSpacing.md),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: RanahSpacing.sm,
+          runSpacing: RanahSpacing.sm,
           children: [
             _RouteMetric(
               icon: Icons.warning_amber_rounded,

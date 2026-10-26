@@ -18,6 +18,23 @@ abstract final class RanahColors {
   static const aid = Color(0xFF74839A);
 }
 
+abstract final class RanahLayout {
+  /// Shared desktop content ceiling: wide enough for information-heavy pages
+  /// while keeping long text and tables within a readable measure.
+  static const maxContentWidth = 1480.0;
+}
+
+/// Shared spacing scale for page rhythm and component interiors.
+abstract final class RanahSpacing {
+  static const xs = 4.0;
+  static const sm = 8.0;
+  static const md = 12.0;
+  static const lg = 16.0;
+  static const xl = 24.0;
+  static const xxl = 32.0;
+  static const xxxl = 40.0;
+}
+
 abstract final class RanahTheme {
   static ThemeData get light => ThemeData(
     useMaterial3: true,
@@ -37,6 +54,12 @@ abstract final class RanahTheme {
       labelLarge: TextStyle(fontSize: 16),
       labelMedium: TextStyle(fontSize: 14),
       labelSmall: TextStyle(fontSize: 12),
+    ),
+    inputDecorationTheme: const InputDecorationTheme(
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: RanahSpacing.lg,
+        vertical: RanahSpacing.md,
+      ),
     ),
     iconTheme: const IconThemeData(color: RanahColors.white),
     iconButtonTheme: IconButtonThemeData(

@@ -9,6 +9,7 @@ import '../services/gunung_repository.dart';
 import '../services/ranah_api_client.dart';
 import '../theme/ranah_theme.dart';
 import '../widgets/ranah_full_width_title_background.dart';
+import '../widgets/ranah_header.dart';
 import '../widgets/volcano_interactive_map.dart';
 
 class VolcanoReportPage extends StatefulWidget {
@@ -102,6 +103,7 @@ class _VolcanoReportPageState extends State<VolcanoReportPage> {
       return Column(
         children: [
           const _ReportTitleBanner(),
+          const SizedBox(height: RanahSpacing.sm),
           _ReportBackBar(
             status: gunung?.statusAktivitas,
             onBack: widget.onBack,
@@ -213,7 +215,7 @@ class _ReportState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: 380,
-    padding: const EdgeInsets.all(18),
+    padding: const EdgeInsets.all(RanahSpacing.lg),
     decoration: BoxDecoration(
       color: const Color(0xE9154770),
       borderRadius: BorderRadius.circular(6),
@@ -226,15 +228,18 @@ class _ReportState extends StatelessWidget {
           const CircularProgressIndicator()
         else
           Icon(icon, size: 30, color: Colors.white70),
-        const SizedBox(height: 8),
+        const SizedBox(height: RanahSpacing.sm),
         Text(
           title,
           textAlign: TextAlign.center,
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: RanahSpacing.xs),
         Text(message, textAlign: TextAlign.center),
-        if (action != null) ...[const SizedBox(height: 10), action!],
+        if (action != null) ...[
+          const SizedBox(height: RanahSpacing.md),
+          action!,
+        ],
       ],
     ),
   );
@@ -299,25 +304,12 @@ class _ReportBackBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     height: 48,
-    padding: const EdgeInsets.symmetric(horizontal: 6),
+    padding: const EdgeInsets.symmetric(horizontal: RanahSpacing.md),
     color: const Color(0xFF12304C),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        TextButton.icon(
-          onPressed: onBack,
-          icon: const Icon(Icons.arrow_back, size: 14),
-          label: const Text('Kembali', style: TextStyle(fontSize: 12)),
-          style: TextButton.styleFrom(
-            foregroundColor: RanahColors.ink,
-            backgroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            minimumSize: const Size(48, 48),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-        ),
+        RanahBackButton(onPressed: onBack),
         Expanded(
           child: Align(
             alignment: Alignment.centerRight,
@@ -403,7 +395,7 @@ class _ReportPanel extends StatelessWidget {
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: RanahSpacing.xs),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,7 +432,7 @@ class _ReportPanel extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const SizedBox(height: 6),
+                          const SizedBox(height: RanahSpacing.sm),
                           AspectRatio(
                             aspectRatio: 1.78,
                             child: ClipRRect(
@@ -460,7 +452,9 @@ class _ReportPanel extends StatelessWidget {
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.only(top: 3),
+                            padding: const EdgeInsets.only(
+                              top: RanahSpacing.xs,
+                            ),
                             child: Text(
                               report == null
                                   ? 'Foto laporan tidak tersedia.'
@@ -470,7 +464,7 @@ class _ReportPanel extends StatelessWidget {
                               style: const TextStyle(fontSize: 12),
                             ),
                           ),
-                          const SizedBox(height: 5),
+                          const SizedBox(height: RanahSpacing.sm),
                           SizedBox(
                             height: 48,
                             child: OutlinedButton(
@@ -499,7 +493,7 @@ class _ReportPanel extends StatelessWidget {
                           ),
                           if (showKrb)
                             const Padding(
-                              padding: EdgeInsets.only(top: 4),
+                              padding: EdgeInsets.only(top: RanahSpacing.xs),
                               child: Text(
                                 'Poligon hanya ditampilkan bila cocok dengan ID gunung dan berstatus terverifikasi. Data sumber dapat lama; bukan panduan evakuasi.',
                                 style: TextStyle(
@@ -509,7 +503,7 @@ class _ReportPanel extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          const SizedBox(height: 7),
+                          const SizedBox(height: RanahSpacing.sm),
                           _ReportSection(
                             title: 'Lokasi Administratif dan Geografis',
                             body: _region(gunung),
@@ -559,7 +553,9 @@ class _ReportPanel extends StatelessWidget {
                             if (_safeSourceUrl(report.urlSumber)
                                 case final url?)
                               Padding(
-                                padding: const EdgeInsets.only(top: 6),
+                                padding: const EdgeInsets.only(
+                                  top: RanahSpacing.sm,
+                                ),
                                 child: SelectableText(
                                   'URL sumber: ${_safeDisplayUrl(url)}',
                                   style: const TextStyle(
@@ -569,7 +565,7 @@ class _ReportPanel extends StatelessWidget {
                                 ),
                               ),
                           ],
-                          const SizedBox(height: 5),
+                          const SizedBox(height: RanahSpacing.sm),
                           const Text(
                             'Status dan laporan berasal dari API RANAH. Peta dasar memerlukan internet. '
                             'Batas KRB bersumber dari layer BIG bila tersedia; data dapat lama dan bukan panduan evakuasi.',
@@ -609,7 +605,7 @@ class _ReportSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 6),
+    padding: const EdgeInsets.only(top: RanahSpacing.sm),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -617,7 +613,7 @@ class _ReportSection extends StatelessWidget {
           title,
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: RanahSpacing.xs),
         Text(
           body,
           style: const TextStyle(

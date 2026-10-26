@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../theme/ranah_theme.dart';
+import '../widgets/ranah_background.dart';
+import '../widgets/ranah_header.dart';
 
 class AdminPanelPage extends StatefulWidget {
   const AdminPanelPage({required this.onExit, super.key});
@@ -71,146 +73,157 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
   Widget build(BuildContext context) {
     final section = _sections[_selected];
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F5F9),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _topBar(context),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final compact = constraints.maxWidth < 780;
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (!compact) _sidebar(),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: EdgeInsets.all(compact ? 16 : 28),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (compact) ...[
-                                _mobileSectionPicker(),
-                                const SizedBox(height: 20),
-                              ],
-                              Text(
-                                section.title,
-                                style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(
-                                      color: RanahColors.ink,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Acuan kebutuhan ${section.requirement}',
-                                style: const TextStyle(
-                                  color: RanahColors.muted,
+      backgroundColor: Colors.transparent,
+      body: RanahBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _topBar(context),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compact = constraints.maxWidth < 780;
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (!compact) _sidebar(),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: EdgeInsets.all(
+                              compact ? RanahSpacing.lg : RanahSpacing.xl,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (compact) ...[
+                                  _mobileSectionPicker(),
+                                  const SizedBox(height: RanahSpacing.lg),
+                                ],
+                                Text(
+                                  section.title,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineSmall
+                                      ?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                 ),
-                              ),
-                              const SizedBox(height: 20),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF5DC),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: const Color(0xFFE6BB53),
+                                const SizedBox(height: RanahSpacing.sm),
+                                Text(
+                                  'Acuan kebutuhan ${section.requirement}',
+                                  style: const TextStyle(
+                                    color: RanahColors.headerMuted,
                                   ),
                                 ),
-                                child: const Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Icon(
-                                      Icons.info_outline,
-                                      color: Color(0xFF795B13),
+                                const SizedBox(height: RanahSpacing.xl),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF5DC),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFFE6BB53),
                                     ),
-                                    SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        'MODE PRATINJAU — belum terhubung ke server. Tidak ada data yang dapat diubah atau disimpan.',
-                                        style: TextStyle(
-                                          color: Color(0xFF5F4A15),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              Card(
-                                elevation: 1,
-                                color: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(20),
-                                  child: Column(
+                                  ),
+                                  child: const Row(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        'Cakupan fitur',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge
-                                            ?.copyWith(
-                                              color: RanahColors.ink,
-                                              fontWeight: FontWeight.w700,
-                                            ),
+                                      Icon(
+                                        Icons.info_outline,
+                                        color: Color(0xFF795B13),
                                       ),
-                                      const SizedBox(height: 16),
-                                      for (final detail in section.details)
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 12,
+                                      SizedBox(width: RanahSpacing.sm),
+                                      Expanded(
+                                        child: Text(
+                                          'MODE PRATINJAU — belum terhubung ke server. Tidak ada data yang dapat diubah atau disimpan.',
+                                          style: TextStyle(
+                                            color: Color(0xFF5F4A15),
+                                            fontWeight: FontWeight.w600,
                                           ),
-                                          child: Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              const Icon(
-                                                Icons.circle,
-                                                size: 8,
-                                                color: RanahColors.primary,
-                                              ),
-                                              const SizedBox(width: 12),
-                                              Expanded(
-                                                child: Text(
-                                                  detail,
-                                                  style: const TextStyle(
-                                                    color: RanahColors.ink,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      const Divider(height: 24),
-                                      const Text(
-                                        'Aksi pengelolaan akan tersedia setelah autentikasi dan penyimpanan server diimplementasikan.',
-                                        style: TextStyle(
-                                          color: RanahColors.muted,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: RanahSpacing.xl),
+                                Card(
+                                  elevation: 1,
+                                  color: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(
+                                      RanahSpacing.xl,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Cakupan fitur',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleLarge
+                                              ?.copyWith(
+                                                color: RanahColors.ink,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                        const SizedBox(height: RanahSpacing.lg),
+                                        for (final detail in section.details)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: RanahSpacing.md,
+                                            ),
+                                            child: Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                const Icon(
+                                                  Icons.circle,
+                                                  size: 8,
+                                                  color: RanahColors.primary,
+                                                ),
+                                                const SizedBox(
+                                                  width: RanahSpacing.md,
+                                                ),
+                                                Expanded(
+                                                  child: Text(
+                                                    detail,
+                                                    style: const TextStyle(
+                                                      color: RanahColors.ink,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        const Divider(height: 24),
+                                        const Text(
+                                          'Aksi pengelolaan akan tersedia setelah autentikasi dan penyimpanan server diimplementasikan.',
+                                          style: TextStyle(
+                                            color: RanahColors.muted,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  );
-                },
+                      ],
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -222,11 +235,15 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
       return Container(
         height: 66,
         padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 20),
-        color: RanahColors.headerStart,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [RanahColors.headerStart, RanahColors.headerEnd],
+          ),
+        ),
         child: Row(
           children: [
-            const Icon(Icons.shield_outlined, color: Colors.white),
-            const SizedBox(width: 10),
+            const RanahBrandMark(size: 42),
+            const SizedBox(width: RanahSpacing.md),
             Expanded(
               child: Text(
                 'RANAH  /  Panel Admin',
@@ -266,6 +283,26 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
     padding: const EdgeInsets.symmetric(vertical: 18),
     child: ListView(
       children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 4, 20, 18),
+          child: Row(
+            children: [
+              RanahBrandMark(size: 42),
+              SizedBox(width: RanahSpacing.md),
+              Expanded(
+                child: Text(
+                  'RANAH',
+                  style: TextStyle(
+                    color: RanahColors.ink,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: .5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         const Padding(
           padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
           child: Text(

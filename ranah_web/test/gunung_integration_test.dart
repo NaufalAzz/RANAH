@@ -27,6 +27,15 @@ void main() {
         'sumber_data': 'MAGMA Indonesia',
         'waktu_pengambilan': '2026-10-25T18:00:06Z',
       };
+      final secondListItem = {
+        'id': 6,
+        'nama': 'Gunung Singgalang',
+        'provinsi': 'Sumatera Barat',
+        'kabupaten': 'Agam',
+        'status_aktivitas': 'Level I - Normal',
+        'sumber_data': 'MAGMA Indonesia',
+        'waktu_pengambilan': '2026-10-25T18:00:06Z',
+      };
       final detail = {
         'gunung': listItem,
         'laporan': [
@@ -44,14 +53,33 @@ void main() {
           },
         ],
       };
+      final secondDetail = {
+        'gunung': secondListItem,
+        'laporan': [
+          {
+            'id': 61,
+            'gunung_id': 6,
+            'periode_mulai': '2026-10-23',
+            'periode_selesai': '2026-10-23',
+            'pengamatan_visual': 'Data laporan fixture gunung ID enam.',
+            'rekomendasi': 'Fixture laporan gunung kedua.',
+            'sumber': 'MAGMA Indonesia',
+            'waktu_publikasi': '2026-10-23T00:00:00Z',
+            'waktu_pengambilan': '2026-10-25T07:05:56Z',
+            'url_sumber': 'https://magma.esdm.go.id/v1/gunung-api/laporan/61',
+          },
+        ],
+      };
 
       http.Response responseFor(http.Request request) {
         final path = request.url.path;
         final data = path.endsWith('/gunung/5')
             ? detail
+            : path.endsWith('/gunung/6')
+            ? secondDetail
             : path.endsWith('/berita')
             ? <Object>[]
-            : [listItem];
+            : [listItem, secondListItem];
         return http.Response(
           jsonEncode({'success': true, 'data': data}),
           200,
@@ -82,6 +110,7 @@ void main() {
 
       expect(find.text('Gunung Marapi'), findsOneWidget);
       expect(find.textContaining('Level II (Waspada)'), findsOneWidget);
+      expect(find.text('Gunung Singgalang'), findsOneWidget);
       expect(find.textContaining('Gunung Semeru'), findsNothing);
 
       final reportButton = find.text('Lihat Laporan').first;
@@ -101,6 +130,17 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('Gunung Api - DATA CONTOH'), findsNothing);
+
+      await tester.tap(find.byTooltip('Kembali'));
+      await tester.pumpAndSettle();
+      final secondReportButton = find.text('Lihat Laporan').last;
+      await tester.ensureVisible(secondReportButton);
+      await tester.tap(secondReportButton);
+      for (var frame = 0; frame < 12; frame++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.text('Data laporan fixture gunung ID enam.'), findsOneWidget);
+      expect(find.text('Fixture laporan gunung kedua.'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

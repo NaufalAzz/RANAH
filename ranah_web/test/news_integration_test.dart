@@ -13,11 +13,25 @@ import 'package:ranah_web/services/ranah_api_client.dart';
 
 void main() {
   final stories = [
-    _story('101', 'Kabar banjir Padang', 'Banjir', DateTime(2026, 10, 24)),
-    _story('102', 'Penanganan longsor', 'Longsor', DateTime(2026, 10, 25)),
+    _story(
+      '101',
+      'Kabar banjir Padang',
+      'Banjir',
+      DateTime(2026, 10, 24),
+      region: 'Kota Padang',
+    ),
+    _story(
+      '102',
+      'Penanganan longsor',
+      'Longsor',
+      DateTime(2026, 10, 25),
+      region: 'Kabupaten Agam',
+    ),
   ];
 
-  testWidgets('shell loads API news once and keeps detail/back navigation', (tester) async {
+  testWidgets('shell loads API news once and keeps detail/back navigation', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -28,15 +42,20 @@ void main() {
         client: MockClient((request) async {
           requests++;
           expect(request.url.path, '/api/berita');
-          return http.Response(jsonEncode({
-            'success': true,
-            'data': [_apiStory()],
-          }), 200);
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'data': [_apiStory()],
+            }),
+            200,
+          );
         }),
         baseUrl: 'http://localhost:8000/api',
       ),
     );
-    await tester.pumpWidget(MaterialApp(home: RanahShell(newsRepository: repository)));
+    await tester.pumpWidget(
+      MaterialApp(home: RanahShell(newsRepository: repository)),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Kabar banjir Padang'), findsWidgets);
     expect(requests, 1);
@@ -59,10 +78,14 @@ void main() {
     expect(find.text('Berita dan Event'), findsOneWidget);
   });
 
-  testWidgets('existing category, date and search filters use API stories', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: NewsPage(stories: stories, onStoryTap: (_) {}),
-    ));
+  testWidgets('existing category, date and search filters use API stories', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NewsPage(stories: stories, onStoryTap: (_) {}),
+      ),
+    );
     expect(find.text('Kabar banjir Padang'), findsOneWidget);
     expect(find.text('Penanganan longsor'), findsOneWidget);
 
@@ -93,59 +116,107 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('carousel safely displays one item and empty feed', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: HomePage(stories: [stories.first], onStoryTap: (_) {}),
-    ));
+  testWidgets(
+    'region filter combines with category, resets, and shows empty state',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NewsPage(stories: stories, onStoryTap: (_) {}),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('web-news-region-filter')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Kota Padang').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Kabar banjir Padang'), findsOneWidget);
+      expect(find.text('Penanganan longsor'), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('web-news-category-filter')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Longsor').last);
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Tidak ada berita yang sesuai dengan filter.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('web-news-clear-filters')));
+      await tester.pumpAndSettle();
+      expect(find.text('Kabar banjir Padang'), findsOneWidget);
+      expect(find.text('Penanganan longsor'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('carousel safely displays one item and empty feed', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomePage(stories: [stories.first], onStoryTap: (_) {}),
+      ),
+    );
     expect(find.text('Kabar banjir Padang'), findsWidgets);
     await tester.tap(find.byIcon(Icons.chevron_right).first);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
-    await tester.pumpWidget(MaterialApp(
-      home: HomePage(stories: stories, onStoryTap: (_) {}),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomePage(stories: stories, onStoryTap: (_) {}),
+      ),
+    );
     expect(find.byKey(const ValueKey('home-highlight-101')), findsOneWidget);
     await tester.tap(find.byIcon(Icons.chevron_right).first);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('home-highlight-102')), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.pumpWidget(MaterialApp(
-      home: HomePage(stories: const [], onStoryTap: (_) {}),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomePage(stories: const [], onStoryTap: (_) {}),
+      ),
+    );
     expect(find.text('Belum ada berita utama.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('empty, loading and error states never substitute demo news', (tester) async {
+  testWidgets('empty, loading and error states never substitute demo news', (
+    tester,
+  ) async {
     var retries = 0;
-    await tester.pumpWidget(MaterialApp(
-      home: NewsPage(
-        stories: const [],
-        isLoading: true,
-        onStoryTap: (_) {},
-        onRetry: () => retries++,
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NewsPage(
+          stories: const [],
+          isLoading: true,
+          onStoryTap: (_) {},
+          onRetry: () => retries++,
+        ),
       ),
-    ));
+    );
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.textContaining('Contoh Berita:'), findsNothing);
 
-    await tester.pumpWidget(MaterialApp(
-      home: NewsPage(
-        stories: const [],
-        error: 'API unavailable',
-        onStoryTap: (_) {},
-        onRetry: () => retries++,
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NewsPage(
+          stories: const [],
+          error: 'API unavailable',
+          onStoryTap: (_) {},
+          onRetry: () => retries++,
+        ),
       ),
-    ));
+    );
     expect(find.textContaining('Berita belum dapat dimuat'), findsOneWidget);
     await tester.tap(find.text('Coba lagi'));
     expect(retries, 1);
 
-    await tester.pumpWidget(MaterialApp(
-      home: NewsPage(stories: const [], onStoryTap: (_) {}),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NewsPage(stories: const [], onStoryTap: (_) {}),
+      ),
+    );
     expect(find.text('Belum ada berita tersedia dari server.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -154,14 +225,18 @@ void main() {
     for (final size in [const Size(390, 844), const Size(1280, 900)]) {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
-      await tester.pumpWidget(MaterialApp(
-        home: NewsPage(stories: stories, onStoryTap: (_) {}),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NewsPage(stories: stories, onStoryTap: (_) {}),
+        ),
+      );
       expect(find.text('Kabar banjir Padang'), findsOneWidget);
       expect(tester.takeException(), isNull);
-      await tester.pumpWidget(MaterialApp(
-        home: HomePage(stories: stories, onStoryTap: (_) {}),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HomePage(stories: stories, onStoryTap: (_) {}),
+        ),
+      );
       expect(find.byKey(const ValueKey('home-highlight-101')), findsOneWidget);
       expect(tester.takeException(), isNull);
     }
@@ -170,7 +245,13 @@ void main() {
   });
 }
 
-HomeStory _story(String id, String title, String category, DateTime publishedAt) => HomeStory(
+HomeStory _story(
+  String id,
+  String title,
+  String category,
+  DateTime publishedAt, {
+  String region = 'Kota Padang',
+}) => HomeStory(
   id: id,
   category: category,
   title: title,
@@ -180,8 +261,9 @@ HomeStory _story(String id, String title, String category, DateTime publishedAt)
   summary: 'Ringkasan API.',
   content: 'Isi berita API untuk detail.',
   source: 'BNPB',
-  region: 'Kota Padang',
+  region: region,
   publishedAt: publishedAt,
+  eventAt: publishedAt,
   isApiRecord: true,
 );
 

@@ -54,8 +54,8 @@ class _HomePageState extends State<HomePage> {
         final horizontalInset = mobile
             ? 18.0
             : (constraints.maxWidth < 760 ? 26.0 : 40.0);
-        final contentWidth = constraints.maxWidth > 1220
-            ? 1220.0
+        final contentWidth = constraints.maxWidth > RanahLayout.maxContentWidth
+            ? RanahLayout.maxContentWidth
             : constraints.maxWidth;
         return Align(
           alignment: Alignment.topCenter,
@@ -64,9 +64,9 @@ class _HomePageState extends State<HomePage> {
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
                 horizontalInset,
-                mobile ? 20 : 26,
+                mobile ? RanahSpacing.lg : RanahSpacing.xl,
                 horizontalInset,
-                32,
+                RanahSpacing.xxl,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +86,7 @@ class _HomePageState extends State<HomePage> {
                             widget.stories[_highlightIndex],
                           ),
                   ),
-                  const SizedBox(height: 25),
+                  const SizedBox(height: RanahSpacing.xl),
                   const Text(
                     'Berita Terbaru',
                     style: TextStyle(
@@ -95,7 +95,7 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: RanahSpacing.sm),
                   if (widget.isLoading && widget.stories.isEmpty)
                     const _NewsFeedMessage(
                       message: 'Memuat berita dari server...',
@@ -115,21 +115,28 @@ class _HomePageState extends State<HomePage> {
                     const LinearProgressIndicator(),
                   LayoutBuilder(
                     builder: (context, gridConstraints) {
-                      final isNarrow = gridConstraints.maxWidth < 560;
-                      final gap = isNarrow ? 12.0 : 22.0;
-                      final cardWidth = isNarrow
+                      final columns = gridConstraints.maxWidth < 560
+                          ? 1
+                          : gridConstraints.maxWidth >= 1240
+                          ? 3
+                          : 2;
+                      final gap = columns == 1
+                          ? RanahSpacing.md
+                          : RanahSpacing.xl;
+                      final cardWidth = columns == 1
                           ? gridConstraints.maxWidth
-                          : (gridConstraints.maxWidth - gap) / 2;
+                          : (gridConstraints.maxWidth - gap * (columns - 1)) /
+                                columns;
                       return Wrap(
                         spacing: gap,
-                        runSpacing: isNarrow ? 12 : 31,
+                        runSpacing: gap,
                         children: [
                           for (final story in widget.stories)
                             SizedBox(
                               width: cardWidth,
                               child: _NewsCard(
                                 story: story,
-                                compact: !isNarrow,
+                                compact: columns > 1,
                                 onTap: () => widget.onStoryTap(story),
                               ),
                             ),
@@ -237,52 +244,52 @@ class _HeroCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   if (story != null && !story!.isApiRecord)
                     const Text(
-                    'CONTOH',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: .7,
+                      'CONTOH',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: .7,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
             if (story != null)
-            Positioned(
-              left: 22,
-              bottom: 10,
-              right: 64,
-              child: InkWell(
-                onTap: onTap,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      story!.category,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
+              Positioned(
+                left: 22,
+                bottom: 10,
+                right: 64,
+                child: InkWell(
+                  onTap: onTap,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        story!.category,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    Text(
-                      key: ValueKey('home-highlight-${story!.id}'),
-                      story!.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        height: 1.05,
-                        fontWeight: FontWeight.w700,
+                      Text(
+                        key: ValueKey('home-highlight-${story!.id}'),
+                        story!.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          height: 1.05,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
             if (story == null)
               Center(
                 child: Column(
@@ -396,7 +403,9 @@ class _NewsCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        story.isApiRecord ? story.category : 'CONTOH \u00B7 ${story.category}',
+                        story.isApiRecord
+                            ? story.category
+                            : 'CONTOH \u00B7 ${story.category}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

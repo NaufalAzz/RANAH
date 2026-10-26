@@ -5,31 +5,10 @@ import '../theme/ranah_theme.dart';
 import '../widgets/ranah_full_width_title_background.dart';
 import '../widgets/home_story_image.dart';
 
-DateTime? _storyDate(HomeStory story) {
-  if (story.publishedAt != null) {
-    final date = story.publishedAt!.toLocal();
-    return DateTime(date.year, date.month, date.day);
-  }
-  final parts = story.date.split(' ');
-  const months = {
-    'Januari': 1,
-    'Februari': 2,
-    'Maret': 3,
-    'April': 4,
-    'Mei': 5,
-    'Juni': 6,
-    'Juli': 7,
-    'Agustus': 8,
-    'September': 9,
-    'Oktober': 10,
-    'November': 11,
-    'Desember': 12,
-  };
-  if (parts.length != 3 || !months.containsKey(parts[1])) return null;
-  final day = int.tryParse(parts[0]);
-  final year = int.tryParse(parts[2]);
-  if (day == null || year == null) return null;
-  return DateTime(year, months[parts[1]]!, day);
+DateTime? _storyEventDate(HomeStory story) {
+  final eventAt = story.eventAt?.toLocal();
+  if (eventAt == null) return null;
+  return DateTime(eventAt.year, eventAt.month, eventAt.day);
 }
 
 String _dateKey(DateTime date) =>
@@ -82,9 +61,9 @@ class _NewsDateFilter extends StatelessWidget {
       for (final date in dates)
         DropdownMenuItem(value: _dateKey(date), child: Text(_formatDate(date))),
     ],
-    onChanged: (value) => onChanged(value == null || value.isEmpty
-        ? null
-        : DateTime.parse(value)),
+    onChanged: (value) => onChanged(
+      value == null || value.isEmpty ? null : DateTime.parse(value),
+    ),
   );
 }
 
@@ -109,28 +88,39 @@ class NewsPage extends StatefulWidget {
 }
 
 class _NewsPageState extends State<NewsPage> {
+  static const _allRegions = '__all_regions__';
   final _searchController = TextEditingController();
   String _query = '';
   String _category = 'Semua';
+  String _region = _allRegions;
   DateTime? _dateStart;
   DateTime? _dateEnd;
 
-  List<String> get _categories => [
-    'Semua',
-    ...widget.stories.map((story) => story.category).toSet(),
-  ];
+  List<String> get _categories =>
+      ['Semua', ...widget.stories.map((story) => story.category).toSet()]
+        ..sort((a, b) {
+          if (a == 'Semua') return -1;
+          if (b == 'Semua') return 1;
+          return a.toLowerCase().compareTo(b.toLowerCase());
+        });
 
-  List<DateTime> get _dates => widget.stories
-      .map(_storyDate)
-      .whereType<DateTime>()
-      .toSet()
-      .toList()
-    ..sort();
+  List<String> get _regions =>
+      widget.stories
+          .map((story) => story.region?.trim() ?? '')
+          .where((region) => region.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+  List<DateTime> get _dates =>
+      widget.stories.map(_storyEventDate).whereType<DateTime>().toSet().toList()
+        ..sort();
 
   @override
   void didUpdateWidget(covariant NewsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!_categories.contains(_category)) _category = 'Semua';
+    if (!_regions.contains(_region)) _region = _allRegions;
     if (_dateStart != null && !_dates.contains(_dateStart)) _dateStart = null;
     if (_dateEnd != null && !_dates.contains(_dateEnd)) _dateEnd = null;
   }
@@ -140,6 +130,7 @@ class _NewsPageState extends State<NewsPage> {
       _query = '';
       _searchController.clear();
       _category = 'Semua';
+      _region = _allRegions;
       _dateStart = null;
       _dateEnd = null;
     });
@@ -154,11 +145,15 @@ class _NewsPageState extends State<NewsPage> {
   @override
   Widget build(BuildContext context) {
     final categories = _categories;
+    final regions = _regions;
     final activeCategory = categories.contains(_category) ? _category : 'Semua';
+    final activeRegion = regions.contains(_region) ? _region : _allRegions;
     final filteredStories = widget.stories.where((story) {
       final matchesCategory =
           activeCategory == 'Semua' || story.category == activeCategory;
-      final date = _storyDate(story);
+      final matchesRegion =
+          activeRegion == _allRegions || story.region?.trim() == activeRegion;
+      final date = _storyEventDate(story);
       final matchesDate = date == null
           ? _dateStart == null && _dateEnd == null
           : (_dateStart == null || !date.isBefore(_dateStart!)) &&
@@ -167,6 +162,7 @@ class _NewsPageState extends State<NewsPage> {
           '${story.title} ${story.summary} ${story.category} ${story.date} ${story.content} ${story.source ?? ''} ${story.region ?? ''}'
               .toLowerCase();
       return matchesCategory &&
+          matchesRegion &&
           matchesDate &&
           searchableText.contains(_query.toLowerCase());
     }).toList();
@@ -175,14 +171,19 @@ class _NewsPageState extends State<NewsPage> {
       builder: (context, constraints) {
         final mobile = constraints.maxWidth < 600;
         final horizontal = mobile ? 16.0 : 36.0;
-        final maxWidth = constraints.maxWidth > 1200
-            ? 1200.0
+        final maxWidth = constraints.maxWidth > RanahLayout.maxContentWidth
+            ? RanahLayout.maxContentWidth
             : constraints.maxWidth;
         return RanahPageScrollLayout(
           maxContentWidth: maxWidth,
           title: NewsPageBanner(maxContentWidth: maxWidth),
           content: Padding(
-            padding: EdgeInsets.fromLTRB(horizontal, 10, horizontal, 0),
+            padding: EdgeInsets.fromLTRB(
+              horizontal,
+              RanahSpacing.md,
+              horizontal,
+              0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -213,23 +214,20 @@ class _NewsPageState extends State<NewsPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: RanahSpacing.md),
                 LayoutBuilder(
                   builder: (context, filterConstraints) {
-                    final narrow = filterConstraints.maxWidth < 520;
-                    const gap = 10.0;
-                    final categoryWidth = narrow
-                        ? filterConstraints.maxWidth
-                        : (filterConstraints.maxWidth - gap * 2) / 3;
-                    final dateWidth = narrow
-                        ? (filterConstraints.maxWidth - gap) / 2
-                        : categoryWidth;
+                    final fourColumns = filterConstraints.maxWidth >= 900;
+                    const gap = RanahSpacing.md;
+                    final filterWidth = fourColumns
+                        ? (filterConstraints.maxWidth - gap * 3) / 4
+                        : (filterConstraints.maxWidth - gap) / 2;
                     return Wrap(
                       spacing: gap,
-                      runSpacing: 10,
+                      runSpacing: RanahSpacing.md,
                       children: [
                         SizedBox(
-                          width: categoryWidth,
+                          width: filterWidth,
                           height: 56,
                           child: DropdownButtonFormField<String>(
                             key: const ValueKey('web-news-category-filter'),
@@ -261,7 +259,43 @@ class _NewsPageState extends State<NewsPage> {
                           ),
                         ),
                         SizedBox(
-                          width: dateWidth,
+                          width: filterWidth,
+                          height: 56,
+                          child: DropdownButtonFormField<String>(
+                            key: const ValueKey('web-news-region-filter'),
+                            initialValue: activeRegion,
+                            isExpanded: true,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                            dropdownColor: RanahColors.headerStart,
+                            iconEnabledColor: Colors.white70,
+                            decoration: _newsFilterDecoration('Wilayah'),
+                            items: [
+                              const DropdownMenuItem(
+                                value: _allRegions,
+                                child: Text('Semua wilayah'),
+                              ),
+                              for (final region in regions)
+                                DropdownMenuItem(
+                                  value: region,
+                                  child: Text(
+                                    region,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() => _region = value);
+                              }
+                            },
+                          ),
+                        ),
+                        SizedBox(
+                          width: filterWidth,
                           height: 56,
                           child: _NewsDateFilter(
                             key: const ValueKey('web-news-date-start'),
@@ -279,7 +313,7 @@ class _NewsPageState extends State<NewsPage> {
                           ),
                         ),
                         SizedBox(
-                          width: dateWidth,
+                          width: filterWidth,
                           height: 56,
                           child: _NewsDateFilter(
                             key: const ValueKey('web-news-date-end'),
@@ -312,11 +346,11 @@ class _NewsPageState extends State<NewsPage> {
                     label: const Text('Hapus semua filter'),
                   ),
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: RanahSpacing.xl),
                 if (widget.isLoading && widget.stories.isEmpty)
                   const Center(
                     child: Padding(
-                      padding: EdgeInsets.all(28),
+                      padding: EdgeInsets.all(RanahSpacing.xl),
                       child: CircularProgressIndicator(),
                     ),
                   )
@@ -339,14 +373,19 @@ class _NewsPageState extends State<NewsPage> {
                 else
                   LayoutBuilder(
                     builder: (context, gridConstraints) {
-                      final columns = gridConstraints.maxWidth < 560 ? 1 : 2;
+                      final columns = gridConstraints.maxWidth < 560
+                          ? 1
+                          : gridConstraints.maxWidth >= 1240
+                          ? 3
+                          : 2;
                       final gap = columns == 1 ? 14.0 : 20.0;
                       final cardWidth = columns == 1
                           ? gridConstraints.maxWidth
-                          : (gridConstraints.maxWidth - gap) / 2;
+                          : (gridConstraints.maxWidth - gap * (columns - 1)) /
+                                columns;
                       return Wrap(
                         spacing: gap,
-                        runSpacing: 26,
+                        runSpacing: RanahSpacing.xl,
                         children: [
                           for (final story in filteredStories)
                             SizedBox(
@@ -448,7 +487,9 @@ class _NewsStoryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  story.isApiRecord ? story.category : 'CONTOH \u00B7 ${story.category}',
+                  story.isApiRecord
+                      ? story.category
+                      : 'CONTOH \u00B7 ${story.category}',
                   style: TextStyle(
                     color: RanahColors.ink,
                     fontSize: 16,
@@ -511,7 +552,7 @@ class _EmptyNewsState extends StatelessWidget {
     child: Text(
       apiEmpty
           ? 'Belum ada berita tersedia dari server.'
-          : 'Tidak ada berita demonstrasi yang sesuai.',
+          : 'Tidak ada berita yang sesuai dengan filter.',
       textAlign: TextAlign.center,
       style: TextStyle(color: RanahColors.ink),
     ),

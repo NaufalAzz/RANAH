@@ -4,6 +4,7 @@ import '../data/map_sample_data.dart';
 import '../theme/ranah_theme.dart';
 import '../widgets/illustrative_map.dart';
 import '../widgets/ranah_full_width_title_background.dart';
+import '../widgets/ranah_header.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({
@@ -63,12 +64,17 @@ class _MapPageState extends State<MapPage> {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final mobile = width < 700;
-        final contentWidth = width > 1260 ? 1260.0 : width;
-        final horizontalInset = mobile ? 12.0 : 28.0;
+        final contentWidth = width > RanahLayout.maxContentWidth
+            ? RanahLayout.maxContentWidth
+            : width;
+        final horizontalInset = mobile ? 8.0 : 20.0;
         final innerWidth = contentWidth - horizontalInset * 2;
+        final viewportHeight = MediaQuery.sizeOf(context).height;
         final mapHeight = mobile
-            ? (width < 420 ? 205.0 : 232.0)
-            : (MediaQuery.sizeOf(context).height * .43).clamp(330.0, 510.0);
+            ? (viewportHeight * .54).clamp(320.0, 500.0)
+            : width < 1000
+            ? (viewportHeight * .62).clamp(430.0, 650.0)
+            : (viewportHeight * .68).clamp(500.0, 760.0);
         return RanahPageScrollLayout(
           maxContentWidth: contentWidth,
           horizontalInset: horizontalInset,
@@ -76,15 +82,17 @@ class _MapPageState extends State<MapPage> {
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (_showPadang)
+              if (_showPadang) ...[
+                const SizedBox(height: RanahSpacing.md),
                 _MapBackBar(
                   onBack: () {
                     setState(() => _showPadang = false);
                     widget.onLocationDetailsChanged(false);
                   },
                 ),
+              ],
               if (_showPadang) const _ManualLocationHint(),
-              SizedBox(height: mobile ? 10 : 18),
+              SizedBox(height: mobile ? RanahSpacing.sm : RanahSpacing.lg),
               SizedBox(
                 height: mapHeight,
                 child: IllustrativeMap(
@@ -117,14 +125,19 @@ class _MapPageState extends State<MapPage> {
   }
 
   Widget _buildMapActions(bool mobile) => Padding(
-    padding: EdgeInsets.fromLTRB(mobile ? 8 : 0, 14, mobile ? 8 : 0, 0),
+    padding: EdgeInsets.fromLTRB(
+      mobile ? RanahSpacing.sm : 0,
+      RanahSpacing.lg,
+      mobile ? RanahSpacing.sm : 0,
+      0,
+    ),
     child: LayoutBuilder(
       builder: (context, constraints) {
-        final gap = mobile ? 12.0 : 20.0;
+        final gap = mobile ? RanahSpacing.md : RanahSpacing.xl;
         final actionWidth = (constraints.maxWidth - gap) / 2;
         return Wrap(
           spacing: gap,
-          runSpacing: 18,
+          runSpacing: RanahSpacing.lg,
           children: [
             _MapAction(
               width: actionWidth,
@@ -147,12 +160,17 @@ class _MapPageState extends State<MapPage> {
   );
 
   Widget _buildLocationDetail(bool mobile) => Padding(
-    padding: EdgeInsets.fromLTRB(mobile ? 4 : 0, 12, mobile ? 4 : 0, 0),
+    padding: EdgeInsets.fromLTRB(
+      mobile ? RanahSpacing.xs : 0,
+      RanahSpacing.md,
+      mobile ? RanahSpacing.xs : 0,
+      0,
+    ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _CurrentLocationCard(manual: _manualLocationChosen),
-        const SizedBox(height: 14),
+        const SizedBox(height: RanahSpacing.lg),
         _SectionHeading(
           icon: Icons.alt_route_rounded,
           title: 'Jalur Evakuasi',
@@ -166,9 +184,9 @@ class _MapPageState extends State<MapPage> {
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: RanahSpacing.sm),
         _EvacuationRouteCard(onTap: widget.onEvacuationRouteTap),
-        const SizedBox(height: 15),
+        const SizedBox(height: RanahSpacing.lg),
         _SectionHeading(
           icon: Icons.landscape_outlined,
           title: 'Gunung Aktif',
@@ -181,13 +199,13 @@ class _MapPageState extends State<MapPage> {
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: RanahSpacing.sm),
         LayoutBuilder(
           builder: (context, box) {
             final cardWidth = mobile ? box.maxWidth : (box.maxWidth - 12) / 2;
             return Wrap(
-              spacing: 12,
-              runSpacing: 8,
+              spacing: RanahSpacing.md,
+              runSpacing: RanahSpacing.sm,
               children: [
                 for (final mountain in sampleMountains)
                   SizedBox(
@@ -201,19 +219,19 @@ class _MapPageState extends State<MapPage> {
             );
           },
         ),
-        const SizedBox(height: 15),
+        const SizedBox(height: RanahSpacing.lg),
         const _SectionHeading(
           icon: Icons.monitor_heart_outlined,
           title: 'Potensi Bencana di Lokasi',
           subtitle: 'Contoh potensi berdasarkan karakter wilayah',
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: RanahSpacing.sm),
         LayoutBuilder(
           builder: (context, box) {
             final cardWidth = mobile ? box.maxWidth : (box.maxWidth - 16) / 3;
             return Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: RanahSpacing.sm,
+              runSpacing: RanahSpacing.sm,
               children: [
                 for (final hazard in sampleHazards)
                   SizedBox(
@@ -296,19 +314,9 @@ class _MapBackBar extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     height: 48,
     alignment: Alignment.centerLeft,
+    padding: const EdgeInsets.symmetric(horizontal: RanahSpacing.xs),
     color: const Color(0xFF12304C),
-    child: TextButton.icon(
-      onPressed: onBack,
-      icon: const Icon(Icons.arrow_back, size: 14),
-      label: const Text('Kembali', style: TextStyle(fontSize: 12)),
-      style: TextButton.styleFrom(
-        foregroundColor: RanahColors.ink,
-        backgroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        minimumSize: const Size(48, 48),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-      ),
-    ),
+    child: RanahBackButton(onPressed: onBack),
   );
 }
 

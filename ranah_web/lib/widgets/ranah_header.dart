@@ -6,6 +6,35 @@ import '../theme/ranah_theme.dart';
 
 enum RanahDestination { home, map, news, menu }
 
+class RanahBackButton extends StatelessWidget {
+  const RanahBackButton({
+    required this.onPressed,
+    this.label = 'Kembali',
+    super.key,
+  });
+
+  final VoidCallback onPressed;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: label,
+    child: TextButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.arrow_back, size: 14),
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      style: TextButton.styleFrom(
+        foregroundColor: RanahColors.ink,
+        backgroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: RanahSpacing.md),
+        minimumSize: const Size(48, 48),
+        tapTargetSize: MaterialTapTargetSize.padded,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      ),
+    ),
+  );
+}
+
 class RanahHeader extends StatelessWidget {
   const RanahHeader({
     required this.selected,
@@ -42,11 +71,11 @@ class RanahHeader extends StatelessWidget {
     return SizedBox(
       height: 64,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        padding: const EdgeInsets.symmetric(horizontal: RanahSpacing.lg),
         child: Row(
           children: [
             _Brand(),
-            const SizedBox(width: 10),
+            const SizedBox(width: RanahSpacing.md),
             SizedBox(
               width: width < 760 ? 180 : 220,
               height: 56,
@@ -81,24 +110,15 @@ class RanahHeader extends StatelessWidget {
     return SizedBox(
       height: 72,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 7),
+        padding: const EdgeInsets.symmetric(horizontal: RanahSpacing.sm),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: SizedBox(
             width: contentWidth,
             child: Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(5),
-                  child: Image.asset(
-                    'assets/images/brand_mark.png',
-                    width: 27,
-                    height: 29,
-                    fit: BoxFit.cover,
-                    semanticLabel: 'Logo RANAH',
-                  ),
-                ),
-                const SizedBox(width: 4),
+                const RanahBrandMark(size: 29),
+                const SizedBox(width: RanahSpacing.sm),
                 SizedBox(
                   width: labelWidth,
                   height: 48,
@@ -172,8 +192,10 @@ class RanahBottomNavigation extends StatelessWidget {
   );
 }
 
-class _Brand extends StatelessWidget {
-  const _Brand();
+class RanahBrandMark extends StatelessWidget {
+  const RanahBrandMark({this.size = 40, super.key});
+
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -181,13 +203,20 @@ class _Brand extends StatelessWidget {
       borderRadius: BorderRadius.circular(7),
       child: Image.asset(
         'assets/images/brand_mark.png',
-        width: 38,
-        height: 39,
-        fit: BoxFit.cover,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
         semanticLabel: 'Logo RANAH',
       ),
     );
   }
+}
+
+class _Brand extends StatelessWidget {
+  const _Brand();
+
+  @override
+  Widget build(BuildContext context) => const RanahBrandMark(size: 38);
 }
 
 class _BrandLabel extends StatelessWidget {

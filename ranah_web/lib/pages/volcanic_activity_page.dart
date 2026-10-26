@@ -4,6 +4,7 @@ import '../data/volcanic_activity_data.dart';
 import '../models/gunung_data.dart';
 import '../theme/ranah_theme.dart';
 import '../widgets/ranah_full_width_title_background.dart';
+import '../widgets/ranah_header.dart';
 
 class VolcanicActivityPage extends StatefulWidget {
   const VolcanicActivityPage({
@@ -42,7 +43,9 @@ class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
     builder: (context, constraints) {
       final width = constraints.maxWidth;
       final compact = width < 700;
-      final contentWidth = width > 1120 ? 1120.0 : width;
+      final contentWidth = width > RanahLayout.maxContentWidth
+          ? RanahLayout.maxContentWidth
+          : width;
       final horizontalInset = compact ? 8.0 : 28.0;
       final innerWidth = contentWidth - horizontalInset * 2;
       final query = _query.trim().toLowerCase();
@@ -51,17 +54,19 @@ class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
             (item.provinsi ?? '').toLowerCase().contains(query) ||
             (item.kabupaten ?? '').toLowerCase().contains(query);
       }).toList();
-      final sources = widget.gunung
-          .map((item) => item.sumberData)
-          .whereType<String>()
-          .toSet()
-          .toList()
-        ..sort();
-      final retrievalTimes = widget.gunung
-          .map((item) => item.waktuPengambilan)
-          .whereType<DateTime>()
-          .toList()
-        ..sort((a, b) => b.compareTo(a));
+      final sources =
+          widget.gunung
+              .map((item) => item.sumberData)
+              .whereType<String>()
+              .toSet()
+              .toList()
+            ..sort();
+      final retrievalTimes =
+          widget.gunung
+              .map((item) => item.waktuPengambilan)
+              .whereType<DateTime>()
+              .toList()
+            ..sort((a, b) => b.compareTo(a));
       final freshness = [
         if (sources.isNotEmpty) 'Sumber API: ${sources.join(', ')}.',
         if (retrievalTimes.isNotEmpty)
@@ -76,10 +81,11 @@ class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SizedBox(height: RanahSpacing.md),
             _ActivityBackBar(onBack: widget.onBack),
-            const SizedBox(height: 12),
+            const SizedBox(height: RanahSpacing.md),
             _SourceDataNotice(text: freshness),
-            const SizedBox(height: 10),
+            const SizedBox(height: RanahSpacing.sm),
             _LevelSummaryRow(
               compact: compact,
               counts: {
@@ -89,12 +95,12 @@ class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
                       .length,
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: RanahSpacing.md),
             _SearchField(
               controller: _searchController,
               onChanged: (value) => setState(() => _query = value),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: RanahSpacing.md),
             if (widget.isLoading && widget.gunung.isEmpty)
               const _ActivityLoadState(
                 message: 'Memuat data gunung dari server...',
@@ -109,7 +115,8 @@ class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
               const LinearProgressIndicator()
             else if (widget.error != null)
               _ActivityLoadState(
-                message: 'Pembaruan gagal. Menampilkan data yang terakhir diterima.',
+                message:
+                    'Pembaruan gagal. Menampilkan data yang terakhir diterima.',
                 onRetry: widget.onRetry,
               )
             else if (widget.gunung.isEmpty)
@@ -192,19 +199,11 @@ class _ActivityBackBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox(
     height: 48,
-    child: Align(
-      alignment: Alignment.centerLeft,
-      child: TextButton.icon(
-        onPressed: onBack,
-        icon: const Icon(Icons.arrow_back, size: 14),
-        label: const Text('Kembali', style: TextStyle(fontSize: 12)),
-        style: TextButton.styleFrom(
-          foregroundColor: RanahColors.ink,
-          backgroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          minimumSize: const Size(48, 48),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-        ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: RanahSpacing.sm),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: RanahBackButton(onPressed: onBack),
       ),
     ),
   );
@@ -289,7 +288,7 @@ class _LevelSummaryRow extends StatelessWidget {
       final cardWidth = (constraints.maxWidth - gap * (columns - 1)) / columns;
       return Wrap(
         spacing: gap,
-        runSpacing: 7,
+        runSpacing: RanahSpacing.sm,
         children: [
           for (final level in activityLevels)
             SizedBox(
@@ -490,21 +489,24 @@ class _ActivityLevelGroup extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: RanahSpacing.xs),
           Text(
             level.level == 0
                 ? 'API tidak memberikan level aktivitas yang dapat dikenali.'
                 : 'Kategori status sesuai tingkat aktivitas yang diterima dari API.',
             style: const TextStyle(fontSize: 12, color: Color(0xFFE0E6EF)),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: RanahSpacing.xs),
           Text(
             '${gunung.length} gunung',
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
           ),
           if (gunung.isEmpty)
             const Padding(
-              padding: EdgeInsets.only(top: 12, bottom: 5),
+              padding: EdgeInsets.only(
+                top: RanahSpacing.md,
+                bottom: RanahSpacing.xs,
+              ),
               child: Text('Belum ada gunung pada tingkat ini di respons API.'),
             )
           else
@@ -515,10 +517,10 @@ class _ActivityLevelGroup extends StatelessWidget {
                     ? (constraints.maxWidth - 12) / 2
                     : constraints.maxWidth;
                 return Padding(
-                  padding: const EdgeInsets.only(top: 7),
+                  padding: const EdgeInsets.only(top: RanahSpacing.sm),
                   child: Wrap(
-                    spacing: 12,
-                    runSpacing: 1,
+                    spacing: RanahSpacing.md,
+                    runSpacing: RanahSpacing.md,
                     children: [
                       for (final item in gunung)
                         SizedBox(
@@ -553,72 +555,118 @@ class _ActivityVolcanoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    constraints: const BoxConstraints(minHeight: 66),
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    decoration: const BoxDecoration(
-      border: Border(bottom: BorderSide(color: Color(0x557D9DB4))),
+    padding: const EdgeInsets.all(RanahSpacing.md),
+    decoration: BoxDecoration(
+      color: RanahColors.cardBlue,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: const Color(0xFF3275A7)),
     ),
-    child: Row(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(3),
-          child: Container(
-            width: 48,
-            height: 48,
-            color: const Color(0xFF1B557B),
-            alignment: Alignment.center,
-            child: const Icon(Icons.landscape_outlined, color: Colors.white70),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                gunung.nama,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Container(
+                width: 48,
+                height: 48,
+                color: const Color(0xFF1B557B),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.landscape_outlined,
+                  color: Colors.white70,
                 ),
               ),
-              Text(
-                _region(gunung),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12),
+            ),
+            const SizedBox(width: RanahSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    gunung.nama.trim().isEmpty
+                        ? 'Nama gunung belum tersedia'
+                        : gunung.nama.trim(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      height: 1.2,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: RanahSpacing.xs),
+                  Text(
+                    _region(gunung),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.25,
+                      color: Color(0xFFE0E6EF),
+                    ),
+                  ),
+                  const SizedBox(height: RanahSpacing.xs),
+                  Text(
+                    _activityStatus(gunung.statusAktivitas),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.25,
+                      fontWeight: FontWeight.w700,
+                      color: Color(level.color),
+                    ),
+                  ),
+                  const SizedBox(height: RanahSpacing.xs),
+                  Text(
+                    'Sumber: ${_sourceName(gunung.sumberData)} · '
+                    'Diambil server: ${_formatDateTime(gunung.waktuPengambilan)}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      height: 1.25,
+                      color: Color(0xFFE0E6EF),
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                gunung.statusAktivitas ?? 'Status aktivitas belum tersedia',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Color(level.color),
-                ),
-              ),
-              Text(
-                'Sumber: ${gunung.sumberData ?? 'Belum tersedia'} · Diambil server: ${_formatDateTime(gunung.waktuPengambilan)}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 10, color: Color(0xFFE0E6EF)),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-        TextButton(
-          onPressed: onViewReport,
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 7),
-            minimumSize: const Size(48, 48),
+        const SizedBox(height: RanahSpacing.sm),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: onViewReport,
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: RanahSpacing.md),
+              minimumSize: const Size(48, 48),
+              tapTargetSize: MaterialTapTargetSize.padded,
+              textStyle: const TextStyle(fontSize: 12),
+            ),
+            child: const Text('Lihat Laporan'),
           ),
-          child: const Text('Lihat Laporan', style: TextStyle(fontSize: 12)),
         ),
       ],
     ),
   );
+}
+
+String _activityStatus(String? value) {
+  final status = value?.trim();
+  return status == null || status.isEmpty
+      ? 'Status aktivitas belum tersedia'
+      : status;
+}
+
+String _sourceName(String? value) {
+  final source = value?.trim();
+  return source == null || source.isEmpty ? 'Belum tersedia' : source;
 }
 
 class _EmptySearchResult extends StatelessWidget {
@@ -648,7 +696,9 @@ String _region(GunungRecord gunung) {
       .map((value) => value.trim())
       .where((value) => value.isNotEmpty)
       .toList();
-  return values.isEmpty ? 'Lokasi administratif belum tersedia' : values.join(', ');
+  return values.isEmpty
+      ? 'Lokasi administratif belum tersedia'
+      : values.join(', ');
 }
 
 String _formatDateTime(DateTime? value) {
