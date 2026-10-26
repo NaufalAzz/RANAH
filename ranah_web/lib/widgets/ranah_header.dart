@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../theme/ranah_theme.dart';
@@ -28,7 +30,7 @@ class RanahHeader extends StatelessWidget {
             ),
           ),
           child: compact
-              ? _buildCompact(context)
+              ? _buildCompact(context, constraints.maxWidth)
               : _buildWide(context, constraints.maxWidth),
         );
       },
@@ -70,43 +72,49 @@ class RanahHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildCompact(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
+  Widget _buildCompact(BuildContext context, double width) {
     const notificationWidth = 48.0;
-    final labelWidth = (width - 14 - 27 - 4 - notificationWidth)
+    final contentWidth = math.max(width - 14, 135.0);
+    final labelWidth = (contentWidth - 27 - 4 - notificationWidth)
         .clamp(56.0, 240.0)
         .toDouble();
     return SizedBox(
       height: 72,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 7),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(5),
-              child: Image.asset(
-                'assets/images/brand_mark.png',
-                width: 27,
-                height: 29,
-                fit: BoxFit.cover,
-                semanticLabel: 'Logo RANAH',
-              ),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: contentWidth,
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(5),
+                  child: Image.asset(
+                    'assets/images/brand_mark.png',
+                    width: 27,
+                    height: 29,
+                    fit: BoxFit.cover,
+                    semanticLabel: 'Logo RANAH',
+                  ),
+                ),
+                const SizedBox(width: 4),
+                SizedBox(
+                  width: labelWidth,
+                  height: 48,
+                  child: const _BrandLabel(compact: true),
+                ),
+                const Spacer(),
+                SizedBox(
+                  width: notificationWidth,
+                  child: _NotificationButton(
+                    onPressed: onNotifications,
+                    compact: true,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 4),
-            SizedBox(
-              width: labelWidth,
-              height: 48,
-              child: const _BrandLabel(compact: true),
-            ),
-            const Spacer(),
-            SizedBox(
-              width: notificationWidth,
-              child: _NotificationButton(
-                onPressed: onNotifications,
-                compact: true,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -135,18 +143,29 @@ class RanahBottomNavigation extends StatelessWidget {
       ),
       child: SizedBox(
         height: 68,
-        child: Row(
-          children: [
-            for (final destination in RanahDestination.values)
-              Expanded(
-                child: _NavigationButton(
-                  destination: destination,
-                  selected: selected == destination,
-                  compact: true,
-                  onPressed: () => onSelect(destination),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final contentWidth = math.max(constraints.maxWidth, 192.0);
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: contentWidth,
+                child: Row(
+                  children: [
+                    for (final destination in RanahDestination.values)
+                      Expanded(
+                        child: _NavigationButton(
+                          destination: destination,
+                          selected: selected == destination,
+                          compact: true,
+                          onPressed: () => onSelect(destination),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-          ],
+            );
+          },
         ),
       ),
     ),
@@ -263,6 +282,9 @@ class _NavigationButton extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     label,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 12,
                       color: selected ? Colors.white : RanahColors.headerMuted,
@@ -303,7 +325,7 @@ class _NotificationButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       onPressed: onPressed,
-      tooltip: 'Notifikasi contoh',
+      tooltip: 'Notifikasi',
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints.tightFor(width: 48, height: 48),
       icon: Stack(

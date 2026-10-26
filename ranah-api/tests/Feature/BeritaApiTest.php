@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Berita;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class BeritaApiTest extends TestCase
@@ -93,7 +94,7 @@ class BeritaApiTest extends TestCase
             'gambar' => 'news/bnpb/bnpb-2026-05-agam-p20.jpeg',
         ]);
         $apiHost = 'http://192.168.18.49:8000';
-        $imageUrl = $apiHost.'/storage/news/bnpb/bnpb-2026-05-agam-p20.jpeg';
+        $imageUrl = $apiHost."/api/berita/{$item->id}/gambar";
 
         $this->getJson($apiHost.'/api/berita')
             ->assertOk()
@@ -102,6 +103,26 @@ class BeritaApiTest extends TestCase
         $this->getJson($apiHost."/api/berita/{$item->id}")
             ->assertOk()
             ->assertJsonPath('data.gambar', $imageUrl);
+    }
+
+    public function test_local_image_endpoint_streams_public_image_with_web_cors(): void
+    {
+        $path = 'news/bnpb/bnpb-2026-05-agam-p20.jpeg';
+        $source = base_path('storage/app/public/'.$path);
+        self::assertFileExists($source);
+        $contents = file_get_contents($source);
+        self::assertNotFalse($contents);
+
+        Storage::fake('public');
+        Storage::disk('public')->put($path, $contents);
+        $item = $this->createBerita(['gambar' => $path]);
+
+        $this->withHeaders(['Origin' => 'http://localhost:5000'])
+            ->get("/api/berita/{$item->id}/gambar")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/jpeg')
+            ->assertHeader('Access-Control-Allow-Origin', 'http://localhost:5000')
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
     }
 
     public function test_detail_hides_missing_draft_and_future_news(): void

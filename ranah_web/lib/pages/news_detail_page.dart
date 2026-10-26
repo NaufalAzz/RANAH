@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/home_stories.dart';
 import '../theme/ranah_theme.dart';
+import '../widgets/home_story_image.dart';
 import '../widgets/ranah_full_width_title_background.dart';
 import 'news_page.dart';
 
@@ -52,7 +53,12 @@ class NewsDetailPage extends StatelessWidget {
             ),
             SizedBox(
               height: imageHeight,
-              child: Image.asset(story.image, fit: BoxFit.cover),
+              child: HomeStoryImage(
+                story: story,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: imageHeight,
+              ),
             ),
             Container(
               color: const Color(0xFFE3EAF3),
@@ -66,7 +72,7 @@ class NewsDetailPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'CONTOH · ${story.category}',
+                    story.isApiRecord ? story.category : 'CONTOH \u00B7 ${story.category}',
                     style: TextStyle(
                       color: RanahColors.ink,
                       fontSize: 16,
@@ -91,6 +97,26 @@ class NewsDetailPage extends StatelessWidget {
                       fontSize: 12,
                     ),
                   ),
+                  if (story.region != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Wilayah: ${story.region}',
+                      style: const TextStyle(
+                        color: Color(0xFF657287),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                  if (story.eventAt != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Waktu kejadian: ${_formatStoryDateTime(story.eventAt!)}',
+                      style: const TextStyle(
+                        color: Color(0xFF657287),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 17),
                   Text(
                     story.content,
@@ -111,15 +137,24 @@ class NewsDetailPage extends StatelessWidget {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 16),
-                  Text(
-                    'Konten demonstrasi — bukan berita terkini yang telah diverifikasi.',
-                    style: TextStyle(
-                      color: const Color(0xFF657287),
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic,
+                  if (story.sourceUrl != null) ...[
+                    const SizedBox(height: 5),
+                    SelectableText(
+                      'URL sumber: ${story.sourceUrl}',
+                      style: const TextStyle(color: Color(0xFF657287), fontSize: 12),
                     ),
-                  ),
+                  ],
+                  if (!story.isApiRecord) ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Konten demonstrasi \u2014 bukan berita terkini yang telah diverifikasi.',
+                      style: TextStyle(
+                        color: Color(0xFF657287),
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -128,4 +163,13 @@ class NewsDetailPage extends StatelessWidget {
       );
     },
   );
+}
+
+String _formatStoryDateTime(DateTime value) {
+  final local = value.toLocal();
+  final day = local.day.toString().padLeft(2, '0');
+  final month = local.month.toString().padLeft(2, '0');
+  final hour = local.hour.toString().padLeft(2, '0');
+  final minute = local.minute.toString().padLeft(2, '0');
+  return '$day/$month/${local.year} $hour:$minute';
 }

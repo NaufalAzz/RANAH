@@ -1,27 +1,85 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 
 import '../data/volcanic_activity_data.dart';
+import '../models/gunung_data.dart';
+import '../services/gunung_repository.dart';
+import '../services/ranah_api_client.dart';
 import '../theme/ranah_theme.dart';
 import '../widgets/ranah_full_width_title_background.dart';
+import '../widgets/volcano_interactive_map.dart';
 
 class VolcanoReportPage extends StatefulWidget {
   const VolcanoReportPage({
-    required this.volcano,
+    required this.gunungId,
     required this.onBack,
+    this.namaGunung,
+    this.repository,
+    this.tilesEnabled = true,
+    this.mapController,
     super.key,
   });
 
-  final VolcanoActivitySample volcano;
+  final int gunungId;
   final VoidCallback onBack;
+  final String? namaGunung;
+  final GunungDataRepository? repository;
+  final bool tilesEnabled;
+  final MapController? mapController;
 
   @override
   State<VolcanoReportPage> createState() => _VolcanoReportPageState();
 }
 
 class _VolcanoReportPageState extends State<VolcanoReportPage> {
-  bool _showKrb = false;
+  bool _showKrb = true;
+  bool _panelCollapsed = false;
+  late final GunungDataRepository _repository;
+  GunungDetailRecord? _detail;
+  Object? _error;
+  bool _loading = true;
+  int _loadGeneration = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _repository = widget.repository ?? GunungRepository();
+    _loadDetail();
+  }
+
+  @override
+  void didUpdateWidget(covariant VolcanoReportPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.gunungId != widget.gunungId) {
+      _detail = null;
+      _error = null;
+      _panelCollapsed = false;
+      _showKrb = true;
+      _loadDetail();
+    }
+  }
+
+  Future<void> _loadDetail() async {
+    final generation = ++_loadGeneration;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final detail = await _repository.loadDetail(widget.gunungId);
+      if (!mounted || generation != _loadGeneration) return;
+      setState(() => _detail = detail);
+    } catch (error) {
+      if (!mounted || generation != _loadGeneration) return;
+      setState(() => _error = error);
+    } finally {
+      if (mounted && generation == _loadGeneration) {
+        setState(() => _loading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -30,41 +88,98 @@ class _VolcanoReportPageState extends State<VolcanoReportPage> {
       final panelWidth = mobile
           ? math.min(constraints.maxWidth - 16, constraints.maxWidth * .50)
           : 380.0;
+      final panelInset = mobile ? 8.0 : 18.0;
+      final availableHeight = math.max(
+        0.0,
+        constraints.maxHeight - panelInset * 2,
+      );
+      final mapAreaHeight = math.max(0.0, constraints.maxHeight - 124);
+      final panelMaxHeight = math.min(
+        availableHeight * (mobile ? .72 : .84),
+        math.max(0.0, mapAreaHeight - 180),
+      );
+      final gunung = _detail?.gunung;
       return Column(
         children: [
           const _ReportTitleBanner(),
-          _ReportBackBar(volcano: widget.volcano, onBack: widget.onBack),
+          _ReportBackBar(
+            status: gunung?.statusAktivitas,
+            onBack: widget.onBack,
+          ),
           Expanded(
             child: Stack(
               fit: StackFit.expand,
               children: [
-                CustomPaint(
-                  painter: _ReportMapPainter(
-                    showKrb: _showKrb,
-                    volcanoName: widget.volcano.name,
+                if (gunung != null)
+                  Positioned.fill(
+                    child: VolcanoInteractiveMap(
+                      gunung: gunung,
+                      showKrb: _showKrb,
+                      tilesEnabled: widget.tilesEnabled,
+                      mapController: widget.mapController,
+                    ),
+                  )
+                else
+                  const Positioned.fill(
+                    child: ColoredBox(color: Color(0xFF102B43)),
                   ),
-                ),
                 Positioned(
                   right: 10,
                   top: 10,
-                  child: _MapDisclosure(
-                    text: _showKrb
-                        ? 'ZONA KRB ILUSTRATIF - BUKAN BATAS RESMI'
-                        : 'PETA ILUSTRATIF - BUKAN PETA NAVIGASI',
-                    warning: _showKrb,
+                  child: IgnorePointer(
+                    child: _MapDisclosure(
+                      text: _showKrb
+                          ? 'KRB BIG jika tersedia - bukan panduan evakuasi'
+                          : 'Peta interaktif - zona KRB disembunyikan',
+                      warning: _showKrb,
+                    ),
                   ),
                 ),
-                SingleChildScrollView(
-                  padding: EdgeInsets.all(mobile ? 8 : 18),
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: SizedBox(
-                      width: panelWidth,
-                      child: _ReportPanel(
-                        volcano: widget.volcano,
-                        showKrb: _showKrb,
-                        onToggleKrb: () => setState(() => _showKrb = !_showKrb),
-                      ),
+                Positioned(
+                  left: panelInset,
+                  top: panelInset,
+                  child: SizedBox(
+                    width: panelWidth,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxHeight: panelMaxHeight),
+                      child: _loading
+                          ? const _ReportState(
+                              icon: Icons.sync,
+                              title: 'Memuat laporan gunung',
+                              message: 'Mengambil data dari server RANAH...',
+                              loading: true,
+                            )
+                          : _detail == null
+                          ? _ReportState(
+                              icon: _isNotFound(_error)
+                                  ? Icons.search_off
+                                  : Icons.cloud_off_outlined,
+                              title: _isNotFound(_error)
+                                  ? 'Data gunung tidak ditemukan'
+                                  : 'Laporan belum dapat dimuat',
+                              message:
+                                  _error?.toString() ??
+                                  'Data detail gunung belum tersedia.',
+                              action: FilledButton.icon(
+                                onPressed: _loadDetail,
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Coba lagi'),
+                              ),
+                            )
+                          : _ReportPanel(
+                              detail: _detail!,
+                              showKrb: _showKrb,
+                              collapsed: _panelCollapsed,
+                              maxContentHeight: math.max(
+                                0.0,
+                                panelMaxHeight - 58,
+                              ),
+                              onToggleCollapsed: () => setState(
+                                () => _panelCollapsed = !_panelCollapsed,
+                              ),
+                              onToggleKrb: () =>
+                                  setState(() => _showKrb = !_showKrb),
+                            ),
                     ),
                   ),
                 ),
@@ -74,6 +189,54 @@ class _VolcanoReportPageState extends State<VolcanoReportPage> {
         ],
       );
     },
+  );
+
+  bool _isNotFound(Object? error) =>
+      error is RanahApiException && error.statusCode == 404;
+}
+
+class _ReportState extends StatelessWidget {
+  const _ReportState({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.loading = false,
+    this.action,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final bool loading;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 380,
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: const Color(0xE9154770),
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(color: const Color(0xFF4B91B4)),
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (loading)
+          const CircularProgressIndicator()
+        else
+          Icon(icon, size: 30, color: Colors.white70),
+        const SizedBox(height: 8),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 5),
+        Text(message, textAlign: TextAlign.center),
+        if (action != null) ...[const SizedBox(height: 10), action!],
+      ],
+    ),
   );
 }
 
@@ -128,9 +291,9 @@ class _ReportTitleBanner extends StatelessWidget {
 }
 
 class _ReportBackBar extends StatelessWidget {
-  const _ReportBackBar({required this.volcano, required this.onBack});
+  const _ReportBackBar({required this.status, required this.onBack});
 
-  final VolcanoActivitySample volcano;
+  final String? status;
   final VoidCallback onBack;
 
   @override
@@ -161,16 +324,20 @@ class _ReportBackBar extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFB51B).withValues(alpha: .8),
+                color: Color(
+                  activityLevelPresentation(_activityLevel(status)).color,
+                ).withValues(alpha: .88),
                 borderRadius: BorderRadius.circular(3),
               ),
               child: Text(
-                'Level ${volcano.level} - ${_levelName(volcano.level)} (contoh)',
+                _display(status, 'Status aktivitas belum tersedia'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF332308),
+                  color: _activityLevel(status) == null
+                      ? Colors.white
+                      : const Color(0xFF332308),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -184,92 +351,252 @@ class _ReportBackBar extends StatelessWidget {
 
 class _ReportPanel extends StatelessWidget {
   const _ReportPanel({
-    required this.volcano,
+    required this.detail,
     required this.showKrb,
+    required this.collapsed,
+    required this.maxContentHeight,
+    required this.onToggleCollapsed,
     required this.onToggleKrb,
   });
 
-  final VolcanoActivitySample volcano;
+  final GunungDetailRecord detail;
   final bool showKrb;
+  final bool collapsed;
+  final double maxContentHeight;
+  final VoidCallback onToggleCollapsed;
   final VoidCallback onToggleKrb;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(8),
-    decoration: BoxDecoration(
-      color: const Color(0xD9154770),
-      borderRadius: BorderRadius.circular(5),
-      border: Border.all(color: const Color(0xFF4B91B4)),
-      boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 5)],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text(
-          'Laporan Gunung Api - DATA CONTOH',
-          style: TextStyle(fontSize: 12, color: Color(0xFFE3ECF5)),
-        ),
-        Text(
-          volcano.name,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 6),
-        AspectRatio(
-          aspectRatio: 1.78,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: Image.asset(volcano.image, fit: BoxFit.cover),
-          ),
-        ),
-        const Padding(
-          padding: EdgeInsets.only(top: 3),
-          child: Text(
-            'Foto ilustrasi dari mockup - bukan bukti status terkini.',
-            style: TextStyle(fontSize: 12),
-          ),
-        ),
-        const SizedBox(height: 5),
-        SizedBox(
-          height: 48,
-          child: OutlinedButton(
-            onPressed: onToggleKrb,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              backgroundColor: const Color(0xFF164D79),
-              padding: const EdgeInsets.symmetric(horizontal: 7),
-              alignment: Alignment.centerLeft,
-              side: const BorderSide(color: Color(0xFF7AB2D2)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(3),
+  Widget build(BuildContext context) {
+    final gunung = detail.gunung;
+    final report = detail.laporan.isEmpty ? null : detail.laporan.first;
+    final photoUrl = _safeImageUrl(report?.foto);
+    return Container(
+      key: ValueKey('report-panel-${gunung.id}'),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: const Color(0xD9154770),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: const Color(0xFF4B91B4)),
+        boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 5)],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                key: ValueKey('report-panel-toggle-${gunung.id}'),
+                tooltip: collapsed
+                    ? 'Buka panel laporan'
+                    : 'Ciutkan panel laporan',
+                onPressed: onToggleCollapsed,
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 32,
+                  height: 36,
+                ),
+                icon: Icon(
+                  collapsed ? Icons.expand_more : Icons.expand_less,
+                  color: Colors.white,
+                ),
               ),
-            ),
-            child: Text(
-              showKrb ? 'Sembunyikan Zona KRB' : 'Tampilkan Peta KRB',
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-        ),
-        if (showKrb)
-          const Padding(
-            padding: EdgeInsets.only(top: 4),
-            child: Text(
-              'Zona ini hanya ilustrasi perkiraan, bukan batas KRB resmi.',
-              style: TextStyle(
-                fontSize: 12,
-                color: Color(0xFFFFD77D),
-                fontWeight: FontWeight.w600,
+              const SizedBox(width: 4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Laporan Gunung Api',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 11, color: Color(0xFFE3ECF5)),
+                    ),
+                    Text(
+                      gunung.nama,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
-        const SizedBox(height: 7),
-        for (final entry in sampleVolcanoReportSections.entries)
-          _ReportSection(title: entry.key, body: entry.value),
-        const SizedBox(height: 5),
-        const Text(
-          'Demo lokal - periksa sumber resmi PVMBG/BPBD untuk informasi kebencanaan.',
-          style: TextStyle(fontSize: 12, color: Color(0xFFFFD77D)),
-        ),
-      ],
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: collapsed
+                ? const SizedBox.shrink()
+                : ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: maxContentHeight),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: 6),
+                          AspectRatio(
+                            aspectRatio: 1.78,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(3),
+                              child: photoUrl == null
+                                  ? const _ReportPhotoPlaceholder()
+                                  : Image.network(
+                                      photoUrl,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, error, _) {
+                                        debugPrint(
+                                          'Foto laporan gunung ${gunung.id} gagal dimuat: $error',
+                                        );
+                                        return const _ReportPhotoPlaceholder();
+                                      },
+                                    ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 3),
+                            child: Text(
+                              report == null
+                                  ? 'Foto laporan tidak tersedia.'
+                                  : photoUrl == null
+                                  ? 'Foto laporan tidak tersedia dari sumber API.'
+                                  : 'Foto dari laporan sumber.',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          SizedBox(
+                            height: 48,
+                            child: OutlinedButton(
+                              onPressed: onToggleKrb,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: const Color(0xFF164D79),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                ),
+                                alignment: Alignment.centerLeft,
+                                side: const BorderSide(
+                                  color: Color(0xFF7AB2D2),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                              child: Text(
+                                showKrb
+                                    ? 'Sembunyikan Zona KRB'
+                                    : 'Tampilkan Peta KRB',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ),
+                          if (showKrb)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 4),
+                              child: Text(
+                                'Poligon hanya ditampilkan bila cocok dengan ID gunung dan berstatus terverifikasi. Data sumber dapat lama; bukan panduan evakuasi.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFFFFD77D),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 7),
+                          _ReportSection(
+                            title: 'Lokasi Administratif dan Geografis',
+                            body: _region(gunung),
+                          ),
+                          _ReportSection(
+                            title: 'Koordinat',
+                            body: _coordinates(gunung),
+                          ),
+                          if (report == null)
+                            const _ReportSection(
+                              title: 'Laporan Pengamatan',
+                              body: 'Belum ada laporan pengamatan tersimpan untuk gunung ini.',
+                            )
+                          else ...[
+                            _ReportSection(
+                              title: 'Periode Pengamatan',
+                              body: _period(report),
+                            ),
+                            _ReportSection(
+                              title: 'Klimatologi',
+                              body: _display(
+                                report.dataKlimatologi,
+                                'Belum tersedia pada laporan.',
+                              ),
+                            ),
+                            _ReportSection(
+                              title: 'Pengamatan Visual',
+                              body: _display(
+                                report.pengamatanVisual,
+                                'Belum tersedia pada laporan.',
+                              ),
+                            ),
+                            _ReportSection(
+                              title: 'Rekomendasi',
+                              body: _display(
+                                report.rekomendasi,
+                                'Belum tersedia pada laporan.',
+                              ),
+                            ),
+                            _ReportSection(
+                              title: 'Sumber dan Pembaruan',
+                              body:
+                                  'Sumber: ${_display(report.sumber, 'Belum tersedia')}\n'
+                                  'Waktu publikasi sumber: ${_formatDateTime(report.waktuPublikasi)}\n'
+                                  'Waktu pengambilan server: ${_formatDateTime(report.waktuPengambilan)}',
+                            ),
+                            if (_safeSourceUrl(report.urlSumber)
+                                case final url?)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: SelectableText(
+                                  'URL sumber: ${_safeDisplayUrl(url)}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFFD8E6F2),
+                                  ),
+                                ),
+                              ),
+                          ],
+                          const SizedBox(height: 5),
+                          const Text(
+                            'Status dan laporan berasal dari API RANAH. Peta dasar memerlukan internet. '
+                            'Batas KRB bersumber dari layer BIG bila tersedia; data dapat lama dan bukan panduan evakuasi.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFFFFD77D),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReportPhotoPlaceholder extends StatelessWidget {
+  const _ReportPhotoPlaceholder();
+
+  @override
+  Widget build(BuildContext context) => const ColoredBox(
+    color: Color(0xFF26384A),
+    child: Center(
+      child: Icon(Icons.photo_outlined, color: Color(0xFFB8C3CF), size: 32),
     ),
   );
 }
@@ -331,167 +658,91 @@ class _MapDisclosure extends StatelessWidget {
   );
 }
 
-class _ReportMapPainter extends CustomPainter {
-  const _ReportMapPainter({required this.showKrb, required this.volcanoName});
-
-  final bool showKrb;
-  final String volcanoName;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final bounds = Offset.zero & size;
-    canvas.drawRect(
-      bounds,
-      Paint()
-        ..shader = const LinearGradient(
-          colors: [Color(0xFF567A50), Color(0xFF365A45), Color(0xFF244E4A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ).createShader(bounds),
-    );
-    final patches = Paint()
-      ..color = const Color(0xFF9A9A59).withValues(alpha: .24);
-    for (var row = 0; row < 8; row++) {
-      for (var column = 0; column < 12; column++) {
-        final x = size.width * (column + .5) / 12;
-        final y = size.height * (row + .5) / 8;
-        final r =
-            size.shortestSide * (.025 + ((row * 7 + column * 3) % 4) * .012);
-        canvas.drawCircle(Offset(x, y), r, patches);
-      }
-    }
-    final coastline = Path()
-      ..moveTo(size.width * .76, size.height * .65)
-      ..cubicTo(
-        size.width * .70,
-        size.height * .78,
-        size.width * .82,
-        size.height * .88,
-        size.width * .72,
-        size.height,
-      )
-      ..lineTo(size.width, size.height)
-      ..lineTo(size.width, size.height * .58)
-      ..close();
-    canvas.drawPath(
-      coastline,
-      Paint()..color = const Color(0xFF164D5B).withValues(alpha: .88),
-    );
-    final road = Paint()
-      ..color = const Color(0xFFE6D397).withValues(alpha: .9)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-    _drawPath(canvas, size, road, const [
-      Offset(.02, .28),
-      Offset(.26, .22),
-      Offset(.44, .33),
-      Offset(.66, .29),
-      Offset(.98, .17),
-    ]);
-    _drawPath(canvas, size, road, const [
-      Offset(.04, .74),
-      Offset(.27, .63),
-      Offset(.46, .67),
-      Offset(.62, .52),
-      Offset(.91, .46),
-    ]);
-    _drawPath(canvas, size, road, const [
-      Offset(.32, .02),
-      Offset(.40, .22),
-      Offset(.54, .43),
-      Offset(.55, .70),
-      Offset(.72, .90),
-    ]);
-    final contour = Paint()
-      ..color = Colors.white.withValues(alpha: .12)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    for (var i = 0; i < 5; i++) {
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: Offset(size.width * .52, size.height * .48),
-          width: size.width * (.2 + i * .12),
-          height: size.height * (.11 + i * .08),
-        ),
-        contour,
-      );
-    }
-    _drawLabel(canvas, size, 'Bulakan', .60, .17);
-    _drawLabel(canvas, size, '$volcanoName - ilustrasi', .52, .37);
-    _drawLabel(canvas, size, 'Batusangkar', .69, .64);
-    _drawLabel(canvas, size, 'PETA ILUSTRATIF', .83, .91);
-    _drawPath(canvas, size, Paint()..color = const Color(0xFFE04432), const [
-      Offset(.53, .49),
-      Offset(.55, .45),
-      Offset(.58, .49),
-    ]);
-    if (showKrb) _drawKrb(canvas, size);
-  }
-
-  void _drawKrb(Canvas canvas, Size size) {
-    final center = Offset(size.width * .53, size.height * .47);
-    final radius = size.shortestSide * .38;
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()..color = const Color(0xFFFFA322).withValues(alpha: .31),
-    );
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..color = const Color(0xFFFFC45B).withValues(alpha: .9)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
-    canvas.drawCircle(
-      center,
-      radius * .48,
-      Paint()..color = const Color(0xFFE64A2F).withValues(alpha: .36),
-    );
-    canvas.drawCircle(
-      center,
-      radius * .48,
-      Paint()
-        ..color = const Color(0xFFFF6A4A)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5,
-    );
-  }
-
-  void _drawPath(Canvas canvas, Size size, Paint paint, List<Offset> points) {
-    final path = Path()
-      ..moveTo(size.width * points.first.dx, size.height * points.first.dy);
-    for (final point in points.skip(1)) {
-      path.lineTo(size.width * point.dx, size.height * point.dy);
-    }
-    canvas.drawPath(path, paint);
-  }
-
-  void _drawLabel(Canvas canvas, Size size, String text, double x, double y) {
-    final painter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout(maxWidth: size.width * .45);
-    painter.paint(canvas, Offset(size.width * x, size.height * y));
-  }
-
-  @override
-  bool shouldRepaint(covariant _ReportMapPainter oldDelegate) =>
-      showKrb != oldDelegate.showKrb || volcanoName != oldDelegate.volcanoName;
+int? _activityLevel(String? status) {
+  final value = RegExp(
+    r'^\s*Level\s+(IV|III|II|I)\b',
+    caseSensitive: false,
+  ).firstMatch(status ?? '')?.group(1)?.toUpperCase();
+  return switch (value) {
+    'I' => 1,
+    'II' => 2,
+    'III' => 3,
+    'IV' => 4,
+    _ => null,
+  };
 }
 
-String _levelName(int level) => switch (level) {
-  4 => 'Awas',
-  3 => 'Siaga',
-  2 => 'Waspada',
-  _ => 'Normal',
-};
+String _display(String? value, String fallback) {
+  final text = value?.trim() ?? '';
+  return text.isEmpty ? fallback : text;
+}
+
+String _region(GunungRecord gunung) {
+  final values = [gunung.kabupaten, gunung.provinsi]
+      .whereType<String>()
+      .map((value) => value.trim())
+      .where((value) => value.isNotEmpty)
+      .toList();
+  return values.isEmpty
+      ? 'Lokasi administratif belum tersedia'
+      : values.join(', ');
+}
+
+String _coordinates(GunungRecord gunung) {
+  final latitude = gunung.latitude;
+  final longitude = gunung.longitude;
+  if (latitude == null || longitude == null) return 'Koordinat belum tersedia.';
+  if (gunung.statusValidasiKoordinat?.toLowerCase() != 'terverifikasi') {
+    return 'Koordinat tersimpan tetapi belum terverifikasi.';
+  }
+  final source = _display(
+    gunung.sumberKoordinat,
+    'Sumber koordinat tidak tersedia',
+  );
+  return '$latitude, $longitude\nSumber: $source';
+}
+
+String _period(GunungReportRecord report) {
+  if (report.periodeWaktu != null) return report.periodeWaktu!;
+  final start = report.periodeMulai;
+  final end = report.periodeSelesai;
+  if (start == null && end == null) return 'Periode tidak tersedia.';
+  return '${start ?? 'Tidak tersedia'} - ${end ?? 'Tidak tersedia'}';
+}
+
+String _formatDateTime(DateTime? value) {
+  if (value == null) return 'belum tersedia';
+  final date = value.toLocal();
+  final day = date.day.toString().padLeft(2, '0');
+  final month = date.month.toString().padLeft(2, '0');
+  final hour = date.hour.toString().padLeft(2, '0');
+  final minute = date.minute.toString().padLeft(2, '0');
+  return '$day/$month/${date.year} $hour:$minute';
+}
+
+String? _safeImageUrl(String? value) {
+  final uri = Uri.tryParse(value ?? '');
+  if (uri == null ||
+      uri.scheme != 'https' ||
+      uri.host.isEmpty ||
+      uri.userInfo.isNotEmpty) {
+    return null;
+  }
+  return uri.toString();
+}
+
+String? _safeSourceUrl(String? value) {
+  final uri = Uri.tryParse(value ?? '');
+  if (uri == null ||
+      uri.scheme != 'https' ||
+      uri.host != 'magma.esdm.go.id' ||
+      uri.userInfo.isNotEmpty) {
+    return null;
+  }
+  return uri.toString();
+}
+
+String _safeDisplayUrl(String value) {
+  final uri = Uri.parse(value);
+  return uri.replace(query: null, fragment: null).toString();
+}

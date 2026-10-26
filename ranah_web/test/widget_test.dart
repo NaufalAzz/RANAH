@@ -7,6 +7,7 @@ import 'package:ranah_web/widgets/illustrative_map.dart';
 import 'package:ranah_web/pages/admin_login_page.dart';
 import 'package:ranah_web/pages/admin_panel_page.dart';
 import 'package:ranah_web/theme/ranah_theme.dart';
+import 'package:ranah_web/widgets/ranah_header.dart';
 
 void main() {
   test(
@@ -56,6 +57,58 @@ void main() {
     }
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
+  });
+
+  testWidgets('header navigation fits supported and collapsed widths', (
+    tester,
+  ) async {
+    const sizes = [
+      Size(320, 720),
+      Size(375, 800),
+      Size(768, 800),
+      Size(1280, 900),
+      Size(1440, 900),
+      // Four equal bottom-navigation items receive 0.4 dp each at this width.
+      Size(1.6, 720),
+    ];
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    for (final size in sizes) {
+      final collapsed = size.width < 2;
+      tester.view.physicalSize = collapsed ? const Size(2, 900) : size;
+      tester.view.devicePixelRatio = collapsed ? 1.25 : 1;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: MediaQueryData(
+              size: size,
+              textScaler: const TextScaler.linear(1.3),
+            ),
+            child: Scaffold(
+              body: Column(
+                children: [
+                  RanahHeader(
+                    selected: RanahDestination.home,
+                    onSelect: (_) {},
+                    onNotifications: () {},
+                  ),
+                  const Expanded(child: SizedBox()),
+                  if (size.width < 600)
+                    RanahBottomNavigation(
+                      selected: RanahDestination.home,
+                      onSelect: (_) {},
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull, reason: 'viewport $size');
+      await tester.pumpWidget(const SizedBox.shrink());
+    }
+
   });
 
   testWidgets('admin login validates required fields and never grants access', (
@@ -143,7 +196,7 @@ void main() {
   );
 
   testWidgets(
-    'activity search filters, report opens, KRB toggles, and back returns',
+    'activity page does not substitute local examples when API is unavailable',
     (tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
@@ -159,33 +212,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Daftar Tingkat Aktivitas Gunung Api'), findsOneWidget);
 
-      await tester.enterText(find.byType(TextField), 'Jawa Timur');
-      await tester.pumpAndSettle();
-      expect(find.text('Gunung Semeru'), findsOneWidget);
-      expect(find.text('Gunung Bromo'), findsOneWidget);
-      expect(find.text('Gunung Anak Krakatau'), findsNothing);
-
-      await tester.tap(find.byTooltip('Hapus pencarian'));
-      await tester.pumpAndSettle();
-      final reportButton = find.text('Lihat Laporan').first;
-      await tester.ensureVisible(reportButton);
-      await tester.tap(reportButton);
-      await tester.pumpAndSettle();
-      expect(find.text('Laporan Gunung Api - DATA CONTOH'), findsOneWidget);
-
-      final krbButton = find.text('Tampilkan Peta KRB');
-      await tester.ensureVisible(krbButton);
-      await tester.tap(krbButton);
-      await tester.pumpAndSettle();
-      expect(find.text('Sembunyikan Zona KRB'), findsOneWidget);
       expect(
-        find.text('Zona ini hanya ilustrasi perkiraan, bukan batas KRB resmi.'),
+        find.textContaining('Daftar gunung belum dapat dimuat'),
         findsOneWidget,
       );
-
-      await tester.tap(find.text('Kembali').first);
-      await tester.pumpAndSettle();
-      expect(find.text('Aktivitas Gunung Api'), findsOneWidget);
+      expect(find.text('Gunung Semeru'), findsNothing);
+      expect(find.text('Gunung Marapi'), findsNothing);
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -211,11 +244,12 @@ void main() {
     await tester.ensureVisible(mountain);
     await tester.tap(mountain);
     await tester.pumpAndSettle();
-    expect(find.text('Laporan Gunung Api - DATA CONTOH'), findsOneWidget);
-
-    await tester.tap(find.text('Kembali').first);
-    await tester.pumpAndSettle();
-    expect(find.text('Peta dan Jalur Evakuasi'), findsOneWidget);
+    expect(find.text('Laporan Gunung Api - DATA CONTOH'), findsNothing);
+    expect(
+      find.textContaining('belum tersedia dari API RANAH'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Map opens on the main map and location action opens Padang', (
@@ -296,84 +330,36 @@ void main() {
     tester.view.resetDevicePixelRatio();
   });
 
-  testWidgets('news filters, opens the selected story, and returns to News', (
-    tester,
-  ) async {
+  testWidgets('news does not substitute local examples when API is unavailable', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-
     await tester.pumpWidget(const MyApp());
     await tester.tap(find.text('Berita').first);
     await tester.pumpAndSettle();
-    expect(find.text('Berita & Peristiwa'), findsOneWidget);
-    expect(find.text('CONTOH · ERUPSI'), findsOneWidget);
-
-    await tester.tap(find.text('Pengungsian'));
-    await tester.pumpAndSettle();
-    expect(
-      find.text('Contoh Berita: Informasi Posko Pengungsian'),
-      findsOneWidget,
-    );
-    expect(
-      find.text('Contoh Berita: Informasi Aktivitas Erupsi Gunung'),
-      findsNothing,
-    );
-
-    await tester.tap(find.text('Contoh Berita: Informasi Posko Pengungsian'));
-    await tester.pumpAndSettle();
-    expect(
-      find.text('Halaman ini menggunakan konten lokal contoh untuk'),
-      findsNothing,
-    );
-    expect(
-      find.textContaining('Halaman ini menggunakan konten lokal contoh'),
-      findsOneWidget,
-    );
-    expect(
-      find.text(
-        'Konten demonstrasi — bukan berita terkini yang telah diverifikasi.',
-      ),
-      findsOneWidget,
-    );
-
-    await tester.tap(find.text('Kembali'));
-    await tester.pumpAndSettle();
-    expect(find.text('Berita & Peristiwa'), findsOneWidget);
+    expect(find.text('Berita dan Event'), findsOneWidget);
+    expect(find.textContaining('Berita belum dapat dimuat'), findsOneWidget);
+    expect(find.textContaining('Contoh Berita:'), findsNothing);
+    expect(find.textContaining('CONTOH'), findsNothing);
+    expect(find.text('Coba lagi'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('news and detail fit a desktop viewport', (tester) async {
+  testWidgets('news error state fits a desktop viewport', (tester) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-
     await tester.pumpWidget(const MyApp());
     await tester.tap(find.text('Berita').first);
     await tester.pumpAndSettle();
-    expect(find.text('Berita & Peristiwa'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-
-    await tester.tap(
-      find.text('Contoh Berita: Informasi Aktivitas Erupsi Gunung'),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      find.text(
-        'Konten demonstrasi — bukan berita terkini yang telah diverifikasi.',
-      ),
-      findsOneWidget,
-    );
-    expect(tester.takeException(), isNull);
-
-    await tester.tap(find.text('Kembali'));
-    await tester.pumpAndSettle();
-    expect(find.text('Berita & Peristiwa'), findsOneWidget);
+    expect(find.text('Berita dan Event'), findsOneWidget);
+    expect(find.textContaining('Berita belum dapat dimuat'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('notifications show simulated volcano and earthquake history', (
+  testWidgets('notifications require the Laravel feed and offer retry', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -382,25 +368,15 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(const MyApp());
-    await tester.tap(find.byTooltip('Notifikasi contoh'));
+    await tester.tap(find.byTooltip('Notifikasi'));
     await tester.pumpAndSettle();
 
     expect(find.text('Notifikasi'), findsOneWidget);
-    expect(find.text('Semua Notifikasi'), findsOneWidget);
-    expect(
-      find.textContaining('Bukan peringatan bencana real-time'),
-      findsOneWidget,
-    );
-    expect(find.byKey(const ValueKey('notification-card-0')), findsOneWidget);
-    expect(find.byKey(const ValueKey('notification-card-1')), findsOneWidget);
-    expect(find.byKey(const ValueKey('notification-card-2')), findsOneWidget);
-    expect(find.byKey(const ValueKey('notification-card-3')), findsOneWidget);
-    expect(find.text('CONTOH PERINGATAN GUNUNG API'), findsOneWidget);
-    expect(find.text('CONTOH INFORMASI GEMPA'), findsOneWidget);
-    expect(
-      find.text('Sumber yang direncanakan: BMKG · Belum terintegrasi'),
-      findsNWidgets(2),
-    );
+    expect(find.text('Notifikasi BMKG · Sumatera Barat'), findsOneWidget);
+    expect(find.text('Notifikasi BMKG belum dapat dimuat.'), findsOneWidget);
+    expect(find.text('Coba lagi'), findsOneWidget);
+    expect(find.textContaining('DATA SIMULASI'), findsNothing);
+    expect(find.byKey(const ValueKey('notification-card-0')), findsNothing);
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.byTooltip('Kembali'));
@@ -410,29 +386,29 @@ void main() {
 
     await tester.tap(find.text('Berita').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Notifikasi contoh'));
+    await tester.tap(find.byTooltip('Notifikasi'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Kembali'));
     await tester.pumpAndSettle();
-    expect(find.text('Berita & Peristiwa'), findsOneWidget);
+    expect(find.text('Berita dan Peristiwa'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('notifications fit a desktop viewport', (tester) async {
+  testWidgets('live notifications error state fits a desktop viewport', (tester) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(const MyApp());
-    await tester.tap(find.byTooltip('Notifikasi contoh'));
+    await tester.tap(find.byTooltip('Notifikasi'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('notification-card-3')), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_right_rounded), findsNWidgets(2));
+    expect(find.text('Notifikasi BMKG belum dapat dimuat.'), findsOneWidget);
+    expect(find.textContaining('DATA SIMULASI'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('notification destinations open relevant pages and return', (
+  testWidgets('live notifications do not expose sample destinations', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -441,38 +417,11 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(const MyApp());
-    await tester.tap(find.byTooltip('Notifikasi contoh'));
+    await tester.tap(find.byTooltip('Notifikasi'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('notification-card-1')));
-    await tester.pumpAndSettle();
-    expect(find.text('Semua Notifikasi'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('notification-card-0')));
-    await tester.pumpAndSettle();
-    expect(find.text('Daftar Tingkat Aktivitas Gunung Api'), findsOneWidget);
-    await tester.tap(find.text('Kembali').first);
-    await tester.pumpAndSettle();
-    expect(find.text('Semua Notifikasi'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('notification-card-2')));
-    await tester.pumpAndSettle();
-    expect(find.text('Laporan Gunung Api - DATA CONTOH'), findsOneWidget);
-    expect(find.text('Gunung Marapi'), findsWidgets);
-    await tester.tap(find.text('Kembali').first);
-    await tester.pumpAndSettle();
-    expect(find.text('Semua Notifikasi'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('notification-card-3')));
-    await tester.pumpAndSettle();
-    expect(find.text('Semua Notifikasi'), findsOneWidget);
-    expect(
-      find.textContaining('Bukan peringatan bencana real-time'),
-      findsOneWidget,
-    );
-    for (var index = 0; index < 4; index++) {
-      expect(find.byKey(ValueKey('notification-card-$index')), findsOneWidget);
-    }
+    expect(find.text('Notifikasi BMKG belum dapat dimuat.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('notification-card-0')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

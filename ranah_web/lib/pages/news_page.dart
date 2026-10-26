@@ -3,15 +3,13 @@ import 'package:flutter/material.dart';
 import '../data/home_stories.dart';
 import '../theme/ranah_theme.dart';
 import '../widgets/ranah_full_width_title_background.dart';
+import '../widgets/home_story_image.dart';
 
-const _newsCategories = <String>[
-  'Semua',
-  'ERUPSI',
-  'PENGUNGSIAN',
-  'BANTUAN',
-];
-
-DateTime _storyDate(HomeStory story) {
+DateTime? _storyDate(HomeStory story) {
+  if (story.publishedAt != null) {
+    final date = story.publishedAt!.toLocal();
+    return DateTime(date.year, date.month, date.day);
+  }
   final parts = story.date.split(' ');
   const months = {
     'Januari': 1,
@@ -27,7 +25,11 @@ DateTime _storyDate(HomeStory story) {
     'November': 11,
     'Desember': 12,
   };
-  return DateTime(int.parse(parts[2]), months[parts[1]]!, int.parse(parts[0]));
+  if (parts.length != 3 || !months.containsKey(parts[1])) return null;
+  final day = int.tryParse(parts[0]);
+  final year = int.tryParse(parts[2]);
+  if (day == null || year == null) return null;
+  return DateTime(year, months[parts[1]]!, day);
 }
 
 String _dateKey(DateTime date) =>
@@ -87,9 +89,20 @@ class _NewsDateFilter extends StatelessWidget {
 }
 
 class NewsPage extends StatefulWidget {
-  const NewsPage({required this.onStoryTap, super.key});
+  const NewsPage({
+    required this.onStoryTap,
+    this.stories = newsStories,
+    this.isLoading = false,
+    this.error,
+    this.onRetry,
+    super.key,
+  });
 
   final ValueChanged<HomeStory> onStoryTap;
+  final List<HomeStory> stories;
+  final bool isLoading;
+  final String? error;
+  final VoidCallback? onRetry;
 
   @override
   State<NewsPage> createState() => _NewsPageState();
@@ -102,8 +115,25 @@ class _NewsPageState extends State<NewsPage> {
   DateTime? _dateStart;
   DateTime? _dateEnd;
 
-  List<DateTime> get _dates => newsStories.map(_storyDate).toSet().toList()
+  List<String> get _categories => [
+    'Semua',
+    ...widget.stories.map((story) => story.category).toSet(),
+  ];
+
+  List<DateTime> get _dates => widget.stories
+      .map(_storyDate)
+      .whereType<DateTime>()
+      .toSet()
+      .toList()
     ..sort();
+
+  @override
+  void didUpdateWidget(covariant NewsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_categories.contains(_category)) _category = 'Semua';
+    if (_dateStart != null && !_dates.contains(_dateStart)) _dateStart = null;
+    if (_dateEnd != null && !_dates.contains(_dateEnd)) _dateEnd = null;
+  }
 
   void _clearFilters() {
     setState(() {
@@ -123,15 +153,18 @@ class _NewsPageState extends State<NewsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredStories = newsStories.where((story) {
+    final categories = _categories;
+    final activeCategory = categories.contains(_category) ? _category : 'Semua';
+    final filteredStories = widget.stories.where((story) {
       final matchesCategory =
-          _category == 'Semua' || story.category == _category;
+          activeCategory == 'Semua' || story.category == activeCategory;
       final date = _storyDate(story);
-      final matchesDate =
-          (_dateStart == null || !date.isBefore(_dateStart!)) &&
-          (_dateEnd == null || !date.isAfter(_dateEnd!));
+      final matchesDate = date == null
+          ? _dateStart == null && _dateEnd == null
+          : (_dateStart == null || !date.isBefore(_dateStart!)) &&
+                (_dateEnd == null || !date.isAfter(_dateEnd!));
       final searchableText =
-          '${story.title} ${story.summary} ${story.category} ${story.date}'
+          '${story.title} ${story.summary} ${story.category} ${story.date} ${story.content} ${story.source ?? ''} ${story.region ?? ''}'
               .toLowerCase();
       return matchesCategory &&
           matchesDate &&
@@ -200,7 +233,7 @@ class _NewsPageState extends State<NewsPage> {
                           height: 56,
                           child: DropdownButtonFormField<String>(
                             key: const ValueKey('web-news-category-filter'),
-                            initialValue: _category,
+                            initialValue: activeCategory,
                             isExpanded: true,
                             style: const TextStyle(
                               color: Colors.white,
@@ -210,7 +243,7 @@ class _NewsPageState extends State<NewsPage> {
                             iconEnabledColor: Colors.white70,
                             decoration: _newsFilterDecoration('Kategori'),
                             items: [
-                              for (final category in _newsCategories)
+                              for (final category in categories)
                                 DropdownMenuItem(
                                   value: category,
                                   child: Text(
@@ -280,7 +313,28 @@ class _NewsPageState extends State<NewsPage> {
                   ),
                 ),
                 const SizedBox(height: 22),
-                if (filteredStories.isEmpty)
+                if (widget.isLoading && widget.stories.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(28),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (widget.error != null && widget.stories.isEmpty)
+                  _NewsFeedMessage(
+                    message: 'Berita belum dapat dimuat: ${widget.error}',
+                    onRetry: widget.onRetry,
+                  )
+                else if (widget.isLoading && widget.stories.isNotEmpty)
+                  const LinearProgressIndicator()
+                else if (widget.error != null)
+                  _NewsFeedMessage(
+                    message: 'Pembaruan gagal. Menampilkan data terakhir yang berhasil dimuat.',
+                    onRetry: widget.onRetry,
+                  )
+                else if (widget.stories.isEmpty)
+                  const _EmptyNewsState(apiEmpty: true)
+                else if (filteredStories.isEmpty)
                   const _EmptyNewsState()
                 else
                   LayoutBuilder(
@@ -386,7 +440,7 @@ class _NewsStoryCard extends StatelessWidget {
         children: [
           AspectRatio(
             aspectRatio: 2.95,
-            child: Image.asset(story.image, fit: BoxFit.cover),
+            child: HomeStoryImage(story: story, fit: BoxFit.cover),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
@@ -394,7 +448,7 @@ class _NewsStoryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'CONTOH · ${story.category}',
+                  story.isApiRecord ? story.category : 'CONTOH \u00B7 ${story.category}',
                   style: TextStyle(
                     color: RanahColors.ink,
                     fontSize: 16,
@@ -442,7 +496,9 @@ class _NewsStoryCard extends StatelessWidget {
 }
 
 class _EmptyNewsState extends StatelessWidget {
-  const _EmptyNewsState();
+  const _EmptyNewsState({this.apiEmpty = false});
+
+  final bool apiEmpty;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -452,10 +508,41 @@ class _EmptyNewsState extends StatelessWidget {
       color: Colors.white,
       borderRadius: BorderRadius.circular(8),
     ),
-    child: const Text(
-      'Tidak ada berita demonstrasi yang sesuai.',
+    child: Text(
+      apiEmpty
+          ? 'Belum ada berita tersedia dari server.'
+          : 'Tidak ada berita demonstrasi yang sesuai.',
       textAlign: TextAlign.center,
       style: TextStyle(color: RanahColors.ink),
+    ),
+  );
+}
+
+class _NewsFeedMessage extends StatelessWidget {
+  const _NewsFeedMessage({required this.message, this.onRetry});
+
+  final String message;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: RanahColors.cardBlue,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(message, style: const TextStyle(color: Colors.white)),
+        if (onRetry != null)
+          TextButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Coba lagi'),
+          ),
+      ],
     ),
   );
 }

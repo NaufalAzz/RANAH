@@ -115,14 +115,20 @@ class NotificationFeedTest extends TestCase
             ->assertJsonPath('meta.total', 0);
     }
 
-    public function test_public_client_can_read_notification_feed_cross_origin(): void
+    public function test_local_web_origin_can_read_notification_feed_cross_origin(): void
     {
         $this->withHeaders([
-            'Origin' => 'https://ranah-mobile.example',
+            'Origin' => 'http://localhost:5000',
             'Access-Control-Request-Method' => 'GET',
         ])->options('/api/notifikasi')
             ->assertNoContent()
-            ->assertHeader('Access-Control-Allow-Origin', '*');
+            ->assertHeader('Access-Control-Allow-Origin', 'http://localhost:5000');
+
+        $this->withHeaders([
+            'Origin' => 'http://localhost:5000',
+        ])->getJson('/api/notifikasi')
+            ->assertOk()
+            ->assertHeader('Access-Control-Allow-Origin', 'http://localhost:5000');
     }
 
     /** @param array<string, mixed> $overrides

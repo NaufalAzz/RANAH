@@ -5,11 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Berita;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class BeritaController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(): JsonResponse
     {
         $items = $this->publishedQuery()
             ->orderByDesc('waktu_publikasi')
@@ -19,11 +20,11 @@ class BeritaController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Daftar berita berhasil diambil.',
-            'data' => $items->map(fn (Berita $item) => $this->serialize($item, $request)),
+            'data' => $items->map(fn (Berita $item) => $this->serialize($item)),
         ]);
     }
 
-    public function show(Request $request, int $id): JsonResponse
+    public function show(int $id): JsonResponse
     {
         $item = $this->publishedQuery()->find($id);
 
@@ -38,7 +39,7 @@ class BeritaController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Detail berita berhasil diambil.',
-            'data' => $this->serialize($item, $request),
+            'data' => $this->serialize($item),
         ]);
     }
 
@@ -58,7 +59,7 @@ class BeritaController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function serialize(Berita $item, Request $request): array
+    private function serialize(Berita $item): array
     {
         return [
             'id' => $item->id,
@@ -66,7 +67,7 @@ class BeritaController extends Controller
             'kategori' => $item->kategori,
             'jenis_konten' => $item->jenis_konten,
             'isi' => $item->isi,
-            'gambar' => $this->publicImageUrl($item->gambar, $request),
+            'gambar' => $this->publicImageUrl($item->gambar, $item->id),
             'sumber' => $item->sumber,
             'sumber_id' => $item->sumber_id,
             'tingkat_kepentingan' => $item->tingkat_kepentingan,
@@ -80,7 +81,44 @@ class BeritaController extends Controller
         ];
     }
 
-    private function publicImageUrl(?string $image, Request $request): ?string
+    public function image(int $id): StreamedResponse
+    {
+        $item = $this->publishedQuery()->find($id);
+        if ($item === null) {
+            abort(404);
+        }
+
+        $path = $this->localImagePath($item->gambar);
+        if ($path === null) {
+            abort(404);
+        }
+
+        $disk = Storage::disk('public');
+        if (!$disk->exists($path)) {
+            abort(404);
+        }
+
+        $mimeType = $disk->mimeType($path);
+        if (!in_array($mimeType, [
+            'image/avif',
+            'image/bmp',
+            'image/gif',
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+        ], true)) {
+            abort(404);
+        }
+
+        return $disk->response(
+            $path,
+            null,
+            ['X-Content-Type-Options' => 'nosniff'],
+            'inline',
+        );
+    }
+
+    private function publicImageUrl(?string $image, int $id): ?string
     {
         $image = trim((string) $image);
         if ($image === '') {
@@ -91,6 +129,20 @@ class BeritaController extends Controller
             $scheme = strtolower((string) parse_url($image, PHP_URL_SCHEME));
 
             return in_array($scheme, ['http', 'https'], true) ? $image : null;
+        }
+
+        if ($this->localImagePath($image) === null) {
+            return null;
+        }
+
+        return route('api.berita.image', ['id' => $id]);
+    }
+
+    private function localImagePath(?string $image): ?string
+    {
+        $image = trim((string) $image);
+        if ($image === '' || preg_match('/^[a-z][a-z0-9+.-]*:\/\//i', $image) === 1) {
+            return null;
         }
 
         $path = ltrim($image, '/');
@@ -106,9 +158,6 @@ class BeritaController extends Controller
             }
         }
 
-        return $request->getSchemeAndHttpHost().'/storage/'.implode(
-            '/',
-            array_map('rawurlencode', $segments),
-        );
+        return implode('/', $segments);
     }
 }

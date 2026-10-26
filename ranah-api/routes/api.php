@@ -18,6 +18,10 @@ Route::get('/gunung/{id}', [GunungController::class, 'show'])
 
 Route::get('/berita', [BeritaController::class, 'index']);
 
+Route::get('/berita/{id}/gambar', [BeritaController::class, 'image'])
+    ->whereNumber('id')
+    ->name('api.berita.image');
+
 Route::get('/berita/{id}', [BeritaController::class, 'show'])
     ->whereNumber('id');
 

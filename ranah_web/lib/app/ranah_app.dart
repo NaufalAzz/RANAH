@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../data/volcanic_activity_data.dart';
 import '../data/home_stories.dart';
-import '../data/sample_notifications.dart';
+import '../services/news_repository.dart';
+import '../models/gunung_data.dart';
+import '../services/gunung_repository.dart';
 import '../pages/map_page.dart';
 import '../pages/evacuation_route_page.dart';
 import '../pages/news_detail_page.dart';
@@ -35,7 +36,16 @@ enum _Page {
 }
 
 class RanahShell extends StatefulWidget {
-  const RanahShell({super.key});
+  const RanahShell({
+    this.newsRepository,
+    this.gunungRepository,
+    this.volcanoMapTilesEnabled = true,
+    super.key,
+  });
+
+  final NewsRepository? newsRepository;
+  final GunungDataRepository? gunungRepository;
+  final bool volcanoMapTilesEnabled;
 
   @override
   State<RanahShell> createState() => _RanahShellState();
@@ -53,19 +63,85 @@ class _RanahShellState extends State<RanahShell> {
   bool _mapLocationDetails = false;
   Offset _manualMapPinPosition = const Offset(.23, .60);
   bool _manualMapLocationChosen = false;
-  late VolcanoActivitySample _selectedVolcano;
+  GunungRecord? _selectedVolcano;
   HomeStory? _selectedStory;
+  late final NewsRepository _newsRepository;
+  late final GunungDataRepository _gunungRepository;
+  List<HomeStory> _newsStories = const [];
+  List<GunungRecord> _gunung = const [];
+  bool _newsLoading = true;
+  bool _gunungLoading = true;
+  String? _newsError;
+  String? _gunungError;
   bool _menuOpen = false;
 
   @override
   void initState() {
     super.initState();
+    _newsRepository = widget.newsRepository ?? NewsRepository();
+    _gunungRepository = widget.gunungRepository ?? GunungRepository();
     _page = Uri.base.path == '/admin' || Uri.base.path.startsWith('/admin/')
         ? _Page.adminLogin
         : _Page.home;
-    _selectedVolcano = volcanicActivitySamples.firstWhere(
-      (volcano) => volcano.name == 'Gunung Marapi',
-    );
+    _loadNews();
+    _loadGunung();
+  }
+
+  Future<void> _loadNews() async {
+    if (!_newsLoading) {
+      setState(() {
+        _newsLoading = true;
+        _newsError = null;
+      });
+    }
+    try {
+      final items = await _newsRepository.load();
+      if (!mounted) return;
+      setState(() {
+        _newsStories = items;
+        _newsLoading = false;
+        _newsError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _newsLoading = false;
+        _newsError = error.toString();
+      });
+    }
+  }
+
+  Future<void> _loadGunung() async {
+    if (!_gunungLoading) {
+      setState(() {
+        _gunungLoading = true;
+        _gunungError = null;
+      });
+    }
+    try {
+      final records = await _gunungRepository.loadGunung();
+      if (!mounted) return;
+      setState(() {
+        _gunung = records;
+        _gunungLoading = false;
+        _gunungError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _gunungLoading = false;
+        _gunungError = error.toString();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _newsRepository.close();
+    if (_gunungRepository case final GunungRepository repository) {
+      repository.close();
+    }
+    super.dispose();
   }
 
   void _navigate(_Page page) {
@@ -75,17 +151,38 @@ class _RanahShellState extends State<RanahShell> {
     });
   }
 
-  void _openVolcanoReport(String name, _Page returnPage) {
+  void _openVolcanoReport(GunungRecord volcano, _Page returnPage) {
     setState(() {
-      _selectedVolcano = volcanicActivitySamples.firstWhere(
-        (volcano) => volcano.name == name,
-        orElse: () => volcanicActivitySamples.first,
-      );
+      _selectedVolcano = volcano;
       _reportReturnPage = returnPage;
       _page = _Page.volcanoReport;
       _menuOpen = false;
     });
   }
+
+  void _openVolcanoByMapName(String name) {
+    final normalized = _normalizeVolcanoName(name);
+    GunungRecord? match;
+    for (final record in _gunung) {
+      if (_normalizeVolcanoName(record.nama) == normalized) {
+        match = record;
+        break;
+      }
+    }
+    if (match == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Data $name belum tersedia dari API RANAH.')),
+      );
+      return;
+    }
+    _openVolcanoReport(match, _Page.map);
+  }
+
+  String _normalizeVolcanoName(String value) => value
+      .trim()
+      .toLowerCase()
+      .replaceFirst(RegExp(r'^(gunung|gn\.)\s*'), '')
+      .replaceAll(RegExp(r'\s+'), ' ');
 
   void _openStory(HomeStory story, _Page returnPage) {
     setState(() {
@@ -128,20 +225,6 @@ class _RanahShellState extends State<RanahShell> {
       _page = _Page.evacuationRoute;
       _menuOpen = false;
     });
-  }
-
-  void _openNotificationDestination(SampleNotification notification) {
-    switch (notification.destination) {
-      case SampleNotificationDestination.volcanicActivity:
-        _openActivity(_Page.notifications);
-      case SampleNotificationDestination.volcanoReport:
-        final volcanoName = notification.volcanoName;
-        if (volcanoName != null) {
-          _openVolcanoReport(volcanoName, _Page.notifications);
-        }
-      case null:
-        return;
-    }
   }
 
   void _openContacts() {
@@ -210,6 +293,10 @@ class _RanahShellState extends State<RanahShell> {
                     child: RanahBackground(
                       child: _page == _Page.home
                           ? HomePage(
+                              stories: _newsStories,
+                              isLoading: _newsLoading,
+                              error: _newsError,
+                              onRetry: _loadNews,
                               onStoryTap: (story) =>
                                   _openStory(story, _Page.home),
                             )
@@ -217,7 +304,7 @@ class _RanahShellState extends State<RanahShell> {
                           ? MapPage(
                               onActivityTap: () => _openActivity(_Page.map),
                               onMountainTap: (mountain) =>
-                                  _openVolcanoReport(mountain.name, _Page.map),
+                                  _openVolcanoByMapName(mountain.name),
                               onEvacuationRouteTap: () =>
                                   _openEvacuationRoute(_Page.map),
                               showLocationDetails: _mapLocationDetails,
@@ -238,19 +325,27 @@ class _RanahShellState extends State<RanahShell> {
                           : _page == _Page.activity
                           ? VolcanicActivityPage(
                               onBack: () => _navigate(_activityReturnPage),
+                              gunung: _gunung,
+                              isLoading: _gunungLoading,
+                              error: _gunungError,
+                              onRetry: _loadGunung,
                               onViewReport: (volcano) =>
-                                  _openVolcanoReport(
-                                    volcano.name,
-                                    _Page.activity,
-                                  ),
+                                  _openVolcanoReport(volcano, _Page.activity),
                             )
                           : _page == _Page.volcanoReport
                           ? VolcanoReportPage(
-                              volcano: _selectedVolcano,
+                              gunungId: _selectedVolcano!.id,
+                              namaGunung: _selectedVolcano!.nama,
+                              repository: _gunungRepository,
+                              tilesEnabled: widget.volcanoMapTilesEnabled,
                               onBack: () => _navigate(_reportReturnPage),
                             )
                           : _page == _Page.news
                           ? NewsPage(
+                              stories: _newsStories,
+                              isLoading: _newsLoading,
+                              error: _newsError,
+                              onRetry: _loadNews,
                               onStoryTap: (story) =>
                                   _openStory(story, _Page.news),
                             )
@@ -266,8 +361,6 @@ class _RanahShellState extends State<RanahShell> {
                           : _page == _Page.notifications
                           ? NotificationsPage(
                               onBack: () => _navigate(_notificationsReturnPage),
-                              onNotificationTap:
-                                  _openNotificationDestination,
                             )
                           : _page == _Page.contact
                           ? EmergencyContactsPage(

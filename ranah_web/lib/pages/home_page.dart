@@ -2,11 +2,23 @@ import 'package:flutter/material.dart';
 
 import '../data/home_stories.dart';
 import '../theme/ranah_theme.dart';
+import '../widgets/home_story_image.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({required this.onStoryTap, super.key});
+  const HomePage({
+    required this.onStoryTap,
+    this.stories = homeStories,
+    this.isLoading = false,
+    this.error,
+    this.onRetry,
+    super.key,
+  });
 
   final ValueChanged<HomeStory> onStoryTap;
+  final List<HomeStory> stories;
+  final bool isLoading;
+  final String? error;
+  final VoidCallback? onRetry;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -15,11 +27,22 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _highlightIndex = 0;
 
+  @override
+  void didUpdateWidget(covariant HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.stories.isEmpty) {
+      _highlightIndex = 0;
+    } else if (_highlightIndex >= widget.stories.length) {
+      _highlightIndex = widget.stories.length - 1;
+    }
+  }
+
   void _moveHighlight(int amount) {
+    if (widget.stories.length < 2) return;
     setState(() {
       _highlightIndex =
-          (_highlightIndex + amount + homeHighlights.length) %
-          homeHighlights.length;
+          (_highlightIndex + amount + widget.stories.length) %
+          widget.stories.length;
     });
   }
 
@@ -49,11 +72,19 @@ class _HomePageState extends State<HomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _HeroCard(
-                    story: homeHighlights[_highlightIndex],
+                    story: widget.stories.isEmpty
+                        ? null
+                        : widget.stories[_highlightIndex],
+                    isLoading: widget.isLoading,
+                    error: widget.error,
+                    onRetry: widget.onRetry,
                     onPrevious: () => _moveHighlight(-1),
                     onNext: () => _moveHighlight(1),
-                    onTap: () =>
-                        widget.onStoryTap(homeHighlights[_highlightIndex]),
+                    onTap: widget.stories.isEmpty
+                        ? null
+                        : () => widget.onStoryTap(
+                            widget.stories[_highlightIndex],
+                          ),
                   ),
                   const SizedBox(height: 25),
                   const Text(
@@ -65,6 +96,23 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const SizedBox(height: 5),
+                  if (widget.isLoading && widget.stories.isEmpty)
+                    const _NewsFeedMessage(
+                      message: 'Memuat berita dari server...',
+                    )
+                  else if (widget.error != null)
+                    _NewsFeedMessage(
+                      message: widget.stories.isEmpty
+                          ? 'Berita belum dapat dimuat: ${widget.error}'
+                          : 'Pembaruan berita gagal. Menampilkan data terakhir yang berhasil dimuat.',
+                      onRetry: widget.onRetry,
+                    )
+                  else if (widget.stories.isEmpty)
+                    const _NewsFeedMessage(
+                      message: 'Belum ada berita tersedia dari server.',
+                    ),
+                  if (widget.isLoading && widget.stories.isNotEmpty)
+                    const LinearProgressIndicator(),
                   LayoutBuilder(
                     builder: (context, gridConstraints) {
                       final isNarrow = gridConstraints.maxWidth < 560;
@@ -76,7 +124,7 @@ class _HomePageState extends State<HomePage> {
                         spacing: gap,
                         runSpacing: isNarrow ? 12 : 31,
                         children: [
-                          for (final story in homeStories)
+                          for (final story in widget.stories)
                             SizedBox(
                               width: cardWidth,
                               child: _NewsCard(
@@ -102,15 +150,21 @@ class _HomePageState extends State<HomePage> {
 class _HeroCard extends StatelessWidget {
   const _HeroCard({
     required this.story,
+    required this.isLoading,
+    required this.error,
+    required this.onRetry,
     required this.onPrevious,
     required this.onNext,
     required this.onTap,
   });
 
-  final HomeStory story;
+  final HomeStory? story;
+  final bool isLoading;
+  final String? error;
+  final VoidCallback? onRetry;
   final VoidCallback onPrevious;
   final VoidCallback onNext;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -126,13 +180,22 @@ class _HeroCard extends StatelessWidget {
           children: [
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 220),
-              child: Image.asset(
-                story.heroImage ?? story.image,
-                key: ValueKey(story.heroImage ?? story.image),
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: height,
-              ),
+              child: story == null
+                  ? const ColoredBox(
+                      key: ValueKey('empty-news-hero'),
+                      color: Color(0xFF26384A),
+                    )
+                  : HomeStoryImage(
+                      key: ValueKey(
+                        story!.imageUrl ??
+                            '${story!.heroImage ?? story!.image}-${story!.id}',
+                      ),
+                      story: story!,
+                      fit: BoxFit.cover,
+                      assetPath: story!.heroImage ?? story!.image,
+                      width: double.infinity,
+                      height: height,
+                    ),
             ),
             const DecoratedBox(
               decoration: BoxDecoration(
@@ -172,7 +235,8 @@ class _HeroCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Text(
+                  if (story != null && !story!.isApiRecord)
+                    const Text(
                     'CONTOH',
                     style: TextStyle(
                       color: Colors.white,
@@ -184,6 +248,7 @@ class _HeroCard extends StatelessWidget {
                 ],
               ),
             ),
+            if (story != null)
             Positioned(
               left: 22,
               bottom: 10,
@@ -195,7 +260,7 @@ class _HeroCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      story.category,
+                      story!.category,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -203,7 +268,8 @@ class _HeroCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      story.title,
+                      key: ValueKey('home-highlight-${story!.id}'),
+                      story!.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -217,6 +283,27 @@ class _HeroCard extends StatelessWidget {
                 ),
               ),
             ),
+            if (story == null)
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isLoading) const CircularProgressIndicator(),
+                    if (!isLoading)
+                      Text(
+                        error == null
+                            ? 'Belum ada berita utama.'
+                            : 'Berita belum dapat dimuat.',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    if (error != null && onRetry != null)
+                      TextButton(
+                        onPressed: onRetry,
+                        child: const Text('Coba lagi'),
+                      ),
+                  ],
+                ),
+              ),
             Positioned(
               left: 22,
               top: 0,
@@ -295,11 +382,11 @@ class _NewsCard extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(5),
-                  child: Image.asset(
-                    story.image,
+                  child: HomeStoryImage(
+                    story: story,
+                    fit: BoxFit.cover,
                     width: imageSize,
                     height: imageSize,
-                    fit: BoxFit.cover,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -309,7 +396,7 @@ class _NewsCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'CONTOH · ${story.category}',
+                        story.isApiRecord ? story.category : 'CONTOH \u00B7 ${story.category}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -348,4 +435,28 @@ class _NewsCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _NewsFeedMessage extends StatelessWidget {
+  const _NewsFeedMessage({required this.message, this.onRetry});
+
+  final String message;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 14),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(message, style: const TextStyle(color: Colors.white)),
+        if (onRetry != null)
+          TextButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Coba lagi'),
+          ),
+      ],
+    ),
+  );
 }

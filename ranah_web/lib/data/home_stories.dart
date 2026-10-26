@@ -10,6 +10,18 @@ class HomeStory {
     required this.content,
     this.heroImage,
     this.source,
+    this.imageUrl,
+    this.sourceUrl,
+    this.region,
+    this.sourceId,
+    this.contentType,
+    this.publishedAt,
+    this.eventAt,
+    this.expiresAt,
+    this.retrievedAt,
+    this.importance,
+    this.publicationStatus,
+    this.isApiRecord = false,
   });
 
   final String id;
@@ -22,6 +34,18 @@ class HomeStory {
   final String content;
   final String? heroImage;
   final String? source;
+  final String? imageUrl;
+  final String? sourceUrl;
+  final String? region;
+  final String? sourceId;
+  final String? contentType;
+  final DateTime? publishedAt;
+  final DateTime? eventAt;
+  final DateTime? expiresAt;
+  final DateTime? retrievedAt;
+  final String? importance;
+  final String? publicationStatus;
+  final bool isApiRecord;
 }
 
 /// Local demonstration content shared by Home, News, and News Detail.
