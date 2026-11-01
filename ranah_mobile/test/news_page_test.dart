@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ranah_mobile/app/ranah_app.dart';
+import 'package:ranah_mobile/data/sample_news.dart';
 import 'package:ranah_mobile/models/news_item.dart';
 import 'package:ranah_mobile/pages/news_page.dart';
-
-import 'test_helpers.dart';
 
 void main() {
   testWidgets('news search, category filter, detail and back work', (
@@ -16,10 +14,10 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      RanahApp(internetStatusMonitor: createTestInternetStatusMonitor()),
+      MaterialApp(
+        home: Scaffold(body: NewsPage(items: sampleNews)),
+      ),
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Berita'));
     await tester.pumpAndSettle();
 
     expect(find.text('Berita dan Event'), findsOneWidget);

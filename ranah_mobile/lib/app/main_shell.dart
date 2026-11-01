@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../data/sample_news.dart';
 import '../models/news_item.dart';
 import '../pages/home_page.dart';
 import '../pages/map_page.dart';
@@ -25,6 +24,7 @@ class MainShell extends StatefulWidget {
     this.complaintApi,
     this.mediaPicker,
     this.internetStatusMonitor,
+    this.mapTilesEnabled = true,
     super.key,
   });
 
@@ -33,6 +33,7 @@ class MainShell extends StatefulWidget {
   final ComplaintApi? complaintApi;
   final ComplaintMediaPicker? mediaPicker;
   final InternetStatusMonitor? internetStatusMonitor;
+  final bool mapTilesEnabled;
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -45,9 +46,11 @@ class _MainShellState extends State<MainShell> {
   int _notificationSelectionRevision = 0;
   late final NewsRepository _newsRepository;
   late final InternetStatusMonitor _internetStatusMonitor;
-  List<NewsItem> _newsItems = sampleNews;
-  bool _newsUsingFallback = true;
+  List<NewsItem> _newsItems = const [];
+  bool _newsUsingFallback = false;
   bool _newsFromCache = false;
+  bool _newsLoading = true;
+  Object? _newsError;
 
   @override
   void initState() {
@@ -66,6 +69,8 @@ class _MainShellState extends State<MainShell> {
       _newsItems = result.items;
       _newsUsingFallback = result.isUsingFallback;
       _newsFromCache = result.isFromCache;
+      _newsError = result.error;
+      _newsLoading = false;
     });
     if (result.hasUpdates) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -125,8 +130,12 @@ class _MainShellState extends State<MainShell> {
         items: _newsItems,
         isUsingFallback: _newsUsingFallback,
         isFromCache: _newsFromCache,
+        loadError: _newsError,
+        isLoading: _newsLoading,
+        onRetry: _loadNews,
       ),
       MapPage(
+        tilesEnabled: widget.mapTilesEnabled,
         onOpenActivity: () => Navigator.of(context).push(
           RanahPageRoute<void>(
             context: context,
@@ -139,6 +148,9 @@ class _MainShellState extends State<MainShell> {
         initialNewsId: _notificationNewsId,
         selectionRevision: _notificationSelectionRevision,
         items: _newsItems,
+        loadError: _newsError,
+        isLoading: _newsLoading,
+        onRetry: _loadNews,
       ),
       MenuPage(
         complaintApi: widget.complaintApi,
@@ -225,7 +237,8 @@ class _MainShellState extends State<MainShell> {
                                         duration: transitionDuration,
                                         curve: Curves.easeOutCubic,
                                         child: NotificationsPage(
-                                          repository: widget.notificationsRepository,
+                                          repository:
+                                              widget.notificationsRepository,
                                         ),
                                       ),
                                     ),

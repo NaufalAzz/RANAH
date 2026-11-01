@@ -17,6 +17,7 @@ class RanahApp extends StatefulWidget {
     this.complaintApi,
     this.mediaPicker,
     this.internetStatusMonitor,
+    this.mapTilesEnabled = true,
     super.key,
   });
 
@@ -25,6 +26,7 @@ class RanahApp extends StatefulWidget {
   final ComplaintApi? complaintApi;
   final ComplaintMediaPicker? mediaPicker;
   final InternetStatusMonitor? internetStatusMonitor;
+  final bool mapTilesEnabled;
 
   @override
   State<RanahApp> createState() => _RanahAppState();
@@ -73,6 +75,7 @@ class _RanahAppState extends State<RanahApp> {
                     complaintApi: widget.complaintApi,
                     mediaPicker: widget.mediaPicker,
                     internetStatusMonitor: widget.internetStatusMonitor,
+                    mapTilesEnabled: widget.mapTilesEnabled,
                   ),
           );
         },

@@ -1,1 +1,3 @@
-Future<List<String>> pickComplaintFiles() async => const [];
+import '../services/complaint_repository.dart';
+
+Future<List<ComplaintAttachment>> pickComplaintFiles() async => const [];

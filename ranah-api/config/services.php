@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    'openrouteservice' => [
+        'api_key' => env('ORS_API_KEY'),
+        'foot_walking_url' => 'https://api.openrouteservice.org/v2/directions/foot-walking/geojson',
+    ],
+
+    'routing' => [
+        'provider' => env('ROUTING_PROVIDER', 'ors'),
+        'valhalla_base_url' => env('VALHALLA_BASE_URL', 'https://valhalla1.openstreetmap.de'),
+        'valhalla_client_id' => env('VALHALLA_CLIENT_ID', 'RANAH-AcademicPrototype/1.0'),
+    ],
+
 ];

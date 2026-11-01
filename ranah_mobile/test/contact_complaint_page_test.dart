@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ranah_mobile/app/ranah_app.dart';
+import 'package:ranah_mobile/pages/contact_complaint_page.dart';
 
 import 'test_helpers.dart';
 
@@ -74,6 +75,7 @@ void main() {
       final mediaPicker = _FakeMediaPicker();
       await tester.pumpWidget(
         RanahApp(
+          mapTilesEnabled: false,
           complaintApi: complaintApi,
           mediaPicker: mediaPicker,
           internetStatusMonitor: createTestInternetStatusMonitor(),
@@ -86,6 +88,21 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Kontak & Pengaduan'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Badan Nasional Pencarian dan Pertolongan'),
+        120,
+        scrollable: find
+            .descendant(
+              of: find
+                  .descendant(
+                    of: find.byType(ContactComplaintPage),
+                    matching: find.byType(ListView),
+                  )
+                  .first,
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       expect(
         find.text('Badan Nasional Pencarian dan Pertolongan'),
         findsOneWidget,
@@ -155,7 +172,10 @@ void main() {
       expect(find.text('Layanan RANAH'), findsOneWidget);
       await tester.tap(find.text('Beranda').last);
       await tester.pumpAndSettle();
-      expect(find.text('Berita Utama'), findsOneWidget);
+      expect(
+        find.textContaining('Berita belum dapat dimuat dari server'),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     },
   );
@@ -170,6 +190,7 @@ void main() {
 
     await tester.pumpWidget(
       RanahApp(
+        mapTilesEnabled: false,
         complaintApi: _FakeComplaintApi(shouldFail: true),
         internetStatusMonitor: createTestInternetStatusMonitor(),
       ),

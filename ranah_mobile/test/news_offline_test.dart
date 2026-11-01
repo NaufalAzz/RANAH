@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ranah_mobile/data/sample_news.dart';
 import 'package:ranah_mobile/models/news_item.dart';
 import 'package:ranah_mobile/services/gunung_local_store.dart';
 import 'package:ranah_mobile/services/news_api.dart';
@@ -94,13 +93,13 @@ void main() {
     },
   );
 
-  test('demo content is separate from a server cache', () async {
+  test('no-cache failure stays empty and server data is cached', () async {
     final noCache = await NewsRepository(
       api: _FakeNewsApi.failure(),
       localStore: store,
     ).load();
-    expect(noCache.items, same(sampleNews));
-    expect(noCache.isUsingFallback, isTrue);
+    expect(noCache.items, isEmpty);
+    expect(noCache.isUsingFallback, isFalse);
     expect(noCache.isFromCache, isFalse);
 
     await NewsRepository(
@@ -113,7 +112,7 @@ void main() {
     ).load();
     expect(cached.items, hasLength(1));
     expect(cached.items.single.title, 'Berita server');
-    expect(cached.items, isNot(containsAll(sampleNews)));
+    expect(cached.items, isNotEmpty);
   });
 
   test('database upgrade preserves existing volcano cache tables', () async {

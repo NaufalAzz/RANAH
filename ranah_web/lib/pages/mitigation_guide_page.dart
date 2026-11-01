@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/mitigation_guides.dart';
 import '../theme/ranah_theme.dart';
 import '../widgets/ranah_full_width_title_background.dart';
+import '../widgets/ranah_header.dart';
 
 class MitigationGuidePage extends StatefulWidget {
   const MitigationGuidePage({required this.onBack, super.key});
@@ -35,6 +36,18 @@ class _MitigationGuidePageState extends State<MitigationGuidePage> {
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  listInset,
+                  RanahSpacing.md,
+                  listInset,
+                  0,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: RanahBackButton(onPressed: widget.onBack),
+                ),
+              ),
               const SizedBox(height: RanahSpacing.xxl),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),

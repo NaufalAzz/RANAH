@@ -221,6 +221,8 @@ class _NewsPageState extends State<NewsPage> {
                     const gap = RanahSpacing.md;
                     final filterWidth = fourColumns
                         ? (filterConstraints.maxWidth - gap * 3) / 4
+                        : filterConstraints.maxWidth <= gap * 2
+                        ? filterConstraints.maxWidth
                         : (filterConstraints.maxWidth - gap) / 2;
                     return Wrap(
                       spacing: gap,

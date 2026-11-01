@@ -14,16 +14,21 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      RanahApp(internetStatusMonitor: createTestInternetStatusMonitor()),
+      RanahApp(
+        mapTilesEnabled: false,
+        internetStatusMonitor: createTestInternetStatusMonitor(),
+      ),
     );
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Berita Utama'), findsOneWidget);
     expect(
-      find.text('Contoh: Kenali informasi resmi aktivitas gunung api'),
+      find.text(
+        'Berita belum dapat dimuat dari server. Periksa koneksi lalu coba lagi.',
+      ),
       findsOneWidget,
     );
+    expect(find.textContaining('Contoh:'), findsNothing);
 
     await tester.drag(find.byType(ListView).first, const Offset(0, -600));
     await tester.pumpAndSettle();
@@ -46,7 +51,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Featured news arrows and swipe follow the local items', (
+  testWidgets('Unavailable API does not show local example stories as news', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -55,67 +60,45 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      RanahApp(internetStatusMonitor: createTestInternetStatusMonitor()),
+      RanahApp(
+        mapTilesEnabled: false,
+        internetStatusMonitor: createTestInternetStatusMonitor(),
+      ),
     );
     await tester.pumpAndSettle();
 
-    const firstTitle = 'Contoh: Kenali informasi resmi aktivitas gunung api';
-    const secondTitle = 'Contoh: Siapkan kebutuhan untuk keadaan darurat';
-    const thirdTitle = 'Contoh: Cari tahu jalur evakuasi di sekitar Anda';
-
-    expect(find.text(firstTitle), findsOneWidget);
-    expect(_iconButton(tester, 'Berita utama sebelumnya').onPressed, isNull);
-
-    await tester.tap(find.byTooltip('Berita utama berikutnya'));
-    await tester.pumpAndSettle();
-    expect(find.text(secondTitle), findsOneWidget);
-
-    await tester.tap(find.byTooltip('Berita utama sebelumnya'));
-    await tester.pumpAndSettle();
-    expect(find.text(firstTitle), findsOneWidget);
-
-    await tester.drag(find.byType(PageView), const Offset(-300, 0));
-    await tester.pumpAndSettle();
-    expect(find.text(secondTitle), findsOneWidget);
-
-    await tester.tap(find.byTooltip('Berita utama berikutnya'));
-    await tester.pumpAndSettle();
-    expect(find.text(thirdTitle), findsOneWidget);
-    expect(_iconButton(tester, 'Berita utama berikutnya').onPressed, isNull);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('Selecting a featured story opens that story in News', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(
-      RanahApp(internetStatusMonitor: createTestInternetStatusMonitor()),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.text('Contoh: Kenali informasi resmi aktivitas gunung api'),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Kembali'), findsOneWidget);
+    expect(find.textContaining('Contoh:'), findsNothing);
+    expect(find.text('Belum ada berita yang dipublikasikan.'), findsNothing);
     expect(
-      find.textContaining('Sebelum membagikan informasi aktivitas gunung api'),
+      find.textContaining('Berita belum dapat dimuat dari server'),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
   });
-}
 
-IconButton _iconButton(WidgetTester tester, String tooltip) {
-  return tester.widget<IconButton>(
-    find.ancestor(
-      of: find.byTooltip(tooltip),
-      matching: find.byType(IconButton),
-    ),
-  );
+  testWidgets('News tab shows an empty server error without local examples', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      RanahApp(
+        mapTilesEnabled: false,
+        internetStatusMonitor: createTestInternetStatusMonitor(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Berita').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Berita dan Event'), findsOneWidget);
+    expect(
+      find.textContaining('Berita belum dapat dimuat dari server'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Contoh:'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }

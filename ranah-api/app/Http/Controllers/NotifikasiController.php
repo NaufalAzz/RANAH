@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Berita;
 use App\Services\BmkgInformationService;
+use App\Services\BmkgSyncStatus;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\Cache;
 
 class NotifikasiController extends Controller
 {
-    public function index(Request $request, BmkgInformationService $bmkg): JsonResponse
+    public function index(Request $request, BmkgInformationService $bmkg, BmkgSyncStatus $syncStatuses): JsonResponse
     {
         $now = now();
         $days = max(1, (int) config('bmkg.sumatera_barat.earthquake_notification_days', 7));
@@ -40,6 +41,9 @@ class NotifikasiController extends Controller
 
         if ($category = trim((string) $request->query('kategori', ''))) {
             $query->where('kategori', $category);
+        }
+        if (in_array($kind = trim((string) $request->query('jenis_konten', '')), ['kejadian', 'peringatan'], true)) {
+            $query->where('jenis_konten', $kind);
         }
 
         // Filter using the same configured locality matcher as ingestion. The
@@ -77,7 +81,12 @@ class NotifikasiController extends Controller
             'status' => $this->status($item),
         ]);
 
-        $lastBmkgSync = $this->latestBmkgSync();
+        $sourceStatuses = [
+            'gempa' => $syncStatuses->get('earthquakes'),
+            'prakiraan_cuaca' => $syncStatuses->get('forecasts'),
+            'peringatan_dini_cuaca' => $syncStatuses->get('weather_alerts'),
+        ];
+        $lastBmkgSync = $this->latestBmkgSync($sourceStatuses);
 
         return response()->json([
             'success' => true,
@@ -91,15 +100,18 @@ class NotifikasiController extends Controller
                 'waktu_pembaruan_terakhir' => $lastBmkgSync,
                 'waktu_pembaruan_terakhir_bmkg' => $lastBmkgSync,
                 'rentang_gempa_hari' => $days,
+                'status_sumber' => $sourceStatuses,
             ],
         ]);
     }
 
-    private function latestBmkgSync(): ?string
+    /** @param array<string, array<string, mixed>> $sourceStatuses */
+    private function latestBmkgSync(array $sourceStatuses): ?string
     {
         $values = collect([
             Cache::get('bmkg_earthquake_last_success_at'),
             Cache::get('bmkg_weather_last_success_at'),
+            ...array_map(static fn (array $status): mixed => $status['last_success_at'] ?? null, $sourceStatuses),
         ])->filter(fn ($value): bool => is_string($value) && $value !== '')
             ->map(fn (string $value): ?CarbonImmutable => $this->parseDate($value))
             ->filter()

@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ranah_mobile/data/sample_news.dart';
 import 'package:ranah_mobile/services/news_api.dart';
 import 'package:ranah_mobile/services/news_repository.dart';
 import 'package:ranah_mobile/services/gunung_local_store.dart';
@@ -214,32 +213,29 @@ void main() {
     expect(await store.readNews(), isEmpty);
   });
 
-  test('network failure returns clearly identified local examples', () async {
+  test('network failure without cache returns no fabricated news', () async {
     final result = await NewsRepository(
       api: _FakeNewsApi.failure(StateError('offline')),
       localStore: store,
     ).load();
 
-    expect(result.isUsingFallback, isTrue);
-    expect(result.items, same(sampleNews));
+    expect(result.isUsingFallback, isFalse);
+    expect(result.items, isEmpty);
     expect(result.error, isA<StateError>());
   });
 
-  test(
-    'malformed item falls back instead of partially replacing local data',
-    () async {
-      final result = await NewsRepository(
-        api: _FakeNewsApi([
-          {'id': 1, 'judul': 'Missing required fields'},
-        ]),
-        localStore: store,
-      ).load();
+  test('malformed item does not fall back to fabricated content', () async {
+    final result = await NewsRepository(
+      api: _FakeNewsApi([
+        {'id': 1, 'judul': 'Missing required fields'},
+      ]),
+      localStore: store,
+    ).load();
 
-      expect(result.isUsingFallback, isTrue);
-      expect(result.items, same(sampleNews));
-      expect(result.error, isA<FormatException>());
-    },
-  );
+    expect(result.isUsingFallback, isFalse);
+    expect(result.items, isEmpty);
+    expect(result.error, isA<FormatException>());
+  });
 }
 
 class _FakeNewsApi implements NewsApi {

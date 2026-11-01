@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../data/home_stories.dart';
+import '../services/browser_geolocation.dart';
 import '../services/news_repository.dart';
 import '../models/gunung_data.dart';
 import '../services/gunung_repository.dart';
+import '../services/administrative_area_lookup.dart';
+import '../services/hazard_analysis_repository.dart';
 import '../pages/map_page.dart';
 import '../pages/evacuation_route_page.dart';
 import '../pages/news_detail_page.dart';
@@ -39,12 +42,20 @@ class RanahShell extends StatefulWidget {
   const RanahShell({
     this.newsRepository,
     this.gunungRepository,
+    this.locationReader,
+    this.areaLookup,
+    this.hazardAnalysisRepository,
+    this.osmLoader,
     this.volcanoMapTilesEnabled = true,
     super.key,
   });
 
   final NewsRepository? newsRepository;
   final GunungDataRepository? gunungRepository;
+  final BrowserLocationReader? locationReader;
+  final AdministrativeAreaLookup? areaLookup;
+  final HazardAnalysisRepository? hazardAnalysisRepository;
+  final MapOsmReferenceLoader? osmLoader;
   final bool volcanoMapTilesEnabled;
 
   @override
@@ -59,10 +70,10 @@ class _RanahShellState extends State<RanahShell> {
   _Page _notificationsReturnPage = _Page.home;
   _Page _activityReturnPage = _Page.map;
   _Page _contactsReturnPage = _Page.home;
-  _Page _routeReturnPage = _Page.map;
-  bool _mapLocationDetails = false;
-  Offset _manualMapPinPosition = const Offset(.23, .60);
-  bool _manualMapLocationChosen = false;
+  final _Page _routeReturnPage = _Page.map;
+  BrowserLocation? _mapLocation;
+  BrowserAdministrativeArea? _mapArea;
+  bool _mapEverOpened = false;
   GunungRecord? _selectedVolcano;
   HomeStory? _selectedStory;
   late final NewsRepository _newsRepository;
@@ -70,7 +81,8 @@ class _RanahShellState extends State<RanahShell> {
   List<HomeStory> _newsStories = const [];
   List<GunungRecord> _gunung = const [];
   bool _newsLoading = true;
-  bool _gunungLoading = true;
+  bool _gunungLoading = false;
+  bool _gunungLoaded = false;
   String? _newsError;
   String? _gunungError;
   bool _menuOpen = false;
@@ -84,7 +96,6 @@ class _RanahShellState extends State<RanahShell> {
         ? _Page.adminLogin
         : _Page.home;
     _loadNews();
-    _loadGunung();
   }
 
   Future<void> _loadNews() async {
@@ -112,18 +123,18 @@ class _RanahShellState extends State<RanahShell> {
   }
 
   Future<void> _loadGunung() async {
-    if (!_gunungLoading) {
-      setState(() {
-        _gunungLoading = true;
-        _gunungError = null;
-      });
-    }
+    if (_gunungLoading) return;
+    setState(() {
+      _gunungLoading = true;
+      _gunungError = null;
+    });
     try {
       final records = await _gunungRepository.loadGunung();
       if (!mounted) return;
       setState(() {
         _gunung = records;
         _gunungLoading = false;
+        _gunungLoaded = true;
         _gunungError = null;
       });
     } catch (error) {
@@ -146,6 +157,7 @@ class _RanahShellState extends State<RanahShell> {
 
   void _navigate(_Page page) {
     setState(() {
+      if (page == _Page.map) _mapEverOpened = true;
       _page = page;
       _menuOpen = false;
     });
@@ -159,30 +171,6 @@ class _RanahShellState extends State<RanahShell> {
       _menuOpen = false;
     });
   }
-
-  void _openVolcanoByMapName(String name) {
-    final normalized = _normalizeVolcanoName(name);
-    GunungRecord? match;
-    for (final record in _gunung) {
-      if (_normalizeVolcanoName(record.nama) == normalized) {
-        match = record;
-        break;
-      }
-    }
-    if (match == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Data $name belum tersedia dari API RANAH.')),
-      );
-      return;
-    }
-    _openVolcanoReport(match, _Page.map);
-  }
-
-  String _normalizeVolcanoName(String value) => value
-      .trim()
-      .toLowerCase()
-      .replaceFirst(RegExp(r'^(gunung|gn\.)\s*'), '')
-      .replaceAll(RegExp(r'\s+'), ' ');
 
   void _openStory(HomeStory story, _Page returnPage) {
     setState(() {
@@ -212,17 +200,10 @@ class _RanahShellState extends State<RanahShell> {
   }
 
   void _openActivity(_Page returnPage) {
+    if (!_gunungLoaded && !_gunungLoading) _loadGunung();
     setState(() {
       _activityReturnPage = returnPage;
       _page = _Page.activity;
-      _menuOpen = false;
-    });
-  }
-
-  void _openEvacuationRoute(_Page returnPage) {
-    setState(() {
-      _routeReturnPage = returnPage;
-      _page = _Page.evacuationRoute;
       _menuOpen = false;
     });
   }
@@ -233,6 +214,15 @@ class _RanahShellState extends State<RanahShell> {
       _page = _Page.contact;
       _menuOpen = false;
     });
+  }
+
+  void _onMapAreaChanged(BrowserAdministrativeArea? area) {
+    setState(() => _mapArea = area);
+    if (area?.province?.isNotEmpty == true &&
+        !_gunungLoaded &&
+        !_gunungLoading) {
+      _loadGunung();
+    }
   }
 
   void _onDestination(RanahDestination destination) {
@@ -291,85 +281,20 @@ class _RanahShellState extends State<RanahShell> {
                   ),
                   Expanded(
                     child: RanahBackground(
-                      child: _page == _Page.home
-                          ? HomePage(
-                              stories: _newsStories,
-                              isLoading: _newsLoading,
-                              error: _newsError,
-                              onRetry: _loadNews,
-                              onStoryTap: (story) =>
-                                  _openStory(story, _Page.home),
-                            )
-                          : _page == _Page.map
-                          ? MapPage(
-                              onActivityTap: () => _openActivity(_Page.map),
-                              onMountainTap: (mountain) =>
-                                  _openVolcanoByMapName(mountain.name),
-                              onEvacuationRouteTap: () =>
-                                  _openEvacuationRoute(_Page.map),
-                              showLocationDetails: _mapLocationDetails,
-                              onLocationDetailsChanged: (show) {
-                                _mapLocationDetails = show;
-                              },
-                              manualPinPosition: _manualMapPinPosition,
-                              manualLocationChosen: _manualMapLocationChosen,
-                              onManualPinChanged: (position) => setState(() {
-                                _manualMapPinPosition = position;
-                                _manualMapLocationChosen = true;
-                              }),
-                            )
-                          : _page == _Page.evacuationRoute
-                          ? EvacuationRoutePage(
-                              onBack: () => _navigate(_routeReturnPage),
-                            )
-                          : _page == _Page.activity
-                          ? VolcanicActivityPage(
-                              onBack: () => _navigate(_activityReturnPage),
-                              gunung: _gunung,
-                              isLoading: _gunungLoading,
-                              error: _gunungError,
-                              onRetry: _loadGunung,
-                              onViewReport: (volcano) =>
-                                  _openVolcanoReport(volcano, _Page.activity),
-                            )
-                          : _page == _Page.volcanoReport
-                          ? VolcanoReportPage(
-                              gunungId: _selectedVolcano!.id,
-                              namaGunung: _selectedVolcano!.nama,
-                              repository: _gunungRepository,
-                              tilesEnabled: widget.volcanoMapTilesEnabled,
-                              onBack: () => _navigate(_reportReturnPage),
-                            )
-                          : _page == _Page.news
-                          ? NewsPage(
-                              stories: _newsStories,
-                              isLoading: _newsLoading,
-                              error: _newsError,
-                              onRetry: _loadNews,
-                              onStoryTap: (story) =>
-                                  _openStory(story, _Page.news),
-                            )
-                          : _page == _Page.story && _selectedStory != null
-                          ? NewsDetailPage(
-                              story: _selectedStory!,
-                              onBack: () => _navigate(_storyReturnPage),
-                            )
-                          : _page == _Page.mitigation
-                          ? MitigationGuidePage(
-                              onBack: () => _navigate(_mitigationReturnPage),
-                            )
-                          : _page == _Page.notifications
-                          ? NotificationsPage(
-                              onBack: () => _navigate(_notificationsReturnPage),
-                            )
-                          : _page == _Page.contact
-                          ? EmergencyContactsPage(
-                              onBack: () => _navigate(_contactsReturnPage),
-                            )
-                          : _PlaceholderPage(
-                              page: _page,
-                              onBack: () => _navigate(_Page.home),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (_mapEverOpened)
+                            Positioned.fill(
+                              child: Offstage(
+                                offstage: _page != _Page.map,
+                                child: _buildMapPage(),
+                              ),
                             ),
+                          if (_page != _Page.map)
+                            Positioned.fill(child: _buildOtherPage()),
+                        ],
+                      ),
                     ),
                   ),
                   if (compact)
@@ -402,6 +327,95 @@ class _RanahShellState extends State<RanahShell> {
         },
       ),
     );
+  }
+
+  Widget _buildMapPage() => MapPage(
+    onActivityTap: () => _openActivity(_Page.map),
+    currentLocation: _mapLocation,
+    currentArea: _mapArea,
+    onLocationChanged: (location) => setState(() {
+      _mapLocation = location;
+      if (location == null) _mapArea = null;
+    }),
+    onAreaChanged: _onMapAreaChanged,
+    locationReader: widget.locationReader ?? readBrowserLocation,
+    areaLookup: widget.areaLookup ?? lookupBrowserAdministrativeArea,
+    hazardAnalysisRepository: widget.hazardAnalysisRepository,
+    osmLoader: widget.osmLoader,
+    gunung: _gunung,
+    gunungLoading: _gunungLoading,
+    gunungError: _gunungError,
+    onRetryGunung: _loadGunung,
+    onOpenReport: (volcano) => _openVolcanoReport(volcano, _Page.map),
+    onOpenEvacuation: () => _navigate(_Page.evacuationRoute),
+  );
+
+  Widget _buildOtherPage() {
+    if (_page == _Page.home) {
+      return HomePage(
+        stories: _newsStories,
+        isLoading: _newsLoading,
+        error: _newsError,
+        onRetry: _loadNews,
+        onStoryTap: (story) => _openStory(story, _Page.home),
+      );
+    }
+    if (_page == _Page.evacuationRoute) {
+      return EvacuationRoutePage(
+        onBack: () => _navigate(_routeReturnPage),
+        currentLocation: _mapLocation,
+      );
+    }
+    if (_page == _Page.activity) {
+      return VolcanicActivityPage(
+        onBack: () => _navigate(_activityReturnPage),
+        gunung: _gunung,
+        isLoading: _gunungLoading,
+        error: _gunungError,
+        onRetry: _loadGunung,
+        onViewReport: (volcano) => _openVolcanoReport(volcano, _Page.activity),
+      );
+    }
+    if (_page == _Page.volcanoReport) {
+      return VolcanoReportPage(
+        gunungId: _selectedVolcano!.id,
+        namaGunung: _selectedVolcano!.nama,
+        repository: _gunungRepository,
+        tilesEnabled: widget.volcanoMapTilesEnabled,
+        onBack: () => _navigate(_reportReturnPage),
+      );
+    }
+    if (_page == _Page.news) {
+      return NewsPage(
+        stories: _newsStories,
+        isLoading: _newsLoading,
+        error: _newsError,
+        onRetry: _loadNews,
+        onStoryTap: (story) => _openStory(story, _Page.news),
+      );
+    }
+    if (_page == _Page.story && _selectedStory != null) {
+      return NewsDetailPage(
+        story: _selectedStory!,
+        onBack: () => _navigate(_storyReturnPage),
+      );
+    }
+    if (_page == _Page.mitigation) {
+      return MitigationGuidePage(
+        onBack: () => _navigate(_mitigationReturnPage),
+      );
+    }
+    if (_page == _Page.notifications) {
+      return NotificationsPage(
+        onBack: () => _navigate(_notificationsReturnPage),
+      );
+    }
+    if (_page == _Page.contact) {
+      return EmergencyContactsPage(
+        onBack: () => _navigate(_contactsReturnPage),
+      );
+    }
+    return _PlaceholderPage(page: _page, onBack: () => _navigate(_Page.home));
   }
 }
 

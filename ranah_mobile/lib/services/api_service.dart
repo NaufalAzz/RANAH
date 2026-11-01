@@ -9,8 +9,16 @@ import 'complaint_api.dart';
 import 'gunung_api.dart';
 import 'news_api.dart';
 import 'notification_api.dart';
+import 'mobile_map_api.dart';
 
-class ApiService implements GunungApi, NewsApi, NotificationApi, ComplaintApi {
+class ApiService
+    implements
+        GunungApi,
+        NewsApi,
+        NotificationApi,
+        WeatherForecastApi,
+        ComplaintApi,
+        MobileMapApi {
   static const String baseUrl = String.fromEnvironment('RANAH_API_BASE_URL');
   static const Duration requestTimeout = Duration(seconds: 15);
 
@@ -39,6 +47,103 @@ class ApiService implements GunungApi, NewsApi, NotificationApi, ComplaintApi {
       throw Exception('Terjadi masalah jaringan saat menghubungi API.');
     }
   }
+
+  Future<Map<String, dynamic>> _getMap(String path) async {
+    final response = await _get(_endpoint(path));
+    return _decodeMapResponse(response, 'Permintaan API gagal');
+  }
+
+  Future<Map<String, dynamic>> _postMap(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    try {
+      final response = await http
+          .post(
+            _endpoint(path),
+            headers: const {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(requestTimeout + const Duration(seconds: 20));
+      return _decodeMapResponse(response, 'Permintaan API gagal');
+    } on TimeoutException {
+      throw Exception('Permintaan API melewati batas waktu.');
+    } on SocketException {
+      throw Exception('Tidak dapat terhubung ke server API.');
+    } on http.ClientException {
+      throw Exception('Terjadi masalah jaringan saat menghubungi API.');
+    }
+  }
+
+  Map<String, dynamic> _decodeMapResponse(
+    http.Response response,
+    String fallback,
+  ) {
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException {
+      throw Exception('Respons API bukan JSON yang valid.');
+    }
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('Format respons API tidak sesuai.');
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = decoded['message']?.toString().trim();
+      if (response.statusCode == 429) {
+        throw Exception(
+          'Permintaan terlalu sering. Tunggu sebentar lalu coba lagi.',
+        );
+      }
+      throw Exception(
+        message == null || message.isEmpty
+            ? '$fallback (${response.statusCode}).'
+            : message,
+      );
+    }
+    return decoded;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getOsmAssemblyPoints() =>
+      _getMap('peta/titik-kumpul-osm');
+
+  @override
+  Future<Map<String, dynamic>> reverseGeocode({
+    required double latitude,
+    required double longitude,
+  }) => _getMap(
+    Uri(
+      path: 'peta/alamat',
+      queryParameters: {
+        'latitude': latitude.toString(),
+        'longitude': longitude.toString(),
+      },
+    ).toString(),
+  );
+
+  @override
+  Future<Map<String, dynamic>> analyzeHazards({
+    required double latitude,
+    required double longitude,
+  }) => _postMap('peta/analisis-bahaya', {
+    'latitude': latitude,
+    'longitude': longitude,
+  });
+
+  @override
+  Future<Map<String, dynamic>> calculateWalkingRoute({
+    required double latitude,
+    required double longitude,
+    required String destinationId,
+  }) => _postMap('peta/rute-simulasi', {
+    'latitude': latitude,
+    'longitude': longitude,
+    'destination_id': destinationId,
+  });
 
   Future<http.Response> _postComplaint(
     Uri uri,
@@ -172,18 +277,35 @@ class ApiService implements GunungApi, NewsApi, NotificationApi, ComplaintApi {
     } on FormatException {
       throw Exception('Respons API notifikasi tidak valid.');
     }
-    if (result is! Map<String, dynamic> || result['success'] != true || result['data'] is! List) {
+    if (result is! Map<String, dynamic> ||
+        result['success'] != true ||
+        result['data'] is! List) {
       throw Exception('Format API notifikasi tidak sesuai.');
     }
     final meta = result['meta'];
     final sourceUpdatedAt = meta is Map<String, dynamic>
-        ? DateTime.tryParse(meta['waktu_pembaruan_terakhir_bmkg']?.toString() ?? '')
+        ? DateTime.tryParse(
+            meta['waktu_pembaruan_terakhir_bmkg']?.toString() ?? '',
+          )
         : null;
     return NotificationApiFeed(
       items: result['data'] as List<dynamic>,
       sourceUpdatedAt: sourceUpdatedAt,
     );
   }
+
+  @override
+  Future<List<dynamic>> getWeatherAreas() async {
+    final result = await _getMap('prakiraan-cuaca/wilayah');
+    if (result['success'] != true || result['data'] is! List) {
+      throw Exception('Daftar wilayah prakiraan BMKG tidak sesuai.');
+    }
+    return result['data'] as List<dynamic>;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getWeatherForecast(String adm4) =>
+      _getMap('prakiraan-cuaca/$adm4');
 
   @override
   Future<ComplaintSubmissionReceipt> submitComplaint({

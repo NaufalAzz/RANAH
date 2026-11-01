@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../data/sample_news.dart';
 import '../models/news_item.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
@@ -10,9 +9,12 @@ import '../widgets/news_artwork.dart';
 class HomePage extends StatefulWidget {
   const HomePage({
     required this.onOpenNews,
-    this.items = sampleNews,
-    this.isUsingFallback = true,
+    this.items = const [],
+    this.isUsingFallback = false,
     this.isFromCache = false,
+    this.loadError,
+    this.isLoading = false,
+    this.onRetry,
     super.key,
   });
 
@@ -20,6 +22,9 @@ class HomePage extends StatefulWidget {
   final List<NewsItem> items;
   final bool isUsingFallback;
   final bool isFromCache;
+  final Object? loadError;
+  final bool isLoading;
+  final VoidCallback? onRetry;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -62,7 +67,11 @@ class _HomePageState extends State<HomePage> {
               ),
               children: [
                 if (widget.items.isEmpty)
-                  const _NoPublishedNews()
+                  _NoPublishedNews(
+                    loadError: widget.loadError,
+                    isLoading: widget.isLoading,
+                    onRetry: widget.onRetry,
+                  )
                 else
                   _FeaturedNewsCarousel(
                     items: widget.items,
@@ -123,16 +132,43 @@ class _HomeBackgroundRing extends StatelessWidget {
 }
 
 class _NoPublishedNews extends StatelessWidget {
-  const _NoPublishedNews();
+  const _NoPublishedNews({
+    this.loadError,
+    this.isLoading = false,
+    this.onRetry,
+  });
+
+  final Object? loadError;
+  final bool isLoading;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.all(20),
-      child: Text(
-        'Belum ada berita yang dipublikasikan.',
-        textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.white),
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          Text(
+            isLoading
+                ? 'Memuat berita dari server...'
+                : loadError == null
+                ? 'Belum ada berita yang dipublikasikan.'
+                : 'Berita belum dapat dimuat dari server. Periksa koneksi lalu coba lagi.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white),
+          ),
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.only(top: 12),
+              child: LinearProgressIndicator(),
+            )
+          else if (loadError != null && onRetry != null)
+            TextButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Coba lagi'),
+            ),
+        ],
       ),
     );
   }

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../data/emergency_contacts.dart';
+import '../services/complaint_repository.dart';
 import '../theme/ranah_theme.dart';
 import '../utils/emergency_call.dart';
 import '../utils/complaint_file_picker.dart';
 import '../widgets/ranah_full_width_title_background.dart';
+import '../widgets/ranah_header.dart';
 
 const _complaintCategories = [
   'Erupsi gunung api',
@@ -14,10 +16,19 @@ const _complaintCategories = [
   'Lainnya',
 ];
 
+typedef ComplaintFilePicker = Future<List<ComplaintAttachment>> Function();
+
 class EmergencyContactsPage extends StatefulWidget {
-  const EmergencyContactsPage({required this.onBack, super.key});
+  const EmergencyContactsPage({
+    required this.onBack,
+    this.complaintRepository,
+    this.filePicker,
+    super.key,
+  });
 
   final VoidCallback onBack;
+  final ComplaintRepository? complaintRepository;
+  final ComplaintFilePicker? filePicker;
 
   @override
   State<EmergencyContactsPage> createState() => _EmergencyContactsPageState();
@@ -29,9 +40,22 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
   final _phoneController = TextEditingController();
   final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
+  late final ComplaintRepository _complaintRepository;
+  late final bool _ownsComplaintRepository;
   String? _selectedCategory;
-  List<String> _selectedFiles = [];
+  List<ComplaintAttachment> _selectedFiles = [];
   bool _showComplaint = false;
+  bool _consented = false;
+  bool _isSubmitting = false;
+  bool _consentError = false;
+  String? _submissionError;
+
+  @override
+  void initState() {
+    super.initState();
+    _ownsComplaintRepository = widget.complaintRepository == null;
+    _complaintRepository = widget.complaintRepository ?? ComplaintRepository();
+  }
 
   @override
   void dispose() {
@@ -39,6 +63,7 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
     _phoneController.dispose();
     _locationController.dispose();
     _descriptionController.dispose();
+    if (_ownsComplaintRepository) _complaintRepository.close();
     super.dispose();
   }
 
@@ -55,6 +80,18 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                horizontal,
+                RanahSpacing.md,
+                horizontal,
+                0,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: RanahBackButton(onPressed: widget.onBack),
+              ),
+            ),
             Padding(
               padding: EdgeInsets.fromLTRB(
                 horizontal,
@@ -103,6 +140,14 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
                       selectedFiles: _selectedFiles,
                       onPickFiles: _pickFiles,
                       onSubmit: _submitComplaint,
+                      isSubmitting: _isSubmitting,
+                      consented: _consented,
+                      consentError: _consentError,
+                      onConsentChanged: (value) => setState(() {
+                        _consented = value;
+                        _consentError = false;
+                      }),
+                      submissionError: _submissionError,
                     ),
                   ),
                 ),
@@ -153,24 +198,103 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
   );
 
   Future<void> _pickFiles() async {
-    final files = await pickComplaintFiles();
-    if (files.isNotEmpty && mounted) {
-      setState(() => _selectedFiles = files);
+    try {
+      final files = await (widget.filePicker ?? pickComplaintFiles)();
+      if (mounted && files.isNotEmpty) {
+        setState(() {
+          _selectedFiles = files;
+          _submissionError = null;
+        });
+      }
+    } on ComplaintSubmissionException catch (error) {
+      _showMessage(error.message);
+    } catch (_) {
+      _showMessage('Foto tidak dapat dibaca. Silakan pilih kembali.');
     }
   }
 
-  void _submitComplaint() {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _submitComplaint() async {
+    if (_isSubmitting || !(_formKey.currentState?.validate() ?? false)) return;
+    if (!_consented) {
+      setState(() => _consentError = true);
+      return;
+    }
+    setState(() {
+      _isSubmitting = true;
+      _submissionError = null;
+      _consentError = false;
+    });
+    try {
+      final receipt = await _complaintRepository.submit(
+        reporterName: _nameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+        category: _selectedCategory!,
+        location: _locationController.text.trim(),
+        description: _descriptionController.text.trim(),
+        consented: _consented,
+        attachments: _selectedFiles,
+      );
+      if (!mounted) return;
+      setState(() {
+        _nameController.clear();
+        _phoneController.clear();
+        _locationController.clear();
+        _descriptionController.clear();
+        _selectedFiles = [];
+        _selectedCategory = null;
+        _consented = false;
+      });
+      _showMessage(
+        'Server menerima pengaduan #${receipt.id} pada '
+        '${_formatReceivedAt(receipt.receivedAt)}. Ini belum berarti laporan telah ditangani.',
+      );
+    } on ComplaintSubmissionException catch (error) {
+      if (!mounted) return;
+      final fieldMessages = error.fieldErrors.entries
+          .map((entry) => '${_fieldLabel(entry.key)}: ${entry.value}')
+          .join('\n');
+      setState(() {
+        _submissionError = fieldMessages.isEmpty
+            ? error.message
+            : '${error.message}\n$fieldMessages';
+      });
+      _showMessage(_submissionError!);
+    } catch (_) {
+      if (!mounted) return;
+      const message =
+          'Pengiriman gagal atau belum terkonfirmasi. Isian tetap tersimpan; periksa status sebelum mencoba lagi.';
+      setState(() => _submissionError = message);
+      _showMessage(message);
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Simulasi: formulir disiapkan di browser dan belum dikirim ke server atau diterima petugas.',
-          ),
-          duration: Duration(seconds: 6),
-        ),
-      );
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String _fieldLabel(String key) => switch (key.split('.').first) {
+    'nama_pelapor' => 'Nama pelapor',
+    'nomor_telepon' => 'Nomor telepon',
+    'kategori' => 'Kategori',
+    'lokasi_kejadian' => 'Lokasi',
+    'deskripsi' => 'Deskripsi',
+    'persetujuan' => 'Persetujuan',
+    'media' => 'Lampiran',
+    _ => 'Isian',
+  };
+
+  String _formatReceivedAt(DateTime value) {
+    final local = value.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$day/$month/${local.year} $hour:$minute';
   }
 }
 
@@ -467,6 +591,11 @@ class _ComplaintForm extends StatelessWidget {
     required this.selectedFiles,
     required this.onPickFiles,
     required this.onSubmit,
+    required this.isSubmitting,
+    required this.consented,
+    required this.consentError,
+    required this.onConsentChanged,
+    required this.submissionError,
   });
 
   final GlobalKey<FormState> formKey;
@@ -476,9 +605,14 @@ class _ComplaintForm extends StatelessWidget {
   final TextEditingController descriptionController;
   final String? selectedCategory;
   final ValueChanged<String?> onCategoryChanged;
-  final List<String> selectedFiles;
+  final List<ComplaintAttachment> selectedFiles;
   final VoidCallback onPickFiles;
   final VoidCallback onSubmit;
+  final bool isSubmitting;
+  final bool consented;
+  final bool consentError;
+  final ValueChanged<bool> onConsentChanged;
+  final String? submissionError;
 
   @override
   Widget build(BuildContext context) => Form(
@@ -494,9 +628,11 @@ class _ComplaintForm extends StatelessWidget {
           hint: 'Masukkan nomor telepon yang dapat dihubungi',
           keyboardType: TextInputType.phone,
           validator: (value) {
-            final digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
-            if (digits.isEmpty) return 'Nomor telepon wajib diisi';
-            if (digits.length < 8 || digits.length > 15) {
+            final text = (value ?? '').trim();
+            final digits = text.replaceAll(RegExp(r'\D'), '');
+            if (digits.length < 8) return 'Nomor telepon wajib diisi';
+            if (text.length > 30 ||
+                !RegExp(r'^[0-9+\s().-]+$').hasMatch(text)) {
               return 'Masukkan nomor telepon yang valid';
             }
             return null;
@@ -519,12 +655,12 @@ class _ComplaintForm extends StatelessWidget {
         ),
         _label('Lokasi Kejadian'),
         _textField(locationController, hint: 'Masukkan lokasi kejadian'),
-        _label('Foto & Video Kejadian'),
+        _label('Foto Kejadian'),
         OutlinedButton.icon(
           key: const ValueKey('complaint-pick-files'),
-          onPressed: onPickFiles,
+          onPressed: isSubmitting ? null : onPickFiles,
           icon: const Icon(Icons.attach_file, size: 16),
-          label: const Text('Pilih Foto atau Video'),
+          label: const Text('Pilih Foto'),
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.white,
             alignment: Alignment.centerLeft,
@@ -538,7 +674,7 @@ class _ComplaintForm extends StatelessWidget {
         if (selectedFiles.isNotEmpty) ...[
           const SizedBox(height: RanahSpacing.sm),
           Text(
-            selectedFiles.join(', '),
+            selectedFiles.map((file) => file.name).join(', '),
             style: const TextStyle(color: Color(0xFFCFD7E2), fontSize: 12),
           ),
         ],
@@ -557,12 +693,43 @@ class _ComplaintForm extends StatelessWidget {
             return null;
           },
         ),
+        const SizedBox(height: RanahSpacing.sm),
+        CheckboxListTile(
+          key: const ValueKey('complaint-consent'),
+          value: consented,
+          onChanged: isSubmitting
+              ? null
+              : (value) => onConsentChanged(value ?? false),
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          activeColor: const Color(0xFFE42D32),
+          title: const Text(
+            'Saya setuju data pengaduan dan foto yang dipilih dikirim ke server untuk dicatat.',
+            style: TextStyle(color: Color(0xFFD5DDE7), fontSize: 12),
+          ),
+        ),
+        if (consentError)
+          const Padding(
+            padding: EdgeInsets.only(left: 12),
+            child: Text(
+              'Persetujuan diperlukan sebelum mengirim.',
+              style: TextStyle(color: Color(0xFFFF8585), fontSize: 12),
+            ),
+          ),
+        if (submissionError != null) ...[
+          const SizedBox(height: RanahSpacing.sm),
+          Text(
+            submissionError!,
+            key: const ValueKey('complaint-submit-error'),
+            style: const TextStyle(color: Color(0xFFFFA6A6), fontSize: 12),
+          ),
+        ],
         const SizedBox(height: RanahSpacing.lg),
         SizedBox(
           height: 48,
           child: ElevatedButton(
             key: const ValueKey('complaint-submit'),
-            onPressed: onSubmit,
+            onPressed: isSubmitting ? null : onSubmit,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFE42D32),
               foregroundColor: Colors.white,
@@ -570,17 +737,20 @@ class _ComplaintForm extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
               ),
             ),
-            child: const Text(
-              'KIRIM LAPORAN',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-            ),
+            child: isSubmitting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text(
+                    'KIRIM LAPORAN',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                  ),
           ),
-        ),
-        const SizedBox(height: RanahSpacing.sm),
-        const Text(
-          'Simulasi lokal: data dan lampiran tidak dikirim ke server.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Color(0xFFCCD4DF), fontSize: 12),
         ),
       ],
     ),

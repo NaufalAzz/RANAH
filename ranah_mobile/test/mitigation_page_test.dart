@@ -14,7 +14,10 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      RanahApp(internetStatusMonitor: createTestInternetStatusMonitor()),
+      RanahApp(
+        mapTilesEnabled: false,
+        internetStatusMonitor: createTestInternetStatusMonitor(),
+      ),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Menu').last);
@@ -66,7 +69,10 @@ void main() {
     expect(find.text('Layanan RANAH'), findsOneWidget);
     await tester.tap(find.text('Beranda').last);
     await tester.pumpAndSettle();
-    expect(find.text('Berita Utama'), findsOneWidget);
+    expect(
+      find.textContaining('Berita belum dapat dimuat dari server'),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Menu').last);
     await tester.pumpAndSettle();

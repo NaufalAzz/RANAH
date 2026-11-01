@@ -97,5 +97,84 @@ class RanahApiClient {
     return decoded;
   }
 
+  Future<Map<String, dynamic>> postJson(
+    String path, {
+    required Map<String, dynamic> body,
+    Duration? timeoutOverride,
+  }) async {
+    final uri = _endpoint(path);
+    late final http.Response response;
+    try {
+      response = await _client
+          .post(
+            uri,
+            headers: const {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(timeoutOverride ?? timeout);
+    } on TimeoutException {
+      throw const RanahApiException('Permintaan API melewati batas waktu.');
+    } on http.ClientException {
+      throw const RanahApiException(
+        'Tidak dapat terhubung ke server API. Periksa jaringan dan alamat API.',
+      );
+    }
+
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException {
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw RanahApiException(
+          'Server API merespons HTTP ${response.statusCode}.',
+          statusCode: response.statusCode,
+        );
+      }
+      throw const RanahApiException('Respons JSON dari API tidak valid.');
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = decoded is Map<String, dynamic>
+          ? decoded['message']?.toString()
+          : null;
+      throw RanahApiException(
+        message == null || message.isEmpty
+            ? 'Server API merespons HTTP ${response.statusCode}.'
+            : message,
+        statusCode: response.statusCode,
+      );
+    }
+    if (decoded is! Map<String, dynamic>) {
+      throw const RanahApiException('Format respons API tidak sesuai.');
+    }
+    return decoded;
+  }
+
+  Future<http.Response> postMultipart(
+    String path, {
+    required Map<String, String> fields,
+    List<http.MultipartFile> files = const [],
+  }) async {
+    final request = http.MultipartRequest('POST', _endpoint(path))
+      ..headers['Accept'] = 'application/json'
+      ..fields.addAll(fields)
+      ..files.addAll(files);
+    try {
+      final streamed = await _client.send(request).timeout(timeout);
+      return await http.Response.fromStream(streamed).timeout(timeout);
+    } on TimeoutException {
+      throw const RanahApiException(
+        'Waktu tunggu habis; status penyimpanan belum diketahui. Periksa status pengaduan sebelum mengirim ulang.',
+      );
+    } on http.ClientException {
+      throw const RanahApiException(
+        'Koneksi terputus; status penyimpanan mungkin belum diketahui. Periksa status pengaduan sebelum mengirim ulang.',
+      );
+    }
+  }
+
   void close() => _client.close();
 }

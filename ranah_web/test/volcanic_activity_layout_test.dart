@@ -42,13 +42,15 @@ void main() {
         tester.view.devicePixelRatio = 1;
         await tester.pumpWidget(
           MaterialApp(
-            home: VolcanicActivityPage(
-              onBack: () {},
-              onViewReport: (gunung) => selectedId = gunung.id,
-              gunung: records,
-              isLoading: false,
-              error: null,
-              onRetry: () {},
+            home: Scaffold(
+              body: VolcanicActivityPage(
+                onBack: () {},
+                onViewReport: (gunung) => selectedId = gunung.id,
+                gunung: records,
+                isLoading: false,
+                error: null,
+                onRetry: () {},
+              ),
             ),
           ),
         );

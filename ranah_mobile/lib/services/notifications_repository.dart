@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/notification_item.dart';
+import '../models/weather_forecast.dart';
 import 'api_service.dart';
 import 'gunung_local_store.dart';
 import 'notification_api.dart';
@@ -23,12 +24,42 @@ class NotificationFeedSnapshot {
 }
 
 class NotificationsRepository {
-  NotificationsRepository({NotificationApi? api, NotificationCacheStore? store})
-    : _api = api ?? ApiService(),
-      _store = store ?? GunungLocalStore.instance;
+  NotificationsRepository({
+    NotificationApi? api,
+    WeatherForecastApi? weatherApi,
+    NotificationCacheStore? store,
+  }) : _api = api ?? ApiService(),
+       _weatherApi =
+           weatherApi ??
+           (api is WeatherForecastApi
+               ? api as WeatherForecastApi
+               : ApiService()),
+       _store = store ?? GunungLocalStore.instance;
 
   final NotificationApi _api;
+  final WeatherForecastApi _weatherApi;
   final NotificationCacheStore _store;
+
+  Future<List<WeatherArea>> loadWeatherAreas() async {
+    final areas = <WeatherArea>[];
+    for (final value in await _weatherApi.getWeatherAreas()) {
+      if (value is! Map) {
+        throw const FormatException('Item wilayah prakiraan tidak sesuai.');
+      }
+      final area = WeatherArea.fromJson(Map<String, dynamic>.from(value));
+      if (area.province.toLowerCase() == 'sumatera barat') areas.add(area);
+    }
+    return List.unmodifiable(areas);
+  }
+
+  Future<WeatherForecast> loadWeatherForecast(String adm4) async {
+    final response = await _weatherApi.getWeatherForecast(adm4);
+    final forecast = WeatherForecast.fromEnvelope(response);
+    if (forecast.area != null && forecast.area!.adm4 != adm4) {
+      throw const FormatException('Kode wilayah prakiraan tidak cocok.');
+    }
+    return forecast;
+  }
 
   Future<NotificationFeedSnapshot> load() async {
     try {
@@ -63,16 +94,15 @@ class NotificationsRepository {
     } catch (error) {
       try {
         final cached = await _store.readNotifications();
-        final lastSyncedAt = await _store.readLastSync('notifications_last_sync');
+        final lastSyncedAt = await _store.readLastSync(
+          'notifications_last_sync',
+        );
         final sourceUpdatedAt = await _store.readLastSync(
           'notifications_source_last_sync',
         );
         if (cached.isNotEmpty || lastSyncedAt != null) {
           return NotificationFeedSnapshot(
-            items: cached
-                .where(_isCurrentSumbarBmkgItem)
-                .map(_parse)
-                .toList(),
+            items: cached.where(_isCurrentSumbarBmkgItem).map(_parse).toList(),
             isFromCache: true,
             lastSyncedAt: lastSyncedAt,
             sourceUpdatedAt: sourceUpdatedAt,
@@ -91,7 +121,8 @@ class NotificationsRepository {
   }
 
   bool _isCurrentSumbarBmkgItem(Map<String, dynamic> item) {
-    if (item['sumber'] != 'BMKG' || item['cakupan_wilayah'] != 'Sumatera Barat') {
+    if (item['sumber'] != 'BMKG' ||
+        item['cakupan_wilayah'] != 'Sumatera Barat') {
       return false;
     }
     final now = DateTime.now();
@@ -104,7 +135,8 @@ class NotificationsRepository {
 
   bool _isRecentEarthquake(Map<String, dynamic> item, DateTime now) {
     final eventAt = DateTime.tryParse(item['waktu_kejadian']?.toString() ?? '');
-    final days = int.tryParse(item['rentang_gempa_hari']?.toString() ?? '') ?? 7;
+    final days =
+        int.tryParse(item['rentang_gempa_hari']?.toString() ?? '') ?? 7;
     return item['status'] == 'informasi' &&
         eventAt != null &&
         !eventAt.isBefore(now.subtract(Duration(days: days))) &&
@@ -131,18 +163,30 @@ class NotificationsRepository {
     final summary = json['ringkasan']?.toString().trim() ?? '';
     final category = json['kategori']?.toString().trim() ?? '';
     final kindValue = json['jenis_konten']?.toString();
-    final published = DateTime.tryParse(json['waktu_publikasi']?.toString() ?? '');
+    final published = DateTime.tryParse(
+      json['waktu_publikasi']?.toString() ?? '',
+    );
     final eventAt = DateTime.tryParse(json['waktu_kejadian']?.toString() ?? '');
-    final retrievedAt = DateTime.tryParse(json['waktu_pengambilan']?.toString() ?? '');
-    if (id.isEmpty || title.isEmpty || summary.isEmpty || category.isEmpty || (published == null && retrievedAt == null)) {
+    final retrievedAt = DateTime.tryParse(
+      json['waktu_pengambilan']?.toString() ?? '',
+    );
+    if (id.isEmpty ||
+        title.isEmpty ||
+        summary.isEmpty ||
+        category.isEmpty ||
+        (published == null && retrievedAt == null)) {
       throw const FormatException('Field wajib notifikasi tidak valid.');
     }
     final source = _optional(json['sumber']);
     final sourceUrl = _httpsUrl(json['url_sumber']);
     final status = _optional(json['status']);
     final kind = switch (category.toLowerCase()) {
-      final value when value.contains('gempa') || value.contains('tsunami') => NotificationKind.earthquake,
-      final value when value.contains('gunung') || (source?.contains('MAGMA') ?? false) => NotificationKind.volcanoStatus,
+      final value when value.contains('gempa') || value.contains('tsunami') =>
+        NotificationKind.earthquake,
+      final value
+          when value.contains('gunung') ||
+              (source?.contains('MAGMA') ?? false) =>
+        NotificationKind.volcanoStatus,
       _ => NotificationKind.latestNews,
     };
     final accent = kind == NotificationKind.earthquake
@@ -191,7 +235,12 @@ class NotificationsRepository {
   String? _httpsUrl(dynamic value) {
     if (value is! String || value.trim().isEmpty) return null;
     final uri = Uri.tryParse(value.trim());
-    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty || uri.userInfo.isNotEmpty) return null;
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty) {
+      return null;
+    }
     return uri.toString();
   }
 

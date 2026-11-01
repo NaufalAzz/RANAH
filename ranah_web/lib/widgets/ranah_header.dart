@@ -78,7 +78,7 @@ class RanahHeader extends StatelessWidget {
             const SizedBox(width: RanahSpacing.md),
             SizedBox(
               width: width < 760 ? 180 : 220,
-              height: 56,
+              height: 64,
               child: const _BrandLabel(),
             ),
             const Spacer(),
@@ -103,10 +103,13 @@ class RanahHeader extends StatelessWidget {
 
   Widget _buildCompact(BuildContext context, double width) {
     const notificationWidth = 48.0;
+    const brandWidth = 29.0;
+    const brandGap = RanahSpacing.sm;
     final contentWidth = math.max(width - 14, 135.0);
-    final labelWidth = (contentWidth - 27 - 4 - notificationWidth)
-        .clamp(56.0, 240.0)
-        .toDouble();
+    final labelWidth =
+        (contentWidth - brandWidth - brandGap - notificationWidth)
+            .clamp(0.0, 240.0)
+            .toDouble();
     return SizedBox(
       height: 72,
       child: Padding(
@@ -121,7 +124,7 @@ class RanahHeader extends StatelessWidget {
                 const SizedBox(width: RanahSpacing.sm),
                 SizedBox(
                   width: labelWidth,
-                  height: 48,
+                  height: 56,
                   child: const _BrandLabel(compact: true),
                 ),
                 const Spacer(),

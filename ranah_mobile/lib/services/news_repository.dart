@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../data/sample_news.dart';
 import '../models/news_item.dart';
 import '../theme/app_theme.dart';
 import 'api_service.dart';
@@ -100,11 +99,11 @@ class NewsRepository {
         );
       }
     } catch (_) {
-      // Keep the original sync error and use clearly labeled demo content.
+      // Keep the original sync error; never present local examples as live news.
     }
     return NewsFeedSnapshot(
-      items: sampleNews,
-      isUsingFallback: true,
+      items: const [],
+      isUsingFallback: false,
       isFromCache: false,
       error: error,
     );

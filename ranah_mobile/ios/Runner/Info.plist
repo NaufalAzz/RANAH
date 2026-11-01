@@ -28,6 +28,8 @@
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>RANAH menggunakan foto yang Anda pilih sebagai dokumentasi pengaduan.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>RANAH menggunakan lokasi saat Anda meminta informasi wilayah, gunung sekitar, dan analisis peta.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

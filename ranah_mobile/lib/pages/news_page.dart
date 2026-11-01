@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../data/sample_news.dart';
 import '../models/news_item.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
@@ -14,12 +13,18 @@ class NewsPage extends StatefulWidget {
     super.key,
     this.initialNewsId,
     this.selectionRevision = 0,
-    this.items = sampleNews,
+    this.items = const [],
+    this.loadError,
+    this.isLoading = false,
+    this.onRetry,
   });
 
   final String? initialNewsId;
   final int selectionRevision;
   final List<NewsItem> items;
+  final Object? loadError;
+  final bool isLoading;
+  final VoidCallback? onRetry;
 
   @override
   State<NewsPage> createState() => _NewsPageState();
@@ -198,6 +203,9 @@ class _NewsPageState extends State<NewsPage> {
                       searchController: _searchController,
                       items: _filteredNews,
                       hasPublishedNews: widget.items.isNotEmpty,
+                      loadError: widget.loadError,
+                      isLoading: widget.isLoading,
+                      onRetry: widget.onRetry,
                       onQueryChanged: (value) => setState(() => _query = value),
                       onCategorySelected: (value) =>
                           setState(() => _category = value),
@@ -324,6 +332,9 @@ class _NewsListContent extends StatelessWidget {
     required this.searchController,
     required this.items,
     required this.hasPublishedNews,
+    required this.loadError,
+    required this.isLoading,
+    required this.onRetry,
     required this.onQueryChanged,
     required this.onCategorySelected,
     required this.onRegionSelected,
@@ -344,6 +355,9 @@ class _NewsListContent extends StatelessWidget {
   final TextEditingController searchController;
   final List<NewsItem> items;
   final bool hasPublishedNews;
+  final Object? loadError;
+  final bool isLoading;
+  final VoidCallback? onRetry;
   final ValueChanged<String> onQueryChanged;
   final ValueChanged<String> onCategorySelected;
   final ValueChanged<String> onRegionSelected;
@@ -465,7 +479,12 @@ class _NewsListContent extends StatelessWidget {
         ),
         const SizedBox(height: 30),
         if (items.isEmpty)
-          _EmptyNewsResults(hasPublishedNews: hasPublishedNews)
+          _EmptyNewsResults(
+            hasPublishedNews: hasPublishedNews,
+            loadError: loadError,
+            isLoading: isLoading,
+            onRetry: onRetry,
+          )
         else
           for (final item in items) ...[
             _NewsArticleCard(item: item, onTap: () => onItemSelected(item)),
@@ -621,9 +640,17 @@ class _NewsArticleCard extends StatelessWidget {
 }
 
 class _EmptyNewsResults extends StatelessWidget {
-  const _EmptyNewsResults({required this.hasPublishedNews});
+  const _EmptyNewsResults({
+    required this.hasPublishedNews,
+    this.loadError,
+    this.isLoading = false,
+    this.onRetry,
+  });
 
   final bool hasPublishedNews;
+  final Object? loadError;
+  final bool isLoading;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -635,12 +662,31 @@ class _EmptyNewsResults extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(11),
         ),
-        child: Text(
-          hasPublishedNews
-              ? 'Berita tidak ditemukan. Coba kata kunci atau kategori lain.'
-              : 'Belum ada berita yang dipublikasikan.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.muted, fontSize: 14),
+        child: Column(
+          children: [
+            Text(
+              isLoading
+                  ? 'Memuat berita dari server...'
+                  : loadError != null
+                  ? 'Berita belum dapat dimuat dari server. Periksa koneksi lalu coba lagi.'
+                  : hasPublishedNews
+                  ? 'Berita tidak ditemukan. Coba kata kunci atau kategori lain.'
+                  : 'Belum ada berita yang dipublikasikan.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.muted, fontSize: 14),
+            ),
+            if (isLoading)
+              const Padding(
+                padding: EdgeInsets.only(top: 12),
+                child: LinearProgressIndicator(),
+              )
+            else if (loadError != null && onRetry != null)
+              TextButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Coba lagi'),
+              ),
+          ],
         ),
       ),
     );

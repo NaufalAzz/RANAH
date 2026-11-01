@@ -58,13 +58,17 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Kabar banjir Padang'), findsWidgets);
+    expect(_networkImageUrls(tester), contains(_apiStory()['gambar']));
     expect(requests, 1);
+    expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('Berita').first);
     await tester.pumpAndSettle();
     expect(find.text('Berita dan Event'), findsOneWidget);
     expect(find.text('Kabar banjir Padang'), findsOneWidget);
+    expect(_networkImageUrls(tester), contains(_apiStory()['gambar']));
     expect(requests, 1);
+    expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('Kabar banjir Padang').last);
     await tester.pumpAndSettle();
@@ -72,6 +76,8 @@ void main() {
     expect(find.text('Sumber: BNPB'), findsOneWidget);
     expect(find.textContaining('Kota Padang'), findsOneWidget);
     expect(find.textContaining('CONTOH'), findsNothing);
+    expect(_networkImageUrls(tester), contains(_apiStory()['gambar']));
+    expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('Kembali'));
     await tester.pumpAndSettle();
@@ -83,7 +89,9 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: NewsPage(stories: stories, onStoryTap: (_) {}),
+        home: Scaffold(
+          body: NewsPage(stories: stories, onStoryTap: (_) {}),
+        ),
       ),
     );
     expect(find.text('Kabar banjir Padang'), findsOneWidget);
@@ -121,7 +129,9 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: NewsPage(stories: stories, onStoryTap: (_) {}),
+          home: Scaffold(
+            body: NewsPage(stories: stories, onStoryTap: (_) {}),
+          ),
         ),
       );
       await tester.tap(find.byKey(const ValueKey('web-news-region-filter')));
@@ -153,7 +163,9 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: HomePage(stories: [stories.first], onStoryTap: (_) {}),
+        home: Scaffold(
+          body: HomePage(stories: [stories.first], onStoryTap: (_) {}),
+        ),
       ),
     );
     expect(find.text('Kabar banjir Padang'), findsWidgets);
@@ -163,7 +175,9 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: HomePage(stories: stories, onStoryTap: (_) {}),
+        home: Scaffold(
+          body: HomePage(stories: stories, onStoryTap: (_) {}),
+        ),
       ),
     );
     expect(find.byKey(const ValueKey('home-highlight-101')), findsOneWidget);
@@ -174,7 +188,9 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: HomePage(stories: const [], onStoryTap: (_) {}),
+        home: Scaffold(
+          body: HomePage(stories: const [], onStoryTap: (_) {}),
+        ),
       ),
     );
     expect(find.text('Belum ada berita utama.'), findsOneWidget);
@@ -187,11 +203,13 @@ void main() {
     var retries = 0;
     await tester.pumpWidget(
       MaterialApp(
-        home: NewsPage(
-          stories: const [],
-          isLoading: true,
-          onStoryTap: (_) {},
-          onRetry: () => retries++,
+        home: Scaffold(
+          body: NewsPage(
+            stories: const [],
+            isLoading: true,
+            onStoryTap: (_) {},
+            onRetry: () => retries++,
+          ),
         ),
       ),
     );
@@ -200,11 +218,13 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: NewsPage(
-          stories: const [],
-          error: 'API unavailable',
-          onStoryTap: (_) {},
-          onRetry: () => retries++,
+        home: Scaffold(
+          body: NewsPage(
+            stories: const [],
+            error: 'API unavailable',
+            onStoryTap: (_) {},
+            onRetry: () => retries++,
+          ),
         ),
       ),
     );
@@ -214,7 +234,9 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: NewsPage(stories: const [], onStoryTap: (_) {}),
+        home: Scaffold(
+          body: NewsPage(stories: const [], onStoryTap: (_) {}),
+        ),
       ),
     );
     expect(find.text('Belum ada berita tersedia dari server.'), findsOneWidget);
@@ -222,19 +244,28 @@ void main() {
   });
 
   testWidgets('news layout fits phone and desktop widths', (tester) async {
-    for (final size in [const Size(390, 844), const Size(1280, 900)]) {
+    for (final size in [
+      const Size(320, 720),
+      const Size(360, 800),
+      const Size(390, 844),
+      const Size(1280, 900),
+    ]) {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
       await tester.pumpWidget(
         MaterialApp(
-          home: NewsPage(stories: stories, onStoryTap: (_) {}),
+          home: Scaffold(
+            body: NewsPage(stories: stories, onStoryTap: (_) {}),
+          ),
         ),
       );
       expect(find.text('Kabar banjir Padang'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(
         MaterialApp(
-          home: HomePage(stories: stories, onStoryTap: (_) {}),
+          home: Scaffold(
+            body: HomePage(stories: stories, onStoryTap: (_) {}),
+          ),
         ),
       );
       expect(find.byKey(const ValueKey('home-highlight-101')), findsOneWidget);
@@ -273,7 +304,7 @@ Map<String, dynamic> _apiStory() => {
   'kategori': 'Banjir',
   'jenis_konten': 'kejadian',
   'isi': 'Isi berita API untuk detail.',
-  'gambar': null,
+  'gambar': 'http://api.example.test/api/berita/101/gambar',
   'sumber': 'BNPB',
   'sumber_id': 'bnpb-101',
   'url_sumber': 'https://bnpb.go.id/berita/101',
@@ -285,3 +316,10 @@ Map<String, dynamic> _apiStory() => {
   'tingkat_kepentingan': 'normal',
   'status_publikasi': 'published',
 };
+
+List<String> _networkImageUrls(WidgetTester tester) => tester
+    .widgetList<Image>(find.byType(Image))
+    .map((image) => image.image)
+    .whereType<NetworkImage>()
+    .map((image) => image.url)
+    .toList();

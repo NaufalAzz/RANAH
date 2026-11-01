@@ -115,6 +115,7 @@ class BmkgInformationService
         $normalizedBySourceId = [];
         $sumatraCandidates = 0;
         $excludedRecords = 0;
+        $cancelledSourceIds = [];
         foreach ($feedItems as $feedItem) {
             $title = $this->xmlValue($feedItem, 'title');
             $description = $this->xmlValue($feedItem, 'description');
@@ -131,11 +132,15 @@ class BmkgInformationService
             if ($publishedAt === null) {
                 throw $this->invalidFeed('weather_alerts', 'rss_validation', 'invalid_publication_date');
             }
-            $normalized = $this->normalizeWeatherAlert(
-                $this->parseXml($detailResponse->body()),
-                $detailUrl,
-                $publishedAt,
-            );
+            $capAlert = $this->parseXml($detailResponse->body());
+            $messageType = strtolower($this->xmlValue($capAlert, 'msgType'));
+            if ($messageType === 'cancel') {
+                foreach ($this->capReferencedIdentifiers($capAlert) as $identifier) {
+                    $cancelledSourceIds[] = 'bmkg-cap:'.hash('sha256', $identifier);
+                }
+                continue;
+            }
+            $normalized = $this->normalizeWeatherAlert($capAlert, $detailUrl, $publishedAt);
             if ($normalized !== null) {
                 $normalizedBySourceId[$normalized['sumber_id']] = $normalized;
             } else {
@@ -152,8 +157,13 @@ class BmkgInformationService
             'result' => $normalizedBySourceId === [] ? 'valid_feed_no_active_sumbar_alerts' : 'valid_feed_active_alerts_found',
         ]);
 
-        $count = DB::transaction(function () use ($normalizedBySourceId): int {
+        $count = DB::transaction(function () use ($normalizedBySourceId, $cancelledSourceIds): int {
             $activeSourceIds = array_keys($normalizedBySourceId);
+            if ($cancelledSourceIds !== []) {
+                Berita::query()->whereIn('sumber_id', $cancelledSourceIds)
+                    ->where('status_publikasi', 'published')
+                    ->update(['status_publikasi' => 'archived']);
+            }
             // A successfully parsed feed is the current active listing. Preserve
             // prior records, but stop presenting omitted alerts as active.
             Berita::query()->where('sumber_id', 'like', 'bmkg-cap:%')
@@ -306,11 +316,22 @@ class BmkgInformationService
             return null;
         }
 
+        $bodyParts = array_filter([$event === '' ? null : $event.'.', $description]);
+        foreach ([
+            'urgency' => 'Urgensi',
+            'certainty' => 'Kepastian',
+        ] as $field => $label) {
+            $value = $this->xmlValue($information, $field);
+            if ($value !== '') {
+                $bodyParts[] = $label.' menurut CAP: '.$value.'.';
+            }
+        }
+
         return [
             'judul' => $headline,
             'kategori' => 'Imbauan/penanganan bencana',
             'jenis_konten' => 'peringatan',
-            'isi' => ($event === '' ? '' : $event.'. ').$description,
+            'isi' => implode(' ', $bodyParts),
             'gambar' => null,
             'sumber' => 'BMKG',
             'sumber_id' => 'bmkg-cap:'.hash('sha256', $identifier),
@@ -329,6 +350,10 @@ class BmkgInformationService
 
     private function parseXml(string $content): SimpleXMLElement
     {
+        if (strlen($content) > 2_000_000
+            || preg_match('/<!DOCTYPE|<!ENTITY/i', $content) === 1) {
+            throw $this->invalidFeed('weather_alerts', 'xml_validation', 'unsafe_or_oversized_xml');
+        }
         $previousErrorMode = libxml_use_internal_errors(true);
         try {
             $parsed = simplexml_load_string(
@@ -345,6 +370,24 @@ class BmkgInformationService
         }
 
         return $parsed;
+    }
+
+    /** @return list<string> */
+    private function capReferencedIdentifiers(SimpleXMLElement $alert): array
+    {
+        $references = $this->xmlValue($alert, 'references');
+        if ($references === '') {
+            return [];
+        }
+        $identifiers = [];
+        foreach (preg_split('/\s+/', trim($references)) ?: [] as $reference) {
+            $parts = explode(',', $reference);
+            if (count($parts) >= 2 && trim($parts[1]) !== '') {
+                $identifiers[] = trim($parts[1]);
+            }
+        }
+
+        return array_values(array_unique($identifiers));
     }
 
     private function xmlValue(SimpleXMLElement $element, string $name): string

@@ -59,7 +59,8 @@ void main() {
     expect(find.text('Gempa tercatat'), findsOneWidget);
     expect(find.text('Agam, Sumatera Barat'), findsOneWidget);
     expect(find.text('BMKG'), findsOneWidget);
-    expect(find.textContaining('Sinkronisasi BMKG terakhir'), findsOneWidget);
+    expect(find.text('Pemeriksaan sumber BMKG'), findsOneWidget);
+    expect(find.textContaining('terakhir berhasil'), findsWidgets);
     expect(find.textContaining('DATA SIMULASI'), findsNothing);
   });
 
@@ -95,10 +96,66 @@ void main() {
     expect(find.text('Notifikasi BMKG belum dapat dimuat.'), findsOneWidget);
     expect(find.textContaining('Contoh'), findsNothing);
 
-    await tester.tap(find.text('Coba lagi'));
+    final retry = find.text('Coba lagi');
+    await tester.ensureVisible(retry);
+    await tester.tap(retry);
     await tester.pumpAndSettle();
     expect(calls, 2);
     expect(find.text('Gempa tercatat'), findsOneWidget);
+  });
+
+  testWidgets('category chips request the matching server-side feed', (
+    tester,
+  ) async {
+    final repository = _FakeRepository((_) async => _feed());
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotificationsPage(onBack: () {}, repository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Peringatan'));
+    await tester.pumpAndSettle();
+
+    expect(repository.requestedKinds.last, 'peringatan');
+  });
+
+  testWidgets('weather pilot requires explicit area selection', (tester) async {
+    final forecasts = _FakeForecastRepository();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotificationsPage(
+          onBack: () {},
+          repository: _FakeRepository((_) async => _feed(items: const [])),
+          forecastRepository: forecasts,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Cuaca'));
+    await tester.pumpAndSettle();
+
+    expect(forecasts.forecastRequests, isEmpty);
+    final areaDropdown = find.byType(DropdownButtonFormField<String>);
+    await tester.ensureVisible(areaDropdown);
+    await tester.tap(areaDropdown);
+    await tester.pumpAndSettle();
+    final pilotArea = find.text('Pasar Ambacang · Kuranji, Kota Padang').last;
+    await tester.ensureVisible(pilotArea);
+    await tester.tap(pilotArea);
+    await tester.pumpAndSettle();
+
+    expect(forecasts.forecastRequests, ['13.71.09.1001']);
+    expect(
+      find.text('Prakiraan Cuaca — Pasar Ambacang, Kuranji, Kota Padang'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Prakiraan wilayah, bukan pengamatan cuaca langsung.'),
+      findsOneWidget,
+    );
+    expect(find.text('Hujan Ringan'), findsOneWidget);
   });
 }
 
@@ -106,9 +163,55 @@ class _FakeRepository implements BmkgNotificationRepository {
   _FakeRepository(this.handler);
 
   final Future<BmkgNotificationFeed> Function(int page) handler;
+  final requestedKinds = <String?>[];
 
   @override
-  Future<BmkgNotificationFeed> load({required int page}) => handler(page);
+  Future<BmkgNotificationFeed> load({required int page, String? kind}) {
+    requestedKinds.add(kind);
+    return handler(page);
+  }
+}
+
+class _FakeForecastRepository implements BmkgForecastRepository {
+  final forecastRequests = <String>[];
+
+  @override
+  Future<List<BmkgWeatherArea>> loadWeatherAreas() async => const [
+    BmkgWeatherArea(
+      adm4: '13.71.09.1001',
+      village: 'Pasar Ambacang',
+      district: 'Kuranji',
+      city: 'Kota Padang',
+      province: 'Sumatera Barat',
+    ),
+  ];
+
+  @override
+  Future<BmkgWeatherForecast> loadWeatherForecast(String adm4) async {
+    forecastRequests.add(adm4);
+    return BmkgWeatherForecast(
+      area: const BmkgWeatherArea(
+        adm4: '13.71.09.1001',
+        village: 'Pasar Ambacang',
+        district: 'Kuranji',
+        city: 'Kota Padang',
+        province: 'Sumatera Barat',
+      ),
+      intervals: [
+        BmkgWeatherInterval(
+          localTime: DateTime(2026, 10, 30, 12),
+          utcTime: DateTime.utc(2026, 10, 30, 5),
+          condition: 'Hujan Ringan',
+          temperature: 24,
+          humidity: 92,
+          windSpeed: 0.4,
+        ),
+      ],
+      status: 'tersedia',
+      isStale: false,
+      analysisAt: DateTime.utc(2026, 10, 30, 4),
+    );
+  }
 }
 
 BmkgNotificationFeed _feed({List<BmkgNotification>? items}) =>
@@ -133,4 +236,18 @@ BmkgNotificationFeed _feed({List<BmkgNotification>? items}) =>
       perPage: 30,
       total: items?.length ?? 1,
       sourceUpdatedAt: DateTime.parse('2026-10-25T01:03:00Z'),
+      sourceStatuses: {
+        'gempa': BmkgSyncState(
+          status: 'berhasil',
+          lastSuccessAt: DateTime.utc(2026, 10, 25, 1, 3),
+        ),
+        'prakiraan_cuaca': BmkgSyncState(
+          status: 'berhasil',
+          lastSuccessAt: DateTime.utc(2026, 10, 25, 1, 3),
+        ),
+        'peringatan_dini_cuaca': BmkgSyncState(
+          status: 'berhasil',
+          lastSuccessAt: DateTime.utc(2026, 10, 25, 1, 3),
+        ),
+      },
     );

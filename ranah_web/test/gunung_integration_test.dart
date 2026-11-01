@@ -8,6 +8,7 @@ import 'package:ranah_web/app/ranah_app.dart';
 import 'package:ranah_web/services/gunung_repository.dart';
 import 'package:ranah_web/services/news_repository.dart';
 import 'package:ranah_web/services/ranah_api_client.dart';
+import 'package:ranah_web/services/osm_assembly_point_repository.dart';
 
 void main() {
   testWidgets(
@@ -97,6 +98,10 @@ void main() {
           home: RanahShell(
             gunungRepository: GunungRepository(client: client()),
             newsRepository: NewsRepository(client: client()),
+            osmLoader: () async => const OsmAssemblyPointDataset(
+              metadata: {'jumlah_fitur': 0},
+              features: [],
+            ),
             volcanoMapTilesEnabled: false,
           ),
         ),
@@ -105,7 +110,9 @@ void main() {
 
       await tester.tap(find.text('Peta').first);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Laporan Aktivitas Gunung'));
+      final activityButton = find.text('Laporan Aktivitas Gunung');
+      await tester.ensureVisible(activityButton);
+      await tester.tap(activityButton);
       await tester.pumpAndSettle();
 
       expect(find.text('Gunung Marapi'), findsOneWidget);

@@ -31,41 +31,47 @@ void main() {
     await tempDirectory.delete(recursive: true);
   });
 
-  testWidgets('shows offline examples while the server request is pending', (
-    tester,
-  ) async {
-    final api = _CompletingNewsApi();
-    await tester.pumpWidget(
-      RanahApp(
-        newsRepository: NewsRepository(api: api, localStore: store),
-        internetStatusMonitor: createTestInternetStatusMonitor(),
-      ),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'does not show example stories while the server request is pending',
+    (tester) async {
+      final api = _CompletingNewsApi();
+      await tester.pumpWidget(
+        RanahApp(
+          mapTilesEnabled: false,
+          newsRepository: NewsRepository(api: api, localStore: store),
+          internetStatusMonitor: createTestInternetStatusMonitor(),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 3300));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.textContaining('Contoh:'), findsWidgets);
+      expect(find.text('Memuat berita dari server...'), findsOneWidget);
+      expect(find.textContaining('Contoh:'), findsNothing);
 
-    api.completer.complete([_newsItem()]);
-    await _flushLocalDatabase(tester);
-    await tester.pumpAndSettle();
-    expect(find.text('Berita berhasil diperbarui.'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 6));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Berita'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Berita uji server'),
-      160,
-      scrollable: _newsScrollable().first,
-    );
-    expect(find.text('Berita uji server'), findsOneWidget);
-  });
+      api.completer.complete([_newsItem()]);
+      await _flushLocalDatabase(tester);
+      await tester.pumpAndSettle();
+      expect(find.text('Berita berhasil diperbarui.'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Berita'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Berita uji server'),
+        160,
+        scrollable: _newsScrollable().first,
+      );
+      expect(find.text('Berita uji server'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'successful empty server response is shown as empty, not examples',
     (tester) async {
       await tester.pumpWidget(
         RanahApp(
+          mapTilesEnabled: false,
           internetStatusMonitor: createTestInternetStatusMonitor(),
           newsRepository: NewsRepository(
             api: _ImmediateNewsApi([]),
@@ -73,9 +79,10 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 3500));
+      await tester.pump(const Duration(milliseconds: 300));
       await _flushLocalDatabase(tester);
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       expect(
         find.text('Belum ada berita yang dipublikasikan.'),
@@ -99,9 +106,11 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    await store.saveNewsIfChanged([_newsItem()], checkedAt: DateTime.now());
 
     await tester.pumpWidget(
       RanahApp(
+        mapTilesEnabled: false,
         internetStatusMonitor: createTestInternetStatusMonitor(),
         newsRepository: NewsRepository(
           api: _ImmediateNewsApi([_newsItem()]),
@@ -109,20 +118,21 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 3500));
+    await tester.pump(const Duration(milliseconds: 300));
     await _flushLocalDatabase(tester);
-    await tester.pumpAndSettle();
-    await tester.pump(const Duration(seconds: 6));
-    await tester.pumpAndSettle();
+    await tester.pump();
     await tester.tap(find.text('Berita'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 400));
     await tester.scrollUntilVisible(
       find.text('Berita uji server'),
       160,
       scrollable: _newsScrollable().first,
     );
+    await tester.drag(_newsScrollable().first, const Offset(0, -150));
+    await tester.pump(const Duration(milliseconds: 400));
     await tester.tap(find.text('Berita uji server'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.textContaining('Sumber berita: BPBD uji'), findsOneWidget);
     expect(
@@ -155,20 +165,29 @@ void main() {
           .setMockMethodCallHandler(sourceChannel, null),
     );
 
+    final eventAt = DateTime.now().toUtc().subtract(const Duration(hours: 1));
+    final expiresAt = DateTime.now().toUtc().add(const Duration(hours: 6));
+    final retrievedAt = DateTime.now().toUtc();
+    final bmkgFixture = _bmkgFixture(
+      eventAt: eventAt,
+      expiresAt: expiresAt,
+      retrievedAt: retrievedAt,
+    );
+    await store.saveNewsIfChanged([bmkgFixture], checkedAt: DateTime.now());
     await tester.pumpWidget(
       RanahApp(
+        mapTilesEnabled: false,
         internetStatusMonitor: createTestInternetStatusMonitor(),
         newsRepository: NewsRepository(
-          api: _ImmediateNewsApi([_bmkgFixture()]),
+          api: _ImmediateNewsApi([bmkgFixture]),
           localStore: store,
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 3500));
+    await tester.pump(const Duration(milliseconds: 300));
     await _flushLocalDatabase(tester);
-    await tester.pumpAndSettle();
-    await tester.pump(const Duration(seconds: 6));
-    await tester.pumpAndSettle();
+    await tester.pump();
     await tester.tap(find.text('Berita'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
@@ -176,17 +195,17 @@ void main() {
       160,
       scrollable: _newsScrollable().first,
     );
+    await tester.drag(_newsScrollable().first, const Offset(0, -150));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Peringatan fixture BMKG'));
     await tester.pumpAndSettle();
 
     expect(
-      find.text(
-        'Berlaku sejak: ${_formatFixtureDateTime(DateTime.parse('2026-10-24T09:00:00+07:00'))}',
-      ),
+      find.text('Berlaku sejak: ${_formatFixtureDateTime(eventAt)}'),
       findsOneWidget,
     );
     final expirationLabel = find.text(
-      'Berakhir: ${_formatFixtureDateTime(DateTime.parse('2026-10-25T09:00:00+07:00'))}',
+      'Berakhir: ${_formatFixtureDateTime(expiresAt)}',
     );
     await tester.scrollUntilVisible(
       expirationLabel,
@@ -196,9 +215,7 @@ void main() {
     expect(expirationLabel, findsOneWidget);
     expect(find.text('Wilayah: Kota Padang'), findsOneWidget);
     expect(
-      find.text(
-        'Data diambil: ${_formatFixtureDateTime(DateTime.parse('2026-10-24T09:05:00+07:00'))}',
-      ),
+      find.text('Data diambil: ${_formatFixtureDateTime(retrievedAt)}'),
       findsOneWidget,
     );
     final sourceButton = find.text('Sumber resmi: BMKG');
@@ -272,7 +289,7 @@ Finder _detailScrollable() => find.descendant(
 
 Future<void> _flushLocalDatabase(WidgetTester tester) async {
   await tester.runAsync(() => Future<void>.delayed(const Duration(seconds: 1)));
-  await tester.pumpAndSettle();
+  await tester.pump();
 }
 
 Map<String, dynamic> _newsItem() => {
@@ -285,7 +302,11 @@ Map<String, dynamic> _newsItem() => {
   'waktu_publikasi': '2026-10-22T09:00:00.000000Z',
 };
 
-Map<String, dynamic> _bmkgFixture() => {
+Map<String, dynamic> _bmkgFixture({
+  DateTime? eventAt,
+  DateTime? expiresAt,
+  DateTime? retrievedAt,
+}) => {
   'id': 24,
   'judul': 'Peringatan fixture BMKG',
   'kategori': 'Imbauan/penanganan bencana',
@@ -294,10 +315,15 @@ Map<String, dynamic> _bmkgFixture() => {
   'sumber': 'BMKG',
   'url_sumber': 'https://www.bmkg.go.id/alerts/nowcast/id/fixture.xml',
   'wilayah': 'Kota Padang',
-  'waktu_publikasi': '2026-10-24T09:05:00+07:00',
-  'waktu_kejadian': '2026-10-24T09:00:00+07:00',
-  'waktu_berakhir': '2026-10-25T09:00:00+07:00',
-  'waktu_pengambilan': '2026-10-24T09:05:00+07:00',
+  'waktu_publikasi': (retrievedAt ?? DateTime.now().toUtc()).toIso8601String(),
+  'waktu_kejadian':
+      (eventAt ?? DateTime.now().toUtc().subtract(const Duration(hours: 1)))
+          .toIso8601String(),
+  'waktu_berakhir':
+      (expiresAt ?? DateTime.now().toUtc().add(const Duration(hours: 6)))
+          .toIso8601String(),
+  'waktu_pengambilan': (retrievedAt ?? DateTime.now().toUtc())
+      .toIso8601String(),
 };
 
 String _formatFixtureDateTime(DateTime value) {

@@ -117,12 +117,14 @@ class BeritaApiTest extends TestCase
         Storage::disk('public')->put($path, $contents);
         $item = $this->createBerita(['gambar' => $path]);
 
-        $this->withHeaders(['Origin' => 'http://localhost:5000'])
+        $response = $this->withHeaders(['Origin' => 'http://localhost:5000'])
             ->get("/api/berita/{$item->id}/gambar")
             ->assertOk()
             ->assertHeader('Content-Type', 'image/jpeg')
             ->assertHeader('Access-Control-Allow-Origin', 'http://localhost:5000')
             ->assertHeader('X-Content-Type-Options', 'nosniff');
+
+        self::assertSame($contents, $response->streamedContent());
     }
 
     public function test_detail_hides_missing_draft_and_future_news(): void

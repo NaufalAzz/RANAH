@@ -319,6 +319,61 @@ class BmkgInformationTest extends TestCase
             ->assertJsonPath('meta.total', 1);
     }
 
+    public function test_notification_api_filters_kinds_and_exposes_per_source_sync_status(): void
+    {
+        Carbon::setTestNow('2026-10-24 03:00:00');
+        Berita::query()->create($this->baseNews([
+            'jenis_konten' => 'kejadian', 'sumber' => 'BMKG', 'sumber_id' => 'bmkg-quake:filter',
+            'wilayah' => 'Kota Padang', 'waktu_kejadian' => '2026-10-24 02:00:00',
+        ]));
+        Berita::query()->create($this->baseNews([
+            'jenis_konten' => 'peringatan', 'sumber' => 'BMKG', 'sumber_id' => 'bmkg-cap:filter',
+            'wilayah' => 'Kota Padang', 'waktu_kejadian' => '2026-10-24 02:00:00',
+            'waktu_berakhir' => '2026-10-24 04:00:00',
+        ]));
+
+        $this->getJson('/api/notifikasi?jenis_konten=peringatan')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.jenis_konten', 'peringatan')
+            ->assertJsonStructure(['meta' => ['status_sumber' => ['gempa', 'prakiraan_cuaca', 'peringatan_dini_cuaca']]]);
+        $this->getJson('/api/notifikasi?jenis_konten=kejadian')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.jenis_konten', 'kejadian');
+    }
+
+    public function test_cap_cancellation_archives_the_referenced_alert(): void
+    {
+        Carbon::setTestNow('2026-10-24 03:00:00');
+        Berita::query()->create($this->baseNews([
+            'jenis_konten' => 'peringatan', 'sumber' => 'BMKG',
+            'sumber_id' => 'bmkg-cap:'.hash('sha256', 'original-alert'),
+            'url_sumber' => 'https://www.bmkg.go.id/alerts/nowcast/id/ORIGINAL_alert.xml',
+            'wilayah' => 'Kota Padang', 'waktu_kejadian' => '2026-10-24 02:00:00',
+            'waktu_berakhir' => '2026-10-24 04:00:00',
+        ]));
+        Http::fake([
+            'https://www.bmkg.go.id/alerts/nowcast/id' => Http::response(
+                '<rss version="2.0"><channel><item><title>Sumatera Barat</title><description>Sumatera Barat</description>'
+                .'<link>https://www.bmkg.go.id/alerts/nowcast/id/CANCEL_alert.xml</link>'
+                .'<pubDate>Sat, 24 Oct 2026 02:50:00 GMT</pubDate></item></channel></rss>',
+            ),
+            'https://www.bmkg.go.id/alerts/nowcast/id/CANCEL_alert.xml' => Http::response(
+                '<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2"><identifier>cancel-id</identifier>'
+                .'<sender>bmkg@example.test</sender><sent>2026-10-24T02:50:00Z</sent><status>Actual</status>'
+                .'<msgType>Cancel</msgType><scope>Public</scope>'
+                .'<references>bmkg@example.test,original-alert,2026-10-24T02:30:00Z</references></alert>',
+            ),
+        ]);
+
+        $this->assertSame(0, app(BmkgInformationService::class)->synchronizeWestSumatraWeatherAlerts());
+        $this->assertDatabaseHas('berita', [
+            'sumber_id' => 'bmkg-cap:'.hash('sha256', 'original-alert'),
+            'status_publikasi' => 'archived',
+        ]);
+    }
+
     public function test_feed_cannot_direct_cap_fetch_to_an_untrusted_host(): void
     {
         Carbon::setTestNow('2026-10-24 03:00:00');

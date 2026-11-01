@@ -27,7 +27,10 @@ void main() {
     expect(result.items.single.title, 'Gempa di Sumbar');
     expect(result.items.single.eventAt, DateTime.parse('2026-10-25T01:00:00Z'));
     expect(result.items.single.publishedAt, isNull);
-    expect(result.items.single.retrievedAt, DateTime.parse('2026-10-25T01:02:00Z'));
+    expect(
+      result.items.single.retrievedAt,
+      DateTime.parse('2026-10-25T01:02:00Z'),
+    );
     expect(result.items.single.region, 'Kota Padang');
     expect(result.items.single.source, 'BMKG');
     expect(result.sourceUpdatedAt, DateTime.parse('2026-10-25T01:03:00Z'));
@@ -36,18 +39,88 @@ void main() {
     expect(result.total, 61);
   });
 
+  test('sends the selected notification category to the API', () async {
+    late Uri requestedUri;
+    final repository = NotificationsRepository(
+      client: RanahApiClient(
+        baseUrl: 'https://api.example.test/api',
+        client: MockClient((request) async {
+          requestedUri = request.url;
+          return http.Response(jsonEncode(_feed()), 200);
+        }),
+      ),
+    );
+
+    await repository.load(page: 1, kind: 'peringatan');
+
+    expect(requestedUri.queryParameters['jenis_konten'], 'peringatan');
+  });
+
+  test('loads the selected ADM4 forecast from the Laravel cache endpoint', () async {
+    late Uri requestedUri;
+    final repository = NotificationsRepository(
+      client: RanahApiClient(
+        baseUrl: 'https://api.example.test/api',
+        client: MockClient((request) async {
+          requestedUri = request.url;
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'data': {
+                'wilayah': {
+                  'adm4': '13.71.09.1001',
+                  'desa': 'Pasar Ambacang',
+                  'kecamatan': 'Kuranji',
+                  'kotkab': 'Kota Padang',
+                  'provinsi': 'Sumatera Barat',
+                },
+                'prakiraan': [
+                  {
+                    'waktu_lokal': '2026-10-30T12:00:00+07:00',
+                    'waktu_utc': '2026-10-30T05:00:00+00:00',
+                    'kondisi': 'Hujan Ringan',
+                    'suhu_c': 24,
+                    'kelembapan_persen': 92,
+                    'kecepatan_angin_kmh': 0.4,
+                  },
+                ],
+                'waktu_data_dibuat': '2026-10-30T04:00:00+00:00',
+                'waktu_diambil': '2026-10-30T04:05:00+00:00',
+              },
+              'meta': {'status': 'tersedia', 'data_stale': false},
+            }),
+            200,
+          );
+        }),
+      ),
+    );
+
+    final result = await repository.loadWeatherForecast('13.71.09.1001');
+
+    expect(requestedUri.path, '/api/prakiraan-cuaca/13.71.09.1001');
+    expect(result.area.village, 'Pasar Ambacang');
+    expect(result.area.district, 'Kuranji');
+    expect(result.intervals.single.condition, 'Hujan Ringan');
+    expect(result.intervals.single.temperature, 24);
+    expect(result.intervals.single.humidity, 92);
+    expect(result.intervals.single.windSpeed, 0.4);
+    expect(result.isStale, isFalse);
+  });
+
   test('accepts a successful empty response as an empty feed', () async {
     final repository = NotificationsRepository(
       client: RanahApiClient(
         baseUrl: 'http://localhost:8000/api',
-        client: MockClient((_) async => http.Response(
-          jsonEncode({
-            'success': true,
-            'data': [],
-            'meta': {'total': 0, 'current_page': 1, 'last_page': 1},
-          }),
-          200,
-        )),
+        client: MockClient(
+          (_) async => http.Response(
+            jsonEncode({
+              'success': true,
+              'data': [],
+              'meta': {'total': 0, 'current_page': 1, 'last_page': 1},
+            }),
+            200,
+          ),
+        ),
       ),
     );
 
@@ -56,26 +129,35 @@ void main() {
     expect(result.total, 0);
   });
 
-  test('reports HTTP errors without substituting sample notifications', () async {
-    final repository = NotificationsRepository(
-      client: RanahApiClient(
-        baseUrl: 'https://api.example.test/api',
-        client: MockClient((_) async => http.Response(
-          jsonEncode({'message': 'Server unavailable'}),
-          503,
-        )),
-      ),
-    );
+  test(
+    'reports HTTP errors without substituting sample notifications',
+    () async {
+      final repository = NotificationsRepository(
+        client: RanahApiClient(
+          baseUrl: 'https://api.example.test/api',
+          client: MockClient(
+            (_) async => http.Response(
+              jsonEncode({'message': 'Server unavailable'}),
+              503,
+            ),
+          ),
+        ),
+      );
 
-    await expectLater(
-      repository.load(page: 1),
-      throwsA(
-        isA<RanahApiException>()
-            .having((error) => error.statusCode, 'statusCode', 503)
-            .having((error) => error.message, 'message', 'Server unavailable'),
-      ),
-    );
-  });
+      await expectLater(
+        repository.load(page: 1),
+        throwsA(
+          isA<RanahApiException>()
+              .having((error) => error.statusCode, 'statusCode', 503)
+              .having(
+                (error) => error.message,
+                'message',
+                'Server unavailable',
+              ),
+        ),
+      );
+    },
+  );
 
   test('rejects malformed JSON', () async {
     final repository = NotificationsRepository(
@@ -87,11 +169,13 @@ void main() {
 
     await expectLater(
       repository.load(page: 1),
-      throwsA(isA<RanahApiException>().having(
-        (error) => error.message,
-        'message',
-        'Respons JSON dari API tidak valid.',
-      )),
+      throwsA(
+        isA<RanahApiException>().having(
+          (error) => error.message,
+          'message',
+          'Respons JSON dari API tidak valid.',
+        ),
+      ),
     );
   });
 }
