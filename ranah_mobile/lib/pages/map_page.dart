@@ -19,6 +19,7 @@ enum _LocationConsent { locationAndRoute, locationOnly, cancel }
 class MapPage extends StatefulWidget {
   const MapPage({
     this.onOpenActivity,
+    this.onOpenReport,
     this.repository,
     this.locationProvider,
     this.gunungRepository,
@@ -27,6 +28,7 @@ class MapPage extends StatefulWidget {
   });
 
   final VoidCallback? onOpenActivity;
+  final ValueChanged<Map<String, dynamic>>? onOpenReport;
   final MobileMapRepository? repository;
   final MobileLocationProvider? locationProvider;
   final GunungRepository? gunungRepository;
@@ -43,6 +45,7 @@ class _MapPageState extends State<MapPage> {
   late final MobileLocationProvider _locationProvider;
   late final GunungRepository _gunungRepository;
   bool _locationLoading = false;
+  bool _locationRequested = false;
   bool _locationConsentGiven = false;
   bool _routeConsentGiven = false;
   bool _addressLoading = false;
@@ -97,6 +100,11 @@ class _MapPageState extends State<MapPage> {
               padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
               children: [
                 _MapTitlePanel(),
+                if (_locationRequested)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+                    child: _MapBackButton(onPressed: _backToMapStart),
+                  ),
                 SizedBox(height: 14),
                 _InteractiveMobileMap(
                   controller: _mapController,
@@ -108,54 +116,65 @@ class _MapPageState extends State<MapPage> {
                   onSelectDestination: _selectDestination,
                   tilesEnabled: widget.tilesEnabled,
                 ),
-                SizedBox(height: 12),
-                _MapLevelLegend(),
-                SizedBox(height: 14),
-                _LocationAction(
-                  onTap: _findLocation,
-                  loading: _locationLoading,
-                ),
-                SizedBox(height: 10),
+                if (!_locationRequested) ...[
+                  const SizedBox(height: 14),
+                  _LocationAction(
+                    onTap: _findLocation,
+                    loading: _locationLoading,
+                  ),
+                ],
+                const SizedBox(height: 10),
                 _ActivityReportHeading(onTap: widget.onOpenActivity),
-                SizedBox(height: 10),
-                _LocationSummary(
-                  location: _location,
-                  address: _address,
-                  loading: _addressLoading,
-                  error: _addressError,
-                  onRetry: _retryAddress,
-                  locationError: _locationError,
-                ),
-                SizedBox(height: 12),
-                _RoutePanel(
-                  route: _route,
-                  destination: _selectedDestination,
-                  loading: _routeLoading,
-                  error: _routeError,
-                  onRetry: _retryRoute,
-                  onStart: _requestRouteForSelected,
-                ),
-                SizedBox(height: 12),
-                _NearbyVolcanoPanel(
-                  items: _nearbyVolcanoes,
-                  loading: _gunungLoading,
-                  error: _gunungError,
-                  onRetry: _retryVolcanoes,
-                ),
-                SizedBox(height: 12),
-                _HazardPanel(
-                  result: _hazards,
-                  loading: _hazardLoading,
-                  error: _hazardError,
-                  onRetry: _retryHazards,
-                ),
-                SizedBox(height: 12),
-                _MapSourceNote(
-                  osm: _osm,
-                  osmLoading: _osmLoading,
-                  osmError: _osmError,
-                  onRetry: _retryOsm,
-                ),
+                if (_locationRequested) ...[
+                  const SizedBox(height: 12),
+                  const _MapLevelLegend(),
+                  const SizedBox(height: 14),
+                  _LocationSummary(
+                    location: _location,
+                    address: _address,
+                    locationLoading: _locationLoading,
+                    loading: _addressLoading,
+                    error: _addressError,
+                    onRetry: _locationError == null
+                        ? _retryAddress
+                        : _findLocation,
+                    locationError: _locationError,
+                  ),
+                  const SizedBox(height: 12),
+                  _RoutePanel(
+                    route: _route,
+                    destination: _selectedDestination,
+                    loading: _routeLoading,
+                    error: _routeError,
+                    onRetry: _retryRoute,
+                    onStart: _requestRouteForSelected,
+                  ),
+                  const SizedBox(height: 6),
+                  _MapSourceNote(
+                    osm: _osm,
+                    osmLoading: _osmLoading,
+                    osmError: _osmError,
+                    onRetry: _retryOsm,
+                  ),
+                  const SizedBox(height: 12),
+                  _NearbyVolcanoPanel(
+                    items: _nearbyVolcanoes,
+                    province: _address?.province,
+                    location: _location,
+                    loading: _gunungLoading,
+                    error: _gunungError,
+                    onRetry: _retryVolcanoes,
+                    onOpenReport: widget.onOpenReport,
+                    onOpenActivity: widget.onOpenActivity,
+                  ),
+                  const SizedBox(height: 12),
+                  _HazardPanel(
+                    result: _hazards,
+                    loading: _hazardLoading,
+                    error: _hazardError,
+                    onRetry: _retryHazards,
+                  ),
+                ],
               ],
             ),
           ),
@@ -204,6 +223,7 @@ class _MapPageState extends State<MapPage> {
       _routeConsentGiven = routeAfterLocation;
     }
     setState(() {
+      _locationRequested = true;
       _locationLoading = true;
       _locationError = null;
       _locationGeneration++;
@@ -274,6 +294,36 @@ class _MapPageState extends State<MapPage> {
         _locationError = error.toString();
       });
     }
+  }
+
+  void _backToMapStart() {
+    _locationGeneration++;
+    _routeGeneration++;
+    _mapController.move(const LatLng(-0.9147, 100.4668), 5);
+    setState(() {
+      _locationRequested = false;
+      _locationConsentGiven = false;
+      _routeConsentGiven = false;
+      _locationLoading = false;
+      _addressLoading = false;
+      _hazardLoading = false;
+      _osmLoading = false;
+      _gunungLoading = false;
+      _routeLoading = false;
+      _location = null;
+      _address = null;
+      _hazards = null;
+      _osm = null;
+      _route = null;
+      _selectedDestination = null;
+      _nearbyVolcanoes = const [];
+      _locationError = null;
+      _addressError = null;
+      _hazardError = null;
+      _osmError = null;
+      _gunungError = null;
+      _routeError = null;
+    });
   }
 
   Future<MapAddress?> _loadAddress(
@@ -359,7 +409,19 @@ class _MapPageState extends State<MapPage> {
           .where(
             (record) => _sameProvince(record['provinsi']?.toString(), province),
           )
-          .toList(growable: false);
+          .toList()
+        ..sort((a, b) {
+          final distanceA = _volcanoDistanceKm(a, _location);
+          final distanceB = _volcanoDistanceKm(b, _location);
+          if (distanceA == null && distanceB != null) return 1;
+          if (distanceA != null && distanceB == null) return -1;
+          if (distanceA != null && distanceB != null) {
+            return distanceA.compareTo(distanceB);
+          }
+          return (a['nama']?.toString() ?? '').compareTo(
+            b['nama']?.toString() ?? '',
+          );
+        });
       setState(() {
         _nearbyVolcanoes = matching;
         _gunungLoading = false;
@@ -653,6 +715,72 @@ class _BackgroundRing extends StatelessWidget {
   }
 }
 
+class _MapBackButton extends StatelessWidget {
+  const _MapBackButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.centerLeft,
+    child: OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.arrow_back_rounded, size: 17),
+      label: const Text('Kembali'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        minimumSize: const Size(0, AppSizes.minimumTapTarget),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+        side: BorderSide(color: Colors.white.withValues(alpha: .45)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.control),
+        ),
+        textStyle: AppTypography.label.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
+  );
+}
+
+class _ActivityReportHeading extends StatelessWidget {
+  const _ActivityReportHeading({this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 18),
+    child: Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(13),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(13),
+        child: Ink(
+          height: AppSizes.minimumTapTarget,
+          decoration: BoxDecoration(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(AppRadii.control),
+          ),
+          child: const Center(
+            child: Text(
+              'Laporan Aktivitas Gunung',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 class _MapTitlePanel extends StatelessWidget {
   const _MapTitlePanel();
 
@@ -750,19 +878,13 @@ class _InteractiveMobileMap extends StatelessWidget {
         })
         .whereType<({Map<String, dynamic> record, LatLng point})>()
         .toList();
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: AppCardSurface(
-        variant: AppCardVariant.information,
-        padding: const EdgeInsets.all(AppSpacing.sm),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              height: 270,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: FlutterMap(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 310,
+          child: ClipRect(
+            child: FlutterMap(
                   mapController: controller,
                   options: MapOptions(
                     initialCenter: center,
@@ -874,19 +996,17 @@ class _InteractiveMobileMap extends StatelessWidget {
                       ],
                     ),
                   ],
-                ),
-              ),
             ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(8, 8, 8, 2),
-              child: Text(
+          ),
+        ),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(14, 8, 14, 2),
+          child: Text(
                 'Peta dasar memerlukan internet · Referensi OSM belum diverifikasi sebagai fasilitas evakuasi.',
                 style: TextStyle(color: Color(0xFFD1DCE9), fontSize: 11),
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -903,6 +1023,34 @@ Color _volcanoColor(String? status) {
     'IV' => const Color(0xFFEB5757),
     _ => const Color(0xFF9AA7B5),
   };
+}
+
+double? _volcanoDistanceKm(
+  Map<String, dynamic> record,
+  DeviceLocationFix? location,
+) {
+  if (location == null ||
+      record['status_validasi_koordinat']?.toString().toLowerCase() !=
+          'terverifikasi') {
+    return null;
+  }
+  final latitude = double.tryParse(record['latitude']?.toString() ?? '');
+  final longitude = double.tryParse(record['longitude']?.toString() ?? '');
+  if (latitude == null ||
+      longitude == null ||
+      !latitude.isFinite ||
+      !longitude.isFinite ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180) {
+    return null;
+  }
+  return const Distance().as(
+    LengthUnit.Kilometer,
+    location.point,
+    LatLng(latitude, longitude),
+  );
 }
 
 String _formatMapTime(DateTime? date) {
@@ -1071,6 +1219,7 @@ class _LocationSummary extends StatelessWidget {
   const _LocationSummary({
     required this.location,
     required this.address,
+    required this.locationLoading,
     required this.loading,
     required this.error,
     required this.onRetry,
@@ -1078,6 +1227,7 @@ class _LocationSummary extends StatelessWidget {
   });
   final DeviceLocationFix? location;
   final MapAddress? address;
+  final bool locationLoading;
   final bool loading;
   final String? error;
   final VoidCallback onRetry;
@@ -1091,53 +1241,73 @@ class _LocationSummary extends StatelessWidget {
         icon: Icons.my_location_rounded,
         title: 'Lokasi saat ini',
         detail: location == null
-            ? locationError ??
+            ? locationLoading
+                  ? 'Mencari lokasi perangkat...'
+                  : locationError ??
                   'Tekan Temukan Lokasi Saya untuk meminta posisi perangkat.'
             : '${loading ? 'Memuat alamat...' : address?.shortLabel ?? error ?? 'Alamat belum tersedia.'}\nKoordinat ${location!.latitude.toStringAsFixed(5)}, ${location!.longitude.toStringAsFixed(5)} · akurasi ±${location!.accuracyMeters.round()} m',
-        action: location != null && error != null
-            ? TextButton(onPressed: onRetry, child: const Text('Coba lagi'))
+        action: locationError != null || (location != null && error != null)
+            ? _retryButton(onRetry)
             : null,
       ),
     );
   }
 }
 
-class _ActivityReportHeading extends StatelessWidget {
-  const _ActivityReportHeading({this.onTap});
+class _MapSectionHeading extends StatelessWidget {
+  const _MapSectionHeading({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.trailing,
+  });
 
-  final VoidCallback? onTap;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Widget? trailing;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(13),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(13),
-          child: Ink(
-            height: AppSizes.minimumTapTarget,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(AppRadii.control),
-            ),
-            child: const Center(
-              child: Text(
-                'Laporan Aktivitas Gunung',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
+  Widget build(BuildContext context) => Row(
+    children: [
+      Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F5473),
+          borderRadius: BorderRadius.circular(AppRadii.control),
+          border: Border.all(color: const Color(0xFF29849A)),
+        ),
+        child: Icon(icon, color: const Color(0xFF7ED5DE), size: 21),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
               ),
             ),
-          ),
+            Text(
+              subtitle,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFFD1DCE9),
+                fontSize: 12,
+              ),
+            ),
+          ],
         ),
       ),
-    );
-  }
+      if (trailing != null) ...[const SizedBox(width: 4), trailing!],
+    ],
+  );
 }
 
 class _RoutePanel extends StatelessWidget {
@@ -1160,31 +1330,49 @@ class _RoutePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
-      child: _InfoPanel(
-        icon: Icons.alt_route_rounded,
-        title: 'Simulasi Jalur Menuju Titik Kumpul',
-        detail: route != null
-            ? '${route!.destinationName ?? destination?.name ?? 'Titik referensi OSM'} · ${(route!.distanceMeters / 1000).toStringAsFixed(2)} km${route!.durationSeconds == null ? '' : ' · sekitar ${(route!.durationSeconds! / 60).ceil()} menit'}\n${route!.warning}'
-            : loading
-            ? 'Menghitung rute pejalan kaki melalui Laravel...'
-            : error ??
-                  (destination == null
-                      ? 'Pilih marker Point referensi OSM pada peta. Polygon tidak memiliki titik akses dan tidak dapat dirutekan.'
-                      : '${destination!.name ?? 'Titik referensi OSM'} · ${destination!.status}'),
-        action: loading
-            ? const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: LinearProgressIndicator(),
-              )
-            : error != null
-            ? TextButton(onPressed: onRetry, child: const Text('Coba lagi'))
-            : destination?.geometryType == 'Point' && route == null
-            ? TextButton.icon(
-                onPressed: onStart,
-                icon: const Icon(Icons.directions_walk),
-                label: const Text('Tampilkan simulasi rute'),
-              )
-            : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _MapSectionHeading(
+            icon: Icons.alt_route_rounded,
+            title: 'Jalur Evakuasi',
+            subtitle: 'Referensi OSM pada peta utama',
+          ),
+          const SizedBox(height: 8),
+          _InfoPanel(
+            icon: Icons.alt_route_rounded,
+            title: route != null
+                ? route!.destinationName ??
+                      destination?.name ??
+                      'Simulasi rute tersedia'
+                : 'Referensi OSM ditampilkan pada peta.',
+            detail: route != null
+                ? '${(route!.distanceMeters / 1000).toStringAsFixed(2)} km${route!.durationSeconds == null ? '' : ' · sekitar ${(route!.durationSeconds! / 60).ceil()} menit'}\n${route!.warning}'
+                : loading
+                ? 'Menghitung rute pejalan kaki melalui Laravel...'
+                : error ??
+                      (destination == null
+                          ? 'Fitur yang terlihat belum diverifikasi sebagai fasilitas evakuasi atau titik aman tsunami. Pilih marker Point untuk menghitung simulasi rute.'
+                          : '${destination!.name ?? 'Titik referensi OSM'} · ${destination!.status}'),
+            action: loading
+                ? const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: LinearProgressIndicator(),
+                  )
+                : error != null
+                ? _retryButton(onRetry)
+                : destination?.geometryType == 'Point' && route == null
+                ? TextButton.icon(
+                    onPressed: onStart,
+                    icon: const Icon(Icons.directions_walk),
+                    label: const Text('Tampilkan simulasi rute'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.bannerEyebrow,
+                    ),
+                  )
+                : null,
+          ),
+        ],
       ),
     );
   }
@@ -1193,51 +1381,200 @@ class _RoutePanel extends StatelessWidget {
 class _NearbyVolcanoPanel extends StatelessWidget {
   const _NearbyVolcanoPanel({
     required this.items,
+    required this.province,
+    required this.location,
     required this.loading,
     required this.error,
     required this.onRetry,
+    required this.onOpenReport,
+    required this.onOpenActivity,
   });
   final List<Map<String, dynamic>> items;
+  final String? province;
+  final DeviceLocationFix? location;
   final bool loading;
   final String? error;
   final VoidCallback onRetry;
+  final ValueChanged<Map<String, dynamic>>? onOpenReport;
+  final VoidCallback? onOpenActivity;
 
   @override
   Widget build(BuildContext context) {
+    final normalizedProvince = province?.trim();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _InfoPanel(
-            icon: Icons.landscape_rounded,
-            title: 'Gunung di Provinsi Anda',
-            detail: loading
-                ? 'Memuat daftar gunung dari Laravel...'
-                : error ??
-                      (items.isEmpty
-                          ? 'Belum ada data gunung untuk wilayah yang dikenali.'
-                          : '${items.length} gunung ditemukan sesuai provinsi alamat.'),
+          _MapSectionHeading(
+            icon: Icons.landscape_outlined,
+            title: 'Gunung Aktif Sekitar',
+            subtitle: normalizedProvince == null || normalizedProvince.isEmpty
+                ? 'Provinsi belum dikenali'
+                : 'Provinsi $normalizedProvince',
+            trailing: TextButton(
+              onPressed: onOpenActivity,
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                textStyle: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              child: const Text('Lihat daftar'),
+            ),
           ),
+          if (loading || error != null || items.isEmpty) ...[
+            const SizedBox(height: 8),
+            _InfoPanel(
+              icon: loading ? Icons.hourglass_top : Icons.landscape_rounded,
+              title: loading
+                  ? 'Memuat daftar gunung...'
+                  : error != null
+                  ? 'Daftar gunung belum dapat dimuat.'
+                  : 'Belum ada data gunung untuk wilayah ini.',
+              detail: loading
+                  ? 'Memuat daftar gunung dari Laravel.'
+                  : error ??
+                        'Daftar akan tampil setelah provinsi lokasi berhasil dikenali.',
+            ),
+          ],
           if (error != null)
             Align(
               alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: onRetry,
-                child: const Text('Coba lagi'),
-              ),
+              child: _retryButton(onRetry),
             ),
           for (final item in items.take(5))
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: _InfoPanel(
-                icon: Icons.terrain,
-                title: item['nama']?.toString() ?? 'Gunung api',
-                detail:
-                    '${item['status_aktivitas'] ?? 'Status belum tersedia'} · ${item['kabupaten'] ?? item['provinsi'] ?? 'Wilayah belum tersedia'}',
+              child: _NearbyVolcanoCard(
+                item: item,
+                location: location,
+                onTap: item['id'] != null && onOpenReport != null
+                    ? () => onOpenReport!(item)
+                    : null,
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _NearbyVolcanoCard extends StatelessWidget {
+  const _NearbyVolcanoCard({
+    required this.item,
+    required this.location,
+    this.onTap,
+  });
+
+  final Map<String, dynamic> item;
+  final DeviceLocationFix? location;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = item['status_aktivitas']?.toString().trim();
+    final statusLabel = status == null || status.isEmpty
+        ? 'Status belum tersedia'
+        : status;
+    final statusColor = _volcanoColor(status);
+    final region = [item['kabupaten'], item['provinsi']]
+        .where((value) => value != null && value.toString().trim().isNotEmpty)
+        .map((value) => value.toString().trim())
+        .join(', ');
+    final distanceKm = _volcanoDistanceKm(item, location);
+    final retrievedAt = DateTime.tryParse(
+      item['waktu_pengambilan']?.toString() ?? '',
+    );
+    final radius = BorderRadius.circular(AppRadii.card);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.darkPanel,
+        borderRadius: radius,
+        border: Border.all(color: statusColor.withValues(alpha: .72)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: radius,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: statusColor.withValues(alpha: .2),
+                  child: Icon(Icons.landscape_outlined, color: statusColor),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item['nama']?.toString() ?? 'Gunung api',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (region.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          region,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFD7E0EA),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 3),
+                      Text(
+                        distanceKm == null
+                            ? 'Jarak tidak ditampilkan: koordinat belum terverifikasi.'
+                            : 'Jarak garis lurus: ${distanceKm.toStringAsFixed(1)} km',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'Status dari API: $statusLabel',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (retrievedAt != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          'Diambil server: ${_formatMapTime(retrievedAt)}',
+                          style: const TextStyle(
+                            color: Color(0xFFD7E0EA),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (onTap != null) ...[
+                  const SizedBox(width: 8),
+                  const Icon(Icons.open_in_new, color: Colors.white70),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1262,40 +1599,132 @@ class _HazardPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _InfoPanel(
-            icon: Icons.warning_amber_rounded,
+          const _MapSectionHeading(
+            icon: Icons.monitor_heart_outlined,
             title: 'Potensi Bencana di Lokasi',
-            detail: loading
-                ? 'Mengirim koordinat ke analisis Laravel...'
-                : error ??
-                      (result == null
-                          ? 'Analisis belum dijalankan.'
-                          : 'Hasil analisis server · ${_formatMapTime(result!.analyzedAt)}'),
+            subtitle: 'Analisis data geospasial tersedia atas permintaan',
           ),
+          const SizedBox(height: 6),
+          const Text(
+            'Analisis ini mengkaji data bahaya wilayah, bukan peringatan real-time atau pernyataan lokasi aman.',
+            style: TextStyle(
+              color: Color(0xFFD1DCE9),
+              fontSize: 12,
+              height: 1.35,
+            ),
+          ),
+          if (loading) ...[
+            const SizedBox(height: 8),
+            const _InfoPanel(
+              icon: Icons.hourglass_top_rounded,
+              title: 'Menganalisis potensi bencana...',
+              detail: 'Menunggu hasil untuk koordinat lokasi yang dipilih.',
+            ),
+          ],
           if (error != null)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: onRetry,
-                child: const Text('Coba lagi'),
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: _InfoPanel(
+                icon: Icons.cloud_off_outlined,
+                title: 'Analisis belum dapat dimuat.',
+                detail: error!,
+                action: _retryButton(onRetry),
               ),
             ),
           if (result != null)
             for (final item in result!.items)
               Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: _InfoPanel(
-                  icon: _hazardIcon(item.status),
-                  title: item.name,
-                  detail:
-                      '${_hazardStatusLabel(item.status)}\n${item.explanation}',
-                ),
+                padding: const EdgeInsets.only(top: 8),
+                child: _HazardResultCard(item: item),
               ),
+          if (result == null && !loading && error == null) ...[
+            const SizedBox(height: 8),
+            const _InfoPanel(
+              icon: Icons.info_outline_rounded,
+              title: 'Analisis belum dijalankan.',
+              detail: 'Temukan lokasi untuk meminta analisis data bahaya.',
+            ),
+          ],
         ],
       ),
     );
   }
 }
+
+class _HazardResultCard extends StatelessWidget {
+  const _HazardResultCard({required this.item});
+
+  final MapHazardItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _hazardColor(item.status);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.darkPanel,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: color.withValues(alpha: .58)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(_hazardIcon(item.status), color: color, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  item.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Text(
+            _hazardStatusShort(item.status),
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${_hazardStatusLabel(item.status)}\n${item.explanation}',
+            style: const TextStyle(
+              color: Color(0xFFD1DCE9),
+              fontSize: 13,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Color _hazardColor(String status) => switch (status) {
+  'hasil_tersedia' => const Color(0xFF7ED5DE),
+  'layanan_bermasalah' || 'layanan_gagal' => const Color(0xFFFF8A80),
+  'titik_di_luar_cakupan' || 'di_luar_cakupan_layer' =>
+    const Color(0xFFD1DCE9),
+  'no_data' => const Color(0xFFFFD166),
+  _ => const Color(0xFFFFD166),
+};
+
+String _hazardStatusShort(String status) => switch (status) {
+  'hasil_tersedia' => 'DATA TERSEDIA',
+  'klasifikasi_belum_diverifikasi' => 'KLASIFIKASI BELUM DIVERIFIKASI',
+  'no_data' => 'BELUM DAPAT DIPASTIKAN',
+  'titik_di_luar_cakupan' || 'di_luar_cakupan_layer' => 'DI LUAR CAKUPAN',
+  'layanan_bermasalah' || 'layanan_gagal' => 'DATA SEMENTARA TIDAK DAPAT DIMUAT',
+  _ => 'BELUM DAPAT DIPASTIKAN',
+};
 
 class _InfoPanel extends StatelessWidget {
   const _InfoPanel({
@@ -1359,6 +1788,16 @@ class _InfoPanel extends StatelessWidget {
   }
 }
 
+Widget _retryButton(VoidCallback onRetry) => TextButton.icon(
+  onPressed: onRetry,
+  icon: const Icon(Icons.refresh_rounded, size: 18),
+  label: const Text('Coba lagi'),
+  style: TextButton.styleFrom(
+    foregroundColor: Colors.white,
+    textStyle: const TextStyle(fontWeight: FontWeight.w700),
+  ),
+);
+
 class _MapSourceNote extends StatelessWidget {
   const _MapSourceNote({
     required this.osm,
@@ -1376,25 +1815,35 @@ class _MapSourceNote extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            osmLoading
-                ? 'Memuat data referensi OSM...'
+          _InfoPanel(
+            icon: Icons.alt_route_rounded,
+            title: osmError == null
+                ? 'Referensi OSM ditampilkan pada peta.'
+                : 'Referensi OSM belum dapat dimuat.',
+            detail: osmLoading
+                ? 'Memuat referensi OpenStreetMap...'
                 : osmError ??
-                      '${osm?.features.length ?? 0} fitur referensi OSM · sumber: OpenStreetMap contributors (ODbL). Tidak seluruh Kota Padang tercakup.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall
-                ?.copyWith(color: const Color(0xFFB9D2E1)),
+                      '${osm?.features.length ?? 0} fitur terlihat. Belum diverifikasi sebagai fasilitas evakuasi dan bukan pernyataan titik aman tsunami.',
+            action: osmError != null
+                ? _retryButton(onRetry)
+                : TextButton.icon(
+                    onPressed: () => launchUrl(
+                      Uri.parse('https://www.openstreetmap.org/copyright'),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    icon: const Icon(Icons.map_outlined, size: 18),
+                    label: const Text('Detail sumber OSM'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.bannerEyebrow,
+                    ),
+                  ),
           ),
-          if (osmError != null)
-            TextButton(
-              onPressed: onRetry,
-              child: const Text('Coba muat ulang referensi'),
-            ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 6),
           Text(
             'Simulasi rute bukan arahan evakuasi operasional. Ikuti informasi BPBD dan PVMBG.',
-            textAlign: TextAlign.center,
+            textAlign: TextAlign.start,
             style: Theme.of(context).textTheme.bodySmall
                 ?.copyWith(color: const Color(0xFFB9D2E1)),
           ),

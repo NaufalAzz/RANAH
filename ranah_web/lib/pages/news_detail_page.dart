@@ -67,12 +67,12 @@ class NewsDetailPage extends StatelessWidget {
                   children: [
                     Text(
                       story.isApiRecord
-                          ? story.category
-                          : 'CONTOH \u00B7 ${story.category}',
+                          ? story.category.toUpperCase()
+                          : 'CONTOH \u00B7 ${story.category.toUpperCase()}',
                       style: TextStyle(
-                        color: RanahColors.ink,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
+                        color: Color(story.color),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: RanahSpacing.xs),

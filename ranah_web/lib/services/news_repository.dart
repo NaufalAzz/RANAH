@@ -45,10 +45,12 @@ class NewsRepository {
 
     final categoryKey = category.toLowerCase();
     final accent = categoryKey.contains('erupsi') || categoryKey.contains('gunung')
-        ? 0xFFE92C2D
-        : categoryKey.contains('pengungsian') || categoryKey.contains('bantuan')
-            ? 0xFFF39A00
-            : 0xFF74839A;
+        ? 0xFFC93D3D
+        : categoryKey.contains('gempa') || categoryKey.contains('tsunami')
+        ? 0xFFB7791F
+        : categoryKey.contains('imbauan') || categoryKey.contains('bantuan')
+        ? 0xFF087F83
+        : 0xFFB7791F;
     final summary = body.replaceAll(RegExp(r'\s+'), ' ').trim();
     final source = _text(json['sumber']);
     return HomeStory(

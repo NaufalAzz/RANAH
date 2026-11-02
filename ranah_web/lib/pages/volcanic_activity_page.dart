@@ -145,7 +145,7 @@ class _ActivityTitleBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => RanahFullWidthTitleBackground(
-    color: const Color(0xFF17003E),
+    color: RanahColors.banner,
     maxContentWidth: maxContentWidth,
     child: Container(
       constraints: const BoxConstraints(
@@ -155,7 +155,7 @@ class _ActivityTitleBanner extends StatelessWidget {
         horizontal: RanahPageHeaderStyle.horizontalPadding,
         vertical: RanahPageHeaderStyle.verticalPadding,
       ),
-      color: const Color(0xFF17003E),
+      color: RanahColors.banner,
       child: const Row(
         children: [
           Icon(
@@ -222,13 +222,13 @@ class _SourceDataNotice extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     decoration: BoxDecoration(
-      color: const Color(0xFF493619),
-      border: Border.all(color: const Color(0xFFFFB51B).withValues(alpha: .7)),
+      color: RanahColors.cardBlue,
+      border: Border.all(color: Colors.white.withValues(alpha: .16)),
       borderRadius: BorderRadius.circular(RanahRadii.sm),
     ),
     child: Row(
       children: [
-        Icon(Icons.info_outline, color: Color(0xFFFFC44C), size: 18),
+        Icon(Icons.info_outline, color: RanahColors.headerMuted, size: 18),
         SizedBox(width: RanahSpacing.sm),
         Expanded(
           child: Text(
@@ -260,9 +260,9 @@ class _ActivityLoadState extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: const Color(0xFF174777),
+      color: RanahColors.cardBlue,
       borderRadius: BorderRadius.circular(RanahRadii.sm),
-      border: Border.all(color: const Color(0xFF3275A7)),
+      border: Border.all(color: Colors.white.withValues(alpha: .16)),
     ),
     child: Column(
       children: [
@@ -329,9 +329,9 @@ class _LevelSummaryCard extends StatelessWidget {
     height: compact ? 68 : 76,
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
     decoration: BoxDecoration(
-      color: const Color(0xFF133C67),
+      color: RanahColors.cardBlue,
       borderRadius: BorderRadius.circular(RanahRadii.sm),
-      border: Border.all(color: Color(level.color).withValues(alpha: .65)),
+      border: Border.all(color: Color(level.color).withValues(alpha: .55)),
     ),
     child: Row(
       children: [
@@ -433,9 +433,9 @@ class _ActivityGroups extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
-      color: const Color(0xFF174777),
+      color: RanahColors.backgroundStart,
       borderRadius: BorderRadius.circular(RanahRadii.md),
-      border: Border.all(color: const Color(0xFF3275A7)),
+      border: Border.all(color: Colors.white.withValues(alpha: .16)),
     ),
     clipBehavior: Clip.antiAlias,
     child: Column(
@@ -447,7 +447,7 @@ class _ActivityGroups extends StatelessWidget {
             vertical: RanahSpacing.md,
           ),
           decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: Color(0xFF557EA0))),
+            border: Border(bottom: BorderSide(color: Colors.white24)),
           ),
           child: const Text(
             'Daftar Tingkat Aktivitas Gunung Api',
@@ -520,7 +520,7 @@ class _ActivityLevelGroupState extends State<_ActivityLevelGroup> {
         RanahSpacing.md,
       ),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFF52799C))),
+        border: Border(bottom: BorderSide(color: Colors.white24)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -547,7 +547,7 @@ class _ActivityLevelGroupState extends State<_ActivityLevelGroup> {
                   vertical: RanahSpacing.xs,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F3154),
+                  color: RanahColors.backgroundMiddle,
                   borderRadius: BorderRadius.circular(RanahRadii.pill),
                   border: Border.all(color: Color(level.color)),
                 ),
@@ -663,7 +663,7 @@ class _ActivityVolcanoRow extends StatelessWidget {
     decoration: BoxDecoration(
       color: RanahColors.cardBlue,
       borderRadius: BorderRadius.circular(RanahRadii.md),
-      border: Border.all(color: const Color(0xFF3275A7)),
+      border: Border.all(color: Colors.white.withValues(alpha: .16)),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -676,7 +676,7 @@ class _ActivityVolcanoRow extends StatelessWidget {
               child: Container(
                 width: 48,
                 height: 48,
-                color: const Color(0xFF1B557B),
+                color: RanahColors.backgroundStart,
                 alignment: Alignment.center,
                 child: const Icon(
                   Icons.landscape_outlined,
@@ -744,10 +744,13 @@ class _ActivityVolcanoRow extends StatelessWidget {
         const SizedBox(height: RanahSpacing.sm),
         Align(
           alignment: Alignment.centerRight,
-          child: TextButton(
+          child: OutlinedButton.icon(
             onPressed: onViewReport,
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
+            icon: const Icon(Icons.open_in_new_rounded, size: 18),
+            label: const Text('Lihat Laporan'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: RanahColors.white,
+              side: BorderSide(color: Colors.white.withValues(alpha: .55)),
               padding: const EdgeInsets.symmetric(horizontal: RanahSpacing.md),
               minimumSize: const Size(48, 48),
               tapTargetSize: MaterialTapTargetSize.padded,
@@ -756,7 +759,6 @@ class _ActivityVolcanoRow extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            child: const Text('Lihat Laporan'),
           ),
         ),
       ],
@@ -783,9 +785,9 @@ class _EmptySearchResult extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(24),
     decoration: BoxDecoration(
-      color: const Color(0xFF174777),
+      color: RanahColors.cardBlue,
       borderRadius: BorderRadius.circular(RanahRadii.sm),
-      border: Border.all(color: const Color(0xFF3275A7)),
+      border: Border.all(color: Colors.white.withValues(alpha: .16)),
     ),
     child: const Column(
       children: [

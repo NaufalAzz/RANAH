@@ -317,18 +317,30 @@ class _TitlePanel extends StatelessWidget {
     return AppPageBanner(
       icon: Icons.landscape_outlined,
       eyebrow: 'INFORMASI RANAH',
-      title: 'Tingkat Aktivitas Gunung Api',
+      title: 'Aktivitas Gunung Api',
       subtitle: '$total data gunung dari API RANAH',
-      minHeight: 0,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      iconSize: 38,
-      iconGap: AppSpacing.sm,
-      eyebrowStyle: AppTypography.bannerEyebrow.copyWith(fontSize: 13),
-      gradient: const LinearGradient(
-        colors: [Color(0xE8200B59), Color(0xE5101736)],
+      minHeight: AppSizes.pageBannerMinHeight,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md,
       ),
-      borderRadius: BorderRadius.circular(AppRadii.compact),
-      border: Border.all(color: Colors.white.withValues(alpha: .12)),
+      iconSize: 38,
+      iconGap: AppSpacing.lg,
+      eyebrowStyle: const TextStyle(
+        color: AppColors.bannerEyebrow,
+        fontSize: 13,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1.1,
+      ),
+      titleStyle: AppTypography.pageTitle.copyWith(
+        color: AppColors.onDark,
+        fontSize: 20,
+        height: 1.1,
+        fontWeight: FontWeight.w800,
+      ),
+      gradient: AppGradients.sectionBanner,
     );
   }
 }
@@ -584,7 +596,24 @@ class _GunungRow extends StatelessWidget {
           const SizedBox(width: 6),
           TextButton(
             onPressed: item['id'] is int ? () => onOpenReport(item) : null,
-            child: const Text('Lihat Laporan'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              disabledForegroundColor: const Color(0xFFBFD9E8),
+              backgroundColor: Colors.transparent,
+              disabledBackgroundColor: Colors.transparent,
+              side: BorderSide(color: Colors.white.withValues(alpha: .55)),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              minimumSize: const Size(0, 40),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Lihat Laporan',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/news_item.dart';
 import '../pages/home_page.dart';
+import '../pages/gunung_report_page.dart';
 import '../pages/map_page.dart';
 import '../pages/menu_page.dart';
 import '../pages/news_page.dart';
@@ -136,6 +137,19 @@ class _MainShellState extends State<MainShell> {
       ),
       MapPage(
         tilesEnabled: widget.mapTilesEnabled,
+        onOpenReport: (item) {
+          final id = int.tryParse(item['id']?.toString() ?? '');
+          if (id == null) return;
+          Navigator.of(context).push(
+            RanahPageRoute<void>(
+              context: context,
+              builder: (_) => GunungReportPage(
+                gunungId: id,
+                namaGunung: item['nama']?.toString(),
+              ),
+            ),
+          );
+        },
         onOpenActivity: () => Navigator.of(context).push(
           RanahPageRoute<void>(
             context: context,

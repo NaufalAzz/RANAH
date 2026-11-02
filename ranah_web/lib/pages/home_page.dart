@@ -414,14 +414,15 @@ class _NewsCard extends StatelessWidget {
                     children: [
                       Text(
                         story.isApiRecord
-                            ? story.category
-                            : 'CONTOH \u00B7 ${story.category}',
+                            ? story.category.toUpperCase()
+                            : 'CONTOH \u00B7 ${story.category.toUpperCase()}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: RanahColors.ink,
-                          fontSize: 16,
+                          color: Color(story.color),
+                          fontSize: 13,
                           fontWeight: FontWeight.w800,
+                          letterSpacing: .35,
                         ),
                       ),
                       const SizedBox(height: 3),

@@ -526,53 +526,61 @@ class _NewsStoryCard extends StatelessWidget {
             aspectRatio: 2.95,
             child: HomeStoryImage(story: story, fit: BoxFit.cover),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  story.isApiRecord
-                      ? story.category
-                      : 'CONTOH \u00B7 ${story.category}',
-                  style: TextStyle(
-                    color: RanahColors.ink,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+          SizedBox(
+            height: 158,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    story.isApiRecord
+                        ? story.category.toUpperCase()
+                        : 'CONTOH \u00B7 ${story.category.toUpperCase()}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Color(story.color),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: .3,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  story.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: RanahColors.ink,
-                    fontSize: 16,
-                    height: 1.05,
-                    fontWeight: FontWeight.w700,
+                  const SizedBox(height: 3),
+                  Text(
+                    story.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: RanahColors.ink,
+                      fontSize: 16,
+                      height: 1.05,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  story.summary,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: RanahColors.ink,
-                    fontSize: 16,
-                    height: 1.08,
+                  const SizedBox(height: 5),
+                  Text(
+                    story.summary,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: RanahColors.ink,
+                      fontSize: 16,
+                      height: 1.08,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  story.date,
-                  style: const TextStyle(
-                    color: RanahColors.muted,
-                    fontSize: 12,
+                  const Spacer(),
+                  Text(
+                    story.date,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: RanahColors.muted,
+                      fontSize: 12,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
