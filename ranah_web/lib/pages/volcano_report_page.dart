@@ -90,11 +90,17 @@ class _VolcanoReportPageState extends State<VolcanoReportPage> {
           ? math.min(constraints.maxWidth - 16, constraints.maxWidth * .50)
           : 380.0;
       final panelInset = mobile ? 8.0 : 18.0;
-      final availableHeight = math.max(
-        0.0,
-        constraints.maxHeight - panelInset * 2,
+      final preferredMapHeight =
+          RanahMapLayout.heightFor(
+            screenWidth: constraints.maxWidth,
+            screenHeight: MediaQuery.sizeOf(context).height,
+          ) +
+          (mobile ? 36.0 : 64.0);
+      final mapAreaHeight = math.min(
+        math.max(0.0, constraints.maxHeight - 124),
+        preferredMapHeight,
       );
-      final mapAreaHeight = math.max(0.0, constraints.maxHeight - 124);
+      final availableHeight = math.max(0.0, mapAreaHeight - panelInset * 2);
       final panelMaxHeight = math.min(
         availableHeight * (mobile ? .72 : .84),
         math.max(0.0, mapAreaHeight - 180),
@@ -109,83 +115,92 @@ class _VolcanoReportPageState extends State<VolcanoReportPage> {
             onBack: widget.onBack,
           ),
           Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                if (gunung != null)
-                  Positioned.fill(
-                    child: VolcanoInteractiveMap(
-                      gunung: gunung,
-                      showKrb: _showKrb,
-                      tilesEnabled: widget.tilesEnabled,
-                      mapController: widget.mapController,
+            child: Center(
+              child: SizedBox(
+                width: constraints.maxWidth,
+                height: mapAreaHeight,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (gunung != null)
+                      Positioned.fill(
+                        child: VolcanoInteractiveMap(
+                          gunung: gunung,
+                          showKrb: _showKrb,
+                          tilesEnabled: widget.tilesEnabled,
+                          mapController: widget.mapController,
+                        ),
+                      )
+                    else
+                      const Positioned.fill(
+                        child: ColoredBox(color: Color(0xFF102B43)),
+                      ),
+                    Positioned(
+                      right: 10,
+                      top: 10,
+                      child: IgnorePointer(
+                        child: _MapDisclosure(
+                          text: _showKrb
+                              ? 'KRB BIG jika tersedia - bukan panduan evakuasi'
+                              : 'Peta interaktif - zona KRB disembunyikan',
+                          warning: _showKrb,
+                        ),
+                      ),
                     ),
-                  )
-                else
-                  const Positioned.fill(
-                    child: ColoredBox(color: Color(0xFF102B43)),
-                  ),
-                Positioned(
-                  right: 10,
-                  top: 10,
-                  child: IgnorePointer(
-                    child: _MapDisclosure(
-                      text: _showKrb
-                          ? 'KRB BIG jika tersedia - bukan panduan evakuasi'
-                          : 'Peta interaktif - zona KRB disembunyikan',
-                      warning: _showKrb,
+                    Positioned(
+                      left: panelInset,
+                      top: panelInset,
+                      child: SizedBox(
+                        width: panelWidth,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxHeight: panelMaxHeight,
+                          ),
+                          child: _loading
+                              ? const _ReportState(
+                                  icon: Icons.sync,
+                                  title: 'Memuat laporan gunung',
+                                  message:
+                                      'Mengambil data dari server RANAH...',
+                                  loading: true,
+                                )
+                              : _detail == null
+                              ? _ReportState(
+                                  icon: _isNotFound(_error)
+                                      ? Icons.search_off
+                                      : Icons.cloud_off_outlined,
+                                  title: _isNotFound(_error)
+                                      ? 'Data gunung tidak ditemukan'
+                                      : 'Laporan belum dapat dimuat',
+                                  message:
+                                      _error?.toString() ??
+                                      'Data detail gunung belum tersedia.',
+                                  action: FilledButton.icon(
+                                    onPressed: _loadDetail,
+                                    icon: const Icon(Icons.refresh),
+                                    label: const Text('Coba lagi'),
+                                  ),
+                                )
+                              : _ReportPanel(
+                                  detail: _detail!,
+                                  showKrb: _showKrb,
+                                  collapsed: _panelCollapsed,
+                                  maxContentHeight: math.max(
+                                    0.0,
+                                    panelMaxHeight - 58,
+                                  ),
+                                  onToggleCollapsed: () => setState(
+                                    () => _panelCollapsed = !_panelCollapsed,
+                                  ),
+                                  onToggleKrb: () =>
+                                      setState(() => _showKrb = !_showKrb),
+                                ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-                Positioned(
-                  left: panelInset,
-                  top: panelInset,
-                  child: SizedBox(
-                    width: panelWidth,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxHeight: panelMaxHeight),
-                      child: _loading
-                          ? const _ReportState(
-                              icon: Icons.sync,
-                              title: 'Memuat laporan gunung',
-                              message: 'Mengambil data dari server RANAH...',
-                              loading: true,
-                            )
-                          : _detail == null
-                          ? _ReportState(
-                              icon: _isNotFound(_error)
-                                  ? Icons.search_off
-                                  : Icons.cloud_off_outlined,
-                              title: _isNotFound(_error)
-                                  ? 'Data gunung tidak ditemukan'
-                                  : 'Laporan belum dapat dimuat',
-                              message:
-                                  _error?.toString() ??
-                                  'Data detail gunung belum tersedia.',
-                              action: FilledButton.icon(
-                                onPressed: _loadDetail,
-                                icon: const Icon(Icons.refresh),
-                                label: const Text('Coba lagi'),
-                              ),
-                            )
-                          : _ReportPanel(
-                              detail: _detail!,
-                              showKrb: _showKrb,
-                              collapsed: _panelCollapsed,
-                              maxContentHeight: math.max(
-                                0.0,
-                                panelMaxHeight - 58,
-                              ),
-                              onToggleCollapsed: () => setState(
-                                () => _panelCollapsed = !_panelCollapsed,
-                              ),
-                              onToggleKrb: () =>
-                                  setState(() => _showKrb = !_showKrb),
-                            ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ],
@@ -218,7 +233,7 @@ class _ReportState extends StatelessWidget {
     padding: const EdgeInsets.all(RanahSpacing.lg),
     decoration: BoxDecoration(
       color: const Color(0xE9154770),
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
       border: Border.all(color: const Color(0xFF4B91B4)),
     ),
     child: Column(
@@ -252,13 +267,21 @@ class _ReportTitleBanner extends StatelessWidget {
   Widget build(BuildContext context) => RanahFullWidthTitleBackground(
     color: const Color(0xFF17003E),
     child: Container(
-      constraints: const BoxConstraints(minHeight: 76),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      constraints: const BoxConstraints(
+        minHeight: RanahPageHeaderStyle.minHeight,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: RanahPageHeaderStyle.horizontalPadding,
+        vertical: RanahPageHeaderStyle.verticalPadding,
+      ),
       color: const Color(0xFF17003E),
       child: const Row(
         children: [
-          Icon(Icons.landscape_outlined, size: 27),
-          SizedBox(width: 10),
+          Icon(
+            Icons.landscape_outlined,
+            size: RanahPageHeaderStyle.iconSize,
+          ),
+          SizedBox(width: RanahPageHeaderStyle.iconGap),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -268,23 +291,19 @@ class _ReportTitleBanner extends StatelessWidget {
                   'SIAGA BENCANA',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    letterSpacing: .9,
-                    color: Color(0xFF91A8D0),
-                  ),
+                  style: RanahPageHeaderStyle.kicker,
                 ),
                 Text(
                   'Aktivitas Gunung Api',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: RanahPageHeaderStyle.title,
                 ),
                 Text(
                   'Memantau aktivitas gunung api',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: Color(0xFFC1C8D7)),
+                  style: RanahPageHeaderStyle.subtitle,
                 ),
               ],
             ),
@@ -317,9 +336,9 @@ class _ReportBackBar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
               decoration: BoxDecoration(
                 color: Color(
-                  activityLevelPresentation(_activityLevel(status)).color,
-                ).withValues(alpha: .88),
-                borderRadius: BorderRadius.circular(3),
+                  activityLevelPresentation(_activityLevel(status)).badgeColor,
+                ),
+                borderRadius: BorderRadius.circular(RanahRadii.xs),
               ),
               child: Text(
                 _display(status, 'Status aktivitas belum tersedia'),
@@ -327,9 +346,7 @@ class _ReportBackBar extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 12,
-                  color: _activityLevel(status) == null
-                      ? Colors.white
-                      : const Color(0xFF332308),
+                  color: Colors.white,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -368,7 +385,7 @@ class _ReportPanel extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: const Color(0xD9154770),
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(RanahRadii.sm),
         border: Border.all(color: const Color(0xFF4B91B4)),
         boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 5)],
       ),
@@ -436,7 +453,9 @@ class _ReportPanel extends StatelessWidget {
                           AspectRatio(
                             aspectRatio: 1.78,
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(3),
+                              borderRadius: BorderRadius.circular(
+                                RanahRadii.xs,
+                              ),
                               child: photoUrl == null
                                   ? const _ReportPhotoPlaceholder()
                                   : Image.network(
@@ -480,7 +499,9 @@ class _ReportPanel extends StatelessWidget {
                                   color: Color(0xFF7AB2D2),
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(3),
+                                  borderRadius: BorderRadius.circular(
+                                    RanahRadii.xs,
+                                  ),
                                 ),
                               ),
                               child: Text(
@@ -638,7 +659,7 @@ class _MapDisclosure extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
     decoration: BoxDecoration(
       color: warning ? const Color(0xE9663D0B) : const Color(0xD9102B42),
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(RanahRadii.xs),
       border: Border.all(
         color: warning ? const Color(0xFFFFC04B) : Colors.white30,
       ),

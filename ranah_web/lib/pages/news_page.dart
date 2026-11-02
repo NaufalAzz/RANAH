@@ -11,6 +11,13 @@ DateTime? _storyEventDate(HomeStory story) {
   return DateTime(eventAt.year, eventAt.month, eventAt.day);
 }
 
+const _newsFilterMenuColor = RanahColors.cardBlue;
+const _newsFilterOptionStyle = TextStyle(
+  color: Color(0xFFF4F7FB),
+  fontSize: 14,
+  fontWeight: FontWeight.w500,
+);
+
 String _dateKey(DateTime date) =>
     '${date.year.toString().padLeft(4, '0')}-'
     '${date.month.toString().padLeft(2, '0')}-'
@@ -22,15 +29,30 @@ String _formatDate(DateTime date) =>
 
 InputDecoration _newsFilterDecoration(String label) => InputDecoration(
   labelText: label,
-  labelStyle: const TextStyle(color: Color(0xFFD0C9E7)),
-  filled: true,
-  fillColor: const Color(0x8C123D5B),
-  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-  enabledBorder: const OutlineInputBorder(
-    borderSide: BorderSide(color: Color(0x6689A4BA)),
+  labelStyle: const TextStyle(
+    color: Color(0xFFF0F4FA),
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
   ),
-  focusedBorder: const OutlineInputBorder(
-    borderSide: BorderSide(color: Color(0xFF82C7FF), width: 1.5),
+  floatingLabelStyle: const TextStyle(
+    color: Color(0xFF8FE3F0),
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+  ),
+  filled: true,
+  fillColor: const Color(0xFF123D5B),
+  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+  border: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(RanahRadii.sm),
+    borderSide: const BorderSide(color: Color(0xFF89A4BA)),
+  ),
+  enabledBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(RanahRadii.sm),
+    borderSide: const BorderSide(color: Color(0xFF89A4BA), width: 1.2),
+  ),
+  focusedBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(RanahRadii.sm),
+    borderSide: const BorderSide(color: Color(0xFF8FE3F0), width: 2),
   ),
 );
 
@@ -52,14 +74,24 @@ class _NewsDateFilter extends StatelessWidget {
   Widget build(BuildContext context) => DropdownButtonFormField<String>(
     initialValue: selectedDate == null ? '' : _dateKey(selectedDate!),
     isExpanded: true,
-    style: const TextStyle(color: Colors.white, fontSize: 14),
-    dropdownColor: RanahColors.headerStart,
-    iconEnabledColor: Colors.white70,
+    style: const TextStyle(
+      color: Colors.white,
+      fontSize: 15,
+      fontWeight: FontWeight.w600,
+    ),
+    dropdownColor: _newsFilterMenuColor,
+    iconEnabledColor: const Color(0xFF8FE3F0),
     decoration: _newsFilterDecoration(label),
     items: [
-      const DropdownMenuItem(value: '', child: Text('Semua tanggal')),
+      const DropdownMenuItem(
+        value: '',
+        child: Text('Semua tanggal', style: _newsFilterOptionStyle),
+      ),
       for (final date in dates)
-        DropdownMenuItem(value: _dateKey(date), child: Text(_formatDate(date))),
+        DropdownMenuItem(
+          value: _dateKey(date),
+          child: Text(_formatDate(date), style: _newsFilterOptionStyle),
+        ),
     ],
     onChanged: (value) => onChanged(
       value == null || value.isEmpty ? null : DateTime.parse(value),
@@ -198,17 +230,17 @@ class _NewsPageState extends State<NewsPage> {
                     ),
                     decoration: InputDecoration(
                       hintText: 'Cari berita',
-                      hintStyle: const TextStyle(color: Color(0xFF9AA0A8)),
+                      hintStyle: const TextStyle(color: RanahColors.muted),
                       prefixIcon: const Icon(
                         Icons.search,
-                        color: Color(0xFF9AA0A8),
+                        color: RanahColors.muted,
                         size: 19,
                       ),
                       filled: true,
                       fillColor: Colors.white,
                       contentPadding: EdgeInsets.zero,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(RanahRadii.pill),
                         borderSide: BorderSide.none,
                       ),
                     ),
@@ -237,10 +269,11 @@ class _NewsPageState extends State<NewsPage> {
                             isExpanded: true,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 14,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
                             ),
-                            dropdownColor: RanahColors.headerStart,
-                            iconEnabledColor: Colors.white70,
+                            dropdownColor: _newsFilterMenuColor,
+                            iconEnabledColor: const Color(0xFF8FE3F0),
                             decoration: _newsFilterDecoration('Kategori'),
                             items: [
                               for (final category in categories)
@@ -250,6 +283,7 @@ class _NewsPageState extends State<NewsPage> {
                                     category == 'Semua'
                                         ? 'Semua kategori'
                                         : category,
+                                    style: _newsFilterOptionStyle,
                                   ),
                                 ),
                             ],
@@ -269,15 +303,19 @@ class _NewsPageState extends State<NewsPage> {
                             isExpanded: true,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 14,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
                             ),
-                            dropdownColor: RanahColors.headerStart,
-                            iconEnabledColor: Colors.white70,
+                            dropdownColor: _newsFilterMenuColor,
+                            iconEnabledColor: const Color(0xFF8FE3F0),
                             decoration: _newsFilterDecoration('Wilayah'),
                             items: [
                               const DropdownMenuItem(
                                 value: _allRegions,
-                                child: Text('Semua wilayah'),
+                                child: Text(
+                                  'Semua wilayah',
+                                  style: _newsFilterOptionStyle,
+                                ),
                               ),
                               for (final region in regions)
                                 DropdownMenuItem(
@@ -286,6 +324,7 @@ class _NewsPageState extends State<NewsPage> {
                                     region,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
+                                    style: _newsFilterOptionStyle,
                                   ),
                                 ),
                             ],
@@ -420,13 +459,22 @@ class NewsPageBanner extends StatelessWidget {
     color: RanahColors.banner,
     maxContentWidth: maxContentWidth,
     child: Container(
-      constraints: const BoxConstraints(minHeight: 76),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      constraints: const BoxConstraints(
+        minHeight: RanahPageHeaderStyle.minHeight,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: RanahPageHeaderStyle.horizontalPadding,
+        vertical: RanahPageHeaderStyle.verticalPadding,
+      ),
       color: RanahColors.banner,
       child: const Row(
         children: [
-          Icon(Icons.newspaper_rounded, size: 27, color: Colors.white),
-          SizedBox(width: 16),
+          Icon(
+            Icons.newspaper_rounded,
+            size: RanahPageHeaderStyle.iconSize,
+            color: Colors.white,
+          ),
+          SizedBox(width: RanahPageHeaderStyle.iconGap),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -436,23 +484,18 @@ class NewsPageBanner extends StatelessWidget {
                   'INFORMASI RANAH',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Color(0xFF91A8D0),
-                    fontSize: 12,
-                    letterSpacing: .5,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: RanahPageHeaderStyle.kicker,
                 ),
                 Text(
                   'Berita dan Event',
                   maxLines: 1,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: RanahPageHeaderStyle.title,
                 ),
                 Text(
                   'Informasi terkini seputar bencana',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Color(0xFFC1C8D7), fontSize: 12),
+                  style: RanahPageHeaderStyle.subtitle,
                 ),
               ],
             ),
@@ -472,7 +515,7 @@ class _NewsStoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: Colors.white,
-    borderRadius: BorderRadius.circular(8),
+    borderRadius: BorderRadius.circular(RanahRadii.sm),
     clipBehavior: Clip.antiAlias,
     child: InkWell(
       onTap: onTap,
@@ -525,7 +568,7 @@ class _NewsStoryCard extends StatelessWidget {
                 Text(
                   story.date,
                   style: const TextStyle(
-                    color: Color(0xFF647083),
+                    color: RanahColors.muted,
                     fontSize: 12,
                   ),
                 ),
@@ -549,7 +592,7 @@ class _EmptyNewsState extends StatelessWidget {
     padding: const EdgeInsets.all(24),
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
     ),
     child: Text(
       apiEmpty
@@ -573,7 +616,7 @@ class _NewsFeedMessage extends StatelessWidget {
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
       color: RanahColors.cardBlue,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,

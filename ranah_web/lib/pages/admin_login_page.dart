@@ -45,7 +45,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                   color: RanahColors.white,
                   elevation: 8,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(RanahRadii.lg),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(RanahSpacing.xl),
@@ -54,12 +54,11 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          TextButton.icon(
-                            onPressed: widget.onBack,
-                            icon: const Icon(Icons.arrow_back),
-                            label: const Text('Kembali ke RANAH'),
-                            style: TextButton.styleFrom(
-                              alignment: Alignment.centerLeft,
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: RanahBackButton(
+                              onPressed: widget.onBack,
+                              label: 'Kembali ke RANAH',
                             ),
                           ),
                           const SizedBox(height: RanahSpacing.md),
@@ -84,10 +83,14 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                           TextFormField(
                             key: const ValueKey('admin-username'),
                             controller: _usernameController,
+                            style: const TextStyle(color: RanahColors.ink),
                             decoration: const InputDecoration(
                               labelText: 'Nama pengguna atau email',
                               border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.person_outline),
+                              prefixIcon: Icon(
+                                Icons.person_outline,
+                                color: RanahColors.muted,
+                              ),
                             ),
                             validator: (value) =>
                                 value == null || value.trim().isEmpty
@@ -99,10 +102,14 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                             key: const ValueKey('admin-password'),
                             controller: _passwordController,
                             obscureText: true,
+                            style: const TextStyle(color: RanahColors.ink),
                             decoration: const InputDecoration(
                               labelText: 'Kata sandi',
                               border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.lock_outline),
+                              prefixIcon: Icon(
+                                Icons.lock_outline,
+                                color: RanahColors.muted,
+                              ),
                             ),
                             validator: (value) => value == null || value.isEmpty
                                 ? 'Kata sandi wajib diisi.'

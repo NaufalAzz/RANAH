@@ -21,15 +21,34 @@ class RanahBackButton extends StatelessWidget {
     message: label,
     child: TextButton.icon(
       onPressed: onPressed,
-      icon: const Icon(Icons.arrow_back, size: 14),
-      label: Text(label, style: const TextStyle(fontSize: 12)),
-      style: TextButton.styleFrom(
-        foregroundColor: RanahColors.ink,
-        backgroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: RanahSpacing.md),
-        minimumSize: const Size(48, 48),
+      icon: const Icon(Icons.arrow_back_rounded, size: 18),
+      label: Text(
+        label,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+      ),
+      style: ButtonStyle(
+        foregroundColor: const WidgetStatePropertyAll(Colors.white),
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.hovered) ||
+                  states.contains(WidgetState.focused)
+              ? const Color(0xFF285987)
+              : RanahColors.cardBlue,
+        ),
+        overlayColor: const WidgetStatePropertyAll(Color(0x2228B9D8)),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: RanahSpacing.lg),
+        ),
+        minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
         tapTargetSize: MaterialTapTargetSize.padded,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        side: const WidgetStatePropertyAll(
+          BorderSide(color: Color(0xFF6BA5C4), width: 1),
+        ),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(RanahRadii.sm),
+          ),
+        ),
       ),
     ),
   );
@@ -203,7 +222,7 @@ class RanahBrandMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(7),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
       child: Image.asset(
         'assets/images/brand_mark.png',
         width: size,
@@ -236,7 +255,7 @@ class _BrandLabel extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: const Color(0xFF061D3B),
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(RanahRadii.sm),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,7 +316,7 @@ class _NavigationButton extends StatelessWidget {
       label: label,
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(7),
+        borderRadius: BorderRadius.circular(RanahRadii.sm),
         child: SizedBox(
           height: compact ? 68 : 60,
           child: Stack(

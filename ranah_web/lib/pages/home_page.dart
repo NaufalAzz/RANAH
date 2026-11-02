@@ -178,7 +178,7 @@ class _HeroCard extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final height = width < 560 ? 205.0 : (width < 900 ? 185.0 : 300.0);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(9),
+      borderRadius: BorderRadius.circular(RanahRadii.md),
       child: SizedBox(
         height: height,
         width: double.infinity,
@@ -230,7 +230,7 @@ class _HeroCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: RanahColors.eruption,
-                      borderRadius: BorderRadius.circular(22),
+                      borderRadius: BorderRadius.circular(RanahRadii.pill),
                     ),
                     child: const Text(
                       'Berita Utama',
@@ -243,13 +243,23 @@ class _HeroCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   if (story != null && !story!.isApiRecord)
-                    const Text(
-                      'CONTOH',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: .7,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: RanahSpacing.sm,
+                        vertical: RanahSpacing.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xE6102639),
+                        borderRadius: BorderRadius.circular(RanahRadii.xs),
+                      ),
+                      child: const Text(
+                        'CONTOH',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: .7,
+                        ),
                       ),
                     ),
                 ],
@@ -349,11 +359,11 @@ class _HeroArrow extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: const BoxDecoration(
-              color: Color(0x669BA8BA),
+              color: Color(0xE6102639),
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: Icon(icon, size: 26, color: RanahColors.primary),
+            child: Icon(icon, size: 26, color: Colors.white),
           ),
         ),
       ),
@@ -377,10 +387,10 @@ class _NewsCard extends StatelessWidget {
     final imageSize = compact ? 66.0 : 78.0;
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(RanahRadii.sm),
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: compact ? 94 : 108),
           child: Padding(
@@ -388,7 +398,7 @@ class _NewsCard extends StatelessWidget {
             child: Row(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(5),
+                  borderRadius: BorderRadius.circular(RanahRadii.sm),
                   child: HomeStoryImage(
                     story: story,
                     fit: BoxFit.cover,

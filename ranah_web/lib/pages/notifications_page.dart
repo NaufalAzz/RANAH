@@ -434,13 +434,21 @@ class _NotificationsBanner extends StatelessWidget {
     color: RanahColors.banner,
     maxContentWidth: maxContentWidth,
     child: Container(
-      constraints: const BoxConstraints(minHeight: 76),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      constraints: const BoxConstraints(
+        minHeight: RanahPageHeaderStyle.minHeight,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: RanahPageHeaderStyle.horizontalPadding,
+        vertical: RanahPageHeaderStyle.verticalPadding,
+      ),
       color: RanahColors.banner,
       child: Row(
         children: [
-          const Icon(Icons.notifications_none_rounded, size: 26),
-          const SizedBox(width: 10),
+          const Icon(
+            Icons.notifications_none_rounded,
+            size: RanahPageHeaderStyle.iconSize,
+          ),
+          const SizedBox(width: RanahPageHeaderStyle.iconGap),
           const Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -449,22 +457,17 @@ class _NotificationsBanner extends StatelessWidget {
                 Text(
                   'SIAGA BENCANA',
                   maxLines: 1,
-                  style: TextStyle(
-                    color: Color(0xFF91A8D0),
-                    fontSize: 12,
-                    letterSpacing: .45,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: RanahPageHeaderStyle.kicker,
                 ),
                 Text(
                   'Notifikasi',
                   maxLines: 1,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: RanahPageHeaderStyle.title,
                 ),
                 Text(
                   'Peringatan dan informasi terkini',
                   maxLines: 1,
-                  style: TextStyle(color: Color(0xFFC1C8D7), fontSize: 12),
+                  style: RanahPageHeaderStyle.subtitle,
                 ),
               ],
             ),
@@ -496,14 +499,14 @@ class _NotificationCard extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
       child: Container(
         key: ValueKey('notification-card-$index'),
         constraints: const BoxConstraints(minHeight: 68),
         padding: const EdgeInsets.all(9),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(RanahRadii.sm),
           boxShadow: const [
             BoxShadow(
               color: Color(0x22000000),
@@ -651,7 +654,7 @@ class _SourceStatusPanel extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFF102B43),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(RanahRadii.sm),
         border: Border.all(color: const Color(0xFF45627B)),
       ),
       child: Column(
@@ -737,7 +740,7 @@ class _WeatherForecastPanel extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: const Color(0xFF102B43),
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(RanahRadii.md),
           border: Border.all(color: const Color(0xFF45627B)),
         ),
         child: Column(
@@ -763,6 +766,10 @@ class _WeatherForecastPanel extends StatelessWidget {
               DropdownButtonFormField<String>(
                 initialValue: selectedArea?.adm4,
                 isExpanded: true,
+                style: const TextStyle(color: RanahColors.ink),
+                iconEnabledColor: RanahColors.ink,
+                iconDisabledColor: RanahColors.muted,
+                dropdownColor: Colors.white,
                 decoration: const InputDecoration(
                   labelText: 'Pilih wilayah prakiraan',
                   filled: true,
@@ -865,7 +872,7 @@ class _WeatherIntervalCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
       decoration: BoxDecoration(
         color: const Color(0xFF174A7D),
-        borderRadius: BorderRadius.circular(7),
+        borderRadius: BorderRadius.circular(RanahRadii.sm),
       ),
       child: Row(
         children: [
@@ -942,7 +949,7 @@ class _FeedError extends StatelessWidget {
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
       color: const Color(0xFF542B3A),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
       border: Border.all(color: const Color(0xFFFF9B9B)),
     ),
     child: Column(
@@ -978,7 +985,7 @@ class _EmptyFeed extends StatelessWidget {
     padding: const EdgeInsets.all(22),
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
     ),
     child: Column(
       children: [

@@ -127,7 +127,7 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
                 ),
                 child: Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 960),
+                    constraints: const BoxConstraints(maxWidth: 1200),
                     child: _ComplaintForm(
                       formKey: _formKey,
                       nameController: _nameController,
@@ -308,13 +308,21 @@ class _ContactsBanner extends StatelessWidget {
     color: RanahColors.banner,
     maxContentWidth: maxContentWidth,
     child: Container(
-      constraints: const BoxConstraints(minHeight: 76),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      constraints: const BoxConstraints(
+        minHeight: RanahPageHeaderStyle.minHeight,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: RanahPageHeaderStyle.horizontalPadding,
+        vertical: RanahPageHeaderStyle.verticalPadding,
+      ),
       color: RanahColors.banner,
       child: Row(
         children: [
-          const Icon(Icons.phone_in_talk_outlined, size: 26),
-          const SizedBox(width: 10),
+          const Icon(
+            Icons.phone_in_talk_outlined,
+            size: RanahPageHeaderStyle.iconSize,
+          ),
+          const SizedBox(width: RanahPageHeaderStyle.iconGap),
           const Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -323,22 +331,17 @@ class _ContactsBanner extends StatelessWidget {
                 Text(
                   'SIAGA BENCANA',
                   maxLines: 1,
-                  style: TextStyle(
-                    color: Color(0xFF91A8D0),
-                    fontSize: 12,
-                    letterSpacing: .45,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: RanahPageHeaderStyle.kicker,
                 ),
                 Text(
                   'Kontak & Pengaduan',
                   maxLines: 1,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: RanahPageHeaderStyle.title,
                 ),
                 Text(
                   'Hubungi kami atau kirim laporan',
                   maxLines: 1,
-                  style: TextStyle(color: Color(0xFFC1C8D7), fontSize: 12),
+                  style: RanahPageHeaderStyle.subtitle,
                 ),
               ],
             ),
@@ -358,10 +361,10 @@ class _ContactTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: selected ? const Color(0xFF21005E) : const Color(0xFF3B5067),
-    borderRadius: BorderRadius.circular(10),
+    borderRadius: BorderRadius.circular(RanahRadii.md),
     child: InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(RanahRadii.md),
       child: SizedBox(
         height: 48,
         child: Center(
@@ -388,10 +391,10 @@ class _ComplaintTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: selected ? const Color(0xFF21005E) : const Color(0xFF3B5067),
-    borderRadius: BorderRadius.circular(10),
+    borderRadius: BorderRadius.circular(RanahRadii.md),
     child: InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(RanahRadii.md),
       child: SizedBox(
         height: 48,
         child: Center(
@@ -417,7 +420,7 @@ class _EmergencyNotice extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
     decoration: BoxDecoration(
       color: const Color(0xFF66384C),
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
     ),
     child: RichText(
       text: TextSpan(
@@ -426,7 +429,7 @@ class _EmergencyNotice extends StatelessWidget {
           TextSpan(
             text: 'Catatan: ',
             style: TextStyle(
-              color: Color(0xFFFF5960),
+              color: Color(0xFFFFB3B5),
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -453,7 +456,7 @@ class _EmergencyContactCard extends StatelessWidget {
       gradient: const LinearGradient(
         colors: [Color(0xFF552435), Color(0xFF49213A)],
       ),
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
       border: Border.all(color: const Color(0x66E92C2D), width: .7),
     ),
     child: Row(
@@ -620,41 +623,104 @@ class _ComplaintForm extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _label('Nama Pelapor'),
-        _textField(nameController, hint: 'Masukkan nama pelapor'),
-        _label('Nomor Telepon'),
-        _textField(
-          phoneController,
-          hint: 'Masukkan nomor telepon yang dapat dihubungi',
-          keyboardType: TextInputType.phone,
-          validator: (value) {
-            final text = (value ?? '').trim();
-            final digits = text.replaceAll(RegExp(r'\D'), '');
-            if (digits.length < 8) return 'Nomor telepon wajib diisi';
-            if (text.length > 30 ||
-                !RegExp(r'^[0-9+\s().-]+$').hasMatch(text)) {
-              return 'Masukkan nomor telepon yang valid';
-            }
-            return null;
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final fieldWidth = constraints.maxWidth >= 760
+                ? (constraints.maxWidth - RanahSpacing.md) / 2
+                : constraints.maxWidth;
+
+            return Wrap(
+              spacing: RanahSpacing.md,
+              children: [
+                SizedBox(
+                  width: fieldWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _label('Nama Pelapor'),
+                      _textField(
+                        nameController,
+                        hint: 'Masukkan nama pelapor',
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  width: fieldWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _label('Nomor Telepon'),
+                      _textField(
+                        phoneController,
+                        hint: 'Masukkan nomor telepon yang dapat dihubungi',
+                        keyboardType: TextInputType.phone,
+                        validator: (value) {
+                          final text = (value ?? '').trim();
+                          final digits = text.replaceAll(RegExp(r'\D'), '');
+                          if (digits.length < 8) {
+                            return 'Nomor telepon wajib diisi';
+                          }
+                          if (text.length > 30 ||
+                              !RegExp(r'^[0-9+\s().-]+$').hasMatch(text)) {
+                            return 'Masukkan nomor telepon yang valid';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  width: fieldWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _label('Pilih Kategori'),
+                      DropdownButtonFormField<String>(
+                        key: const ValueKey('complaint-category'),
+                        initialValue: selectedCategory,
+                        isExpanded: true,
+                        dropdownColor: const Color(0xFF26394D),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                        decoration: _fieldDecoration(
+                          'Pilih kategori pengaduan',
+                        ),
+                        items: [
+                          for (final category in _complaintCategories)
+                            DropdownMenuItem(
+                              value: category,
+                              child: Text(category),
+                            ),
+                        ],
+                        onChanged: onCategoryChanged,
+                        validator: (value) => value == null
+                            ? 'Kategori wajib dipilih'
+                            : null,
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  width: fieldWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _label('Lokasi Kejadian'),
+                      _textField(
+                        locationController,
+                        hint: 'Masukkan lokasi kejadian',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
           },
         ),
-        _label('Pilih Kategori'),
-        DropdownButtonFormField<String>(
-          key: const ValueKey('complaint-category'),
-          initialValue: selectedCategory,
-          isExpanded: true,
-          dropdownColor: const Color(0xFF26394D),
-          style: const TextStyle(color: Colors.white, fontSize: 16),
-          decoration: _fieldDecoration('Pilih kategori pengaduan'),
-          items: [
-            for (final category in _complaintCategories)
-              DropdownMenuItem(value: category, child: Text(category)),
-          ],
-          onChanged: onCategoryChanged,
-          validator: (value) => value == null ? 'Kategori wajib dipilih' : null,
-        ),
-        _label('Lokasi Kejadian'),
-        _textField(locationController, hint: 'Masukkan lokasi kejadian'),
         _label('Foto Kejadian'),
         OutlinedButton.icon(
           key: const ValueKey('complaint-pick-files'),
@@ -667,7 +733,7 @@ class _ComplaintForm extends StatelessWidget {
             minimumSize: const Size.fromHeight(48),
             side: const BorderSide(color: Color(0xFF687B91)),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(RanahRadii.sm),
             ),
           ),
         ),
@@ -702,7 +768,6 @@ class _ComplaintForm extends StatelessWidget {
               : (value) => onConsentChanged(value ?? false),
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
-          activeColor: const Color(0xFFE42D32),
           title: const Text(
             'Saya setuju data pengaduan dan foto yang dipilih dikirim ke server untuk dicatat.',
             style: TextStyle(color: Color(0xFFD5DDE7), fontSize: 12),
@@ -731,10 +796,12 @@ class _ComplaintForm extends StatelessWidget {
             key: const ValueKey('complaint-submit'),
             onPressed: isSubmitting ? null : onSubmit,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE42D32),
+              backgroundColor: RanahColors.eruption,
               foregroundColor: Colors.white,
+              disabledBackgroundColor: RanahColors.muted,
+              disabledForegroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(RanahRadii.sm),
               ),
             ),
             child: isSubmitting
@@ -799,17 +866,25 @@ class _ComplaintForm extends StatelessWidget {
       vertical: RanahSpacing.md,
     ),
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(6),
-      borderSide: const BorderSide(color: Color(0xFF687B91)),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
+      borderSide: const BorderSide(color: Color(0xFF8AA6BF)),
     ),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(6),
-      borderSide: const BorderSide(color: Color(0xFF687B91)),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
+      borderSide: const BorderSide(color: Color(0xFF8AA6BF)),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(6),
-      borderSide: const BorderSide(color: Color(0xFF92A8C0)),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
+      borderSide: const BorderSide(color: Color(0xFFD5E2ED), width: 2),
     ),
-    errorStyle: const TextStyle(fontSize: 12),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
+      borderSide: const BorderSide(color: Color(0xFFFFB3B5)),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
+      borderSide: const BorderSide(color: Color(0xFFFFB3B5), width: 2),
+    ),
+    errorStyle: const TextStyle(fontSize: 12, color: Color(0xFFFFB3B5)),
   );
 }

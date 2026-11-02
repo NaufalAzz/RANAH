@@ -13,6 +13,7 @@ import '../services/route_simulation_repository.dart';
 import '../services/ranah_api_client.dart';
 import '../theme/ranah_theme.dart';
 import '../widgets/ranah_full_width_title_background.dart';
+import '../widgets/ranah_header.dart';
 
 typedef BrowserLocationReader = Future<BrowserLocation> Function();
 typedef MapOsmReferenceLoader = Future<OsmAssemblyPointDataset> Function();
@@ -194,7 +195,7 @@ class _MapPageState extends State<MapPage> {
     if (!consentAlreadyGranted && !_routingConsentGranted) {
       final accepted = await showDialog<bool>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
+        builder: (dialogContext) => _RanahConsentDialog(
           title: const Text('Kirim koordinat untuk simulasi rute?'),
           content: const Text(
             'Koordinat lokasi perangkat dan tujuan akan diproses server RANAH '
@@ -202,12 +203,14 @@ class _MapPageState extends State<MapPage> {
             'tidak menunjukkan jalan aman atau tujuan evakuasi resmi.',
           ),
           actions: [
-            TextButton(
+            OutlinedButton(
+              style: _consentSecondaryButtonStyle,
               key: const ValueKey('cancel-route-coordinate-sharing'),
               onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text('Batal'),
             ),
             FilledButton(
+              style: _consentPrimaryButtonStyle,
               key: const ValueKey('confirm-route-coordinate-sharing'),
               onPressed: () => Navigator.of(dialogContext).pop(true),
               child: const Text('Kirim dan hitung rute'),
@@ -413,7 +416,7 @@ class _MapPageState extends State<MapPage> {
     if (!_locationConsentGranted) {
       final choice = await showDialog<_LocationUseChoice>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
+        builder: (dialogContext) => _RanahConsentDialog(
           title: const Text('Pilih penggunaan lokasi'),
           content: const Text(
             'Lokasi perangkat diproses oleh server RANAH untuk alamat, gunung '
@@ -422,13 +425,15 @@ class _MapPageState extends State<MapPage> {
             'mengirim koordinat ke penyedia routing.',
           ),
           actions: [
-            TextButton(
+            OutlinedButton(
+              style: _consentSecondaryButtonStyle,
               key: const ValueKey('cancel-location-use'),
               onPressed: () =>
                   Navigator.of(dialogContext).pop(_LocationUseChoice.cancel),
               child: const Text('Batalkan'),
             ),
             OutlinedButton(
+              style: _consentSecondaryButtonStyle,
               key: const ValueKey('accept-location-only'),
               onPressed: () =>
                   Navigator.of(dialogContext)
@@ -436,6 +441,7 @@ class _MapPageState extends State<MapPage> {
               child: const Text('Gunakan lokasi saja'),
             ),
             FilledButton(
+              style: _consentPrimaryButtonStyle,
               key: const ValueKey('accept-location-and-route'),
               onPressed: () =>
                   Navigator.of(dialogContext)
@@ -643,22 +649,36 @@ class _MapPageState extends State<MapPage> {
       final horizontalInset = mobile ? 8.0 : 20.0;
       final innerWidth = contentWidth - horizontalInset * 2;
       final viewportHeight = MediaQuery.sizeOf(context).height;
-      final mapHeight = mobile
-          ? (viewportHeight * .54).clamp(320.0, 500.0)
-          : width < 1000
-          ? (viewportHeight * .62).clamp(430.0, 650.0)
-          : (viewportHeight * .68).clamp(500.0, 760.0);
+      final mapHeight = RanahMapLayout.heightFor(
+        screenWidth: width,
+        screenHeight: viewportHeight,
+      );
       final location = widget.currentLocation;
 
       return RanahPageScrollLayout(
         maxContentWidth: contentWidth,
         horizontalInset: horizontalInset,
-        title: _MapTitleBanner(maxContentWidth: innerWidth),
+        title: _MapTitleBanner(maxContentWidth: contentWidth),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(height: mobile ? RanahSpacing.sm : RanahSpacing.lg),
-            SizedBox(
+            if (location != null) ...[
+              Padding(
+                padding: EdgeInsets.only(bottom: RanahSpacing.lg),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: RanahBackButton(
+                    label: 'Kembali ke peta',
+                    onPressed: () {
+                      widget.onLocationChanged(null);
+                      widget.onAreaChanged(null);
+                    },
+                  ),
+                ),
+              ),
+            ],
+            RanahFullBleed(
               height: mapHeight,
               child: _InteractiveMap(
                 key: ValueKey(
@@ -976,7 +996,7 @@ class _InteractiveMap extends StatelessWidget {
         ? const LatLng(-2.5, 118)
         : LatLng(location!.latitude, location!.longitude);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(RanahRadii.xs),
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -1215,7 +1235,7 @@ class _RouteSimulationPanel extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFF102B43),
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(RanahRadii.md),
         border: Border.all(color: const Color(0xFF45627B)),
       ),
       child: Column(
@@ -1397,16 +1417,25 @@ class _MapTitleBanner extends StatelessWidget {
     maxContentWidth: maxContentWidth,
     bottomBorder: const BorderSide(color: Color(0xFF263B65)),
     child: Container(
-      constraints: const BoxConstraints(minHeight: 76),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      constraints: const BoxConstraints(
+        minHeight: RanahPageHeaderStyle.minHeight,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: RanahPageHeaderStyle.horizontalPadding,
+        vertical: RanahPageHeaderStyle.verticalPadding,
+      ),
       decoration: const BoxDecoration(
         color: Color(0xFF17003E),
         border: Border(bottom: BorderSide(color: Color(0xFF263B65))),
       ),
       child: Row(
         children: [
-          const Icon(Icons.landscape_outlined, size: 28, color: Colors.white),
-          const SizedBox(width: 12),
+          const Icon(
+            Icons.landscape_outlined,
+            size: RanahPageHeaderStyle.iconSize,
+            color: Colors.white,
+          ),
+          const SizedBox(width: RanahPageHeaderStyle.iconGap),
           const Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -1416,24 +1445,19 @@ class _MapTitleBanner extends StatelessWidget {
                   'PETA & ZONA BAHAYA',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    letterSpacing: 1,
-                    color: Color(0xFF91A8D0),
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: RanahPageHeaderStyle.kicker,
                 ),
                 Text(
                   'Peta dan Jalur Evakuasi',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: RanahPageHeaderStyle.title,
                 ),
                 Text(
                   'Peta interaktif dan lokasi perangkat',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: Color(0xFFC1C8D7)),
+                  style: RanahPageHeaderStyle.subtitle,
                 ),
               ],
             ),
@@ -1497,7 +1521,7 @@ class _MapAction extends StatelessWidget {
               elevation: 3,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(RanahRadii.md),
               ),
             ),
           ),
@@ -1563,10 +1587,10 @@ class _CurrentLocationCard extends StatelessWidget {
     }
     return Container(
       key: const ValueKey('current-device-location'),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.all(RanahSpacing.lg),
       decoration: BoxDecoration(
         color: const Color(0xFF174476),
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(RanahRadii.md),
         boxShadow: const [
           BoxShadow(
             color: Color(0x55000000),
@@ -1593,7 +1617,8 @@ class _CurrentLocationCard extends StatelessWidget {
                     const Text(
                       'Lokasi Anda',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 18,
+                        height: 1.25,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1605,6 +1630,7 @@ class _CurrentLocationCard extends StatelessWidget {
                       key: const ValueKey('device-location-street'),
                       style: const TextStyle(
                         fontSize: 14,
+                        height: 1.4,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -1614,7 +1640,8 @@ class _CurrentLocationCard extends StatelessWidget {
                         child: Text(
                           '${detail.$1}: ${detail.$2}',
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 14,
+                            height: 1.4,
                             color: Color(0xFFE2EAF2),
                           ),
                         ),
@@ -1625,7 +1652,8 @@ class _CurrentLocationCard extends StatelessWidget {
                         child: Text(
                           'Memperbarui alamat...',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 13,
+                            height: 1.4,
                             color: Color(0xFFD1DCE9),
                           ),
                         ),
@@ -1637,7 +1665,8 @@ class _CurrentLocationCard extends StatelessWidget {
                             child: Text(
                               error!,
                               style: const TextStyle(
-                                fontSize: 12,
+                                fontSize: 13,
+                                height: 1.4,
                                 color: Color(0xFFFFC477),
                               ),
                             ),
@@ -1660,14 +1689,19 @@ class _CurrentLocationCard extends StatelessWidget {
           Text(
             'Koordinat: ${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}',
             key: const ValueKey('device-location-coordinates'),
-            style: const TextStyle(fontSize: 11, color: Color(0xFFD1DCE9)),
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: Color(0xFFD1DCE9),
+            ),
           ),
           Text(
             accuracy == null
                 ? 'Akurasi perangkat: tidak tersedia'
                 : 'Akurasi perangkat: sekitar ±${accuracy.round()} meter${lowAccuracy ? ' · akurasi rendah' : ''}',
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 13,
+              height: 1.45,
               color: lowAccuracy
                   ? const Color(0xFFFFC477)
                   : const Color(0xFFD1DCE9),
@@ -1675,17 +1709,29 @@ class _CurrentLocationCard extends StatelessWidget {
           ),
           Text(
             'Lokasi diukur: ${location.measuredAt == null ? 'waktu tidak tersedia' : _formatDate(location.measuredAt!)}',
-            style: const TextStyle(fontSize: 10, color: Color(0xFFC7D2E0)),
+            style: const TextStyle(
+              fontSize: 12,
+              height: 1.4,
+              color: Color(0xFFC7D2E0),
+            ),
           ),
           if (area?.source != null && area!.source!.trim().isNotEmpty)
             Text(
               'Sumber alamat: ${area!.source}',
-              style: const TextStyle(fontSize: 10, color: Color(0xFFC7D2E0)),
+              style: const TextStyle(
+                fontSize: 12,
+                height: 1.4,
+                color: Color(0xFFC7D2E0),
+              ),
             ),
           if (area?.retrievedAt != null)
             Text(
               'Alamat diperbarui: ${_formatDate(area!.retrievedAt!)}',
-              style: const TextStyle(fontSize: 10, color: Color(0xFFC7D2E0)),
+              style: const TextStyle(
+                fontSize: 12,
+                height: 1.4,
+                color: Color(0xFFC7D2E0),
+              ),
             ),
           Align(
             alignment: Alignment.centerLeft,
@@ -1709,7 +1755,11 @@ class _CurrentLocationCard extends StatelessWidget {
             padding: EdgeInsets.only(top: 4),
             child: Text(
               'Alamat adalah perkiraan dari Nominatim, bukan alamat bangunan yang dijamin tepat. © OpenStreetMap contributors · ODbL',
-              style: TextStyle(fontSize: 10, color: Color(0xFFD1DCE9)),
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.4,
+                color: Color(0xFFD1DCE9),
+              ),
             ),
           ),
         ],
@@ -1748,7 +1798,7 @@ class _SectionHeading extends StatelessWidget {
             height: 36,
             decoration: BoxDecoration(
               color: const Color(0xFF0F5473),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(RanahRadii.sm),
               border: Border.all(color: const Color(0xFF1884A4)),
             ),
             child: Icon(icon, color: const Color(0xFF45C6D5), size: 19),
@@ -1761,14 +1811,16 @@ class _SectionHeading extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 18,
+                    height: 1.25,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 Text(
                   subtitle,
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 14,
+                    height: 1.35,
                     color: Color(0xFFC7D2E0),
                   ),
                 ),
@@ -1915,12 +1967,12 @@ class _NearbyVolcanoCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF174A7D),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(RanahRadii.md),
         border: Border.all(color: const Color(0xFF547999)),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(RanahRadii.md),
         child: ListTile(
           key: ValueKey('map-volcano-${record.id}'),
           contentPadding: const EdgeInsets.symmetric(
@@ -1934,6 +1986,8 @@ class _NearbyVolcanoCard extends StatelessWidget {
           title: Text(
             record.nama,
             style: const TextStyle(
+              fontSize: 18,
+              height: 1.25,
               color: Colors.white,
               fontWeight: FontWeight.w700,
             ),
@@ -1942,26 +1996,49 @@ class _NearbyVolcanoCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (region.isNotEmpty)
-                Text(region, style: const TextStyle(color: Colors.white)),
+                Text(
+                  region,
+                  style: const TextStyle(
+                    color: Color(0xFFD7E0EA),
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                ),
               if (item.distanceKm case final distance?)
                 Text(
                   'Jarak garis lurus: ${distance.toStringAsFixed(1)} km',
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
                 )
               else
                 const Text(
                   'Jarak tidak ditampilkan: koordinat belum terverifikasi.',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
                 ),
               if (record.statusAktivitas?.trim().isNotEmpty == true)
                 Text(
                   'Status dari API: ${record.statusAktivitas}',
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
                 ),
               if (record.waktuPengambilan != null)
                 Text(
                   'Diambil server: ${_formatDate(record.waktuPengambilan!)}',
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(
+                    color: Color(0xFFD7E0EA),
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
                 ),
             ],
           ),
@@ -2060,7 +2137,7 @@ class _UnavailableCard extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
     decoration: BoxDecoration(
       color: const Color(0xFF174A7D),
-      borderRadius: BorderRadius.circular(9),
+      borderRadius: BorderRadius.circular(RanahRadii.md),
       border: Border.all(color: const Color(0xFF286D9C)),
     ),
     child: Row(
@@ -2140,7 +2217,7 @@ class _HazardResultCard extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
     decoration: BoxDecoration(
       color: const Color(0xFF174A7D),
-      borderRadius: BorderRadius.circular(9),
+      borderRadius: BorderRadius.circular(RanahRadii.md),
       border: Border.all(color: const Color(0xFF286D9C)),
     ),
     child: Row(
@@ -2385,7 +2462,7 @@ class _MapTag extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
     decoration: BoxDecoration(
       color: const Color(0xB80A2140),
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(RanahRadii.xs),
     ),
     child: Text(
       text,
@@ -2396,5 +2473,86 @@ class _MapTag extends StatelessWidget {
         letterSpacing: .4,
       ),
     ),
+  );
+}
+
+const _consentSecondaryButtonStyle = ButtonStyle(
+  foregroundColor: WidgetStatePropertyAll(Color(0xFFF4F7FB)),
+  backgroundColor: WidgetStatePropertyAll(RanahColors.cardBlue),
+  side: WidgetStatePropertyAll(BorderSide(color: Color(0xFF8AB5D0))),
+  minimumSize: WidgetStatePropertyAll(Size(0, 48)),
+  padding: WidgetStatePropertyAll(
+    EdgeInsets.symmetric(
+      horizontal: RanahSpacing.md,
+      vertical: RanahSpacing.sm,
+    ),
+  ),
+  shape: WidgetStatePropertyAll(
+    RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(RanahRadii.sm)),
+    ),
+  ),
+);
+
+const _consentPrimaryButtonStyle = ButtonStyle(
+  foregroundColor: WidgetStatePropertyAll(Colors.white),
+  backgroundColor: WidgetStatePropertyAll(RanahColors.primary),
+  minimumSize: WidgetStatePropertyAll(Size(0, 48)),
+  padding: WidgetStatePropertyAll(
+    EdgeInsets.symmetric(
+      horizontal: RanahSpacing.md,
+      vertical: RanahSpacing.sm,
+    ),
+  ),
+  shape: WidgetStatePropertyAll(
+    RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(RanahRadii.sm)),
+    ),
+  ),
+);
+
+/// Keeps map consent dialogs readable despite the app's white-on-dark text theme.
+class _RanahConsentDialog extends StatelessWidget {
+  const _RanahConsentDialog({
+    required this.title,
+    required this.content,
+    required this.actions,
+  });
+
+  final Widget title;
+  final Widget content;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    backgroundColor: const Color(0xFF102B43),
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(RanahRadii.md),
+      side: const BorderSide(color: Color(0xFF4B91B4)),
+    ),
+    titleTextStyle: const TextStyle(
+      color: Colors.white,
+      fontSize: 20,
+      fontWeight: FontWeight.w700,
+    ),
+    contentTextStyle: const TextStyle(
+      color: Color(0xFFD7E0EA),
+      fontSize: 14,
+      height: 1.45,
+    ),
+    title: title,
+    content: content,
+    actionsAlignment: MainAxisAlignment.end,
+    actionsOverflowAlignment: OverflowBarAlignment.end,
+    actionsOverflowDirection: VerticalDirection.down,
+    actionsOverflowButtonSpacing: RanahSpacing.sm,
+    actionsPadding: const EdgeInsets.fromLTRB(
+      RanahSpacing.lg,
+      0,
+      RanahSpacing.lg,
+      RanahSpacing.lg,
+    ),
+    actions: actions,
   );
 }

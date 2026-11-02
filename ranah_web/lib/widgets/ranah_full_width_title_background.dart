@@ -86,3 +86,34 @@ class RanahPageScrollLayout extends StatelessWidget {
     },
   );
 }
+
+/// Lets a child span the viewport while it sits inside an inset page column.
+class RanahFullBleed extends StatelessWidget {
+  const RanahFullBleed({required this.height, required this.child, super.key});
+
+  final double height;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final viewportWidth = MediaQuery.sizeOf(context).width;
+      return SizedBox(
+        width: constraints.maxWidth,
+        height: height,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: (constraints.maxWidth - viewportWidth) / 2,
+              top: 0,
+              width: viewportWidth,
+              height: height,
+              child: child,
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}

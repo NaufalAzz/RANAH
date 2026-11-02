@@ -77,13 +77,13 @@ class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
       return RanahPageScrollLayout(
         maxContentWidth: contentWidth,
         horizontalInset: horizontalInset,
-        title: _ActivityTitleBanner(maxContentWidth: innerWidth),
+        title: _ActivityTitleBanner(maxContentWidth: contentWidth),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: RanahSpacing.md),
+            const SizedBox(height: RanahSpacing.xl),
             _ActivityBackBar(onBack: widget.onBack),
-            const SizedBox(height: RanahSpacing.md),
+            const SizedBox(height: RanahSpacing.lg),
             _SourceDataNotice(text: freshness),
             const SizedBox(height: RanahSpacing.sm),
             _LevelSummaryRow(
@@ -148,13 +148,21 @@ class _ActivityTitleBanner extends StatelessWidget {
     color: const Color(0xFF17003E),
     maxContentWidth: maxContentWidth,
     child: Container(
-      constraints: const BoxConstraints(minHeight: 76),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      constraints: const BoxConstraints(
+        minHeight: RanahPageHeaderStyle.minHeight,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: RanahPageHeaderStyle.horizontalPadding,
+        vertical: RanahPageHeaderStyle.verticalPadding,
+      ),
       color: const Color(0xFF17003E),
       child: const Row(
         children: [
-          Icon(Icons.landscape_outlined, size: 27),
-          SizedBox(width: 10),
+          Icon(
+            Icons.landscape_outlined,
+            size: RanahPageHeaderStyle.iconSize,
+          ),
+          SizedBox(width: RanahPageHeaderStyle.iconGap),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -164,23 +172,19 @@ class _ActivityTitleBanner extends StatelessWidget {
                   'SIAGA BENCANA',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    letterSpacing: .9,
-                    color: Color(0xFF91A8D0),
-                  ),
+                  style: RanahPageHeaderStyle.kicker,
                 ),
                 Text(
                   'Aktivitas Gunung Api',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: RanahPageHeaderStyle.title,
                 ),
                 Text(
                   'Memantau aktivitas gunung api',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: Color(0xFFC1C8D7)),
+                  style: RanahPageHeaderStyle.subtitle,
                 ),
               ],
             ),
@@ -216,20 +220,24 @@ class _SourceDataNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     decoration: BoxDecoration(
       color: const Color(0xFF493619),
       border: Border.all(color: const Color(0xFFFFB51B).withValues(alpha: .7)),
-      borderRadius: BorderRadius.circular(5),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
     ),
     child: Row(
       children: [
-        Icon(Icons.info_outline, color: Color(0xFFFFC44C), size: 14),
-        SizedBox(width: 7),
+        Icon(Icons.info_outline, color: Color(0xFFFFC44C), size: 18),
+        SizedBox(width: RanahSpacing.sm),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(fontSize: 12, color: Colors.white),
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: Colors.white,
+            ),
           ),
         ),
       ],
@@ -253,7 +261,7 @@ class _ActivityLoadState extends StatelessWidget {
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
       color: const Color(0xFF174777),
-      borderRadius: BorderRadius.circular(7),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
       border: Border.all(color: const Color(0xFF3275A7)),
     ),
     child: Column(
@@ -318,17 +326,21 @@ class _LevelSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    height: compact ? 56 : 70,
-    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+    height: compact ? 68 : 76,
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
     decoration: BoxDecoration(
       color: const Color(0xFF133C67),
-      borderRadius: BorderRadius.circular(5),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
       border: Border.all(color: Color(level.color).withValues(alpha: .65)),
     ),
     child: Row(
       children: [
-        Icon(Icons.change_history_rounded, color: Color(level.color), size: 18),
-        const SizedBox(width: 5),
+        Icon(
+          Icons.change_history_rounded,
+          color: Color(level.textColor),
+          size: 18,
+        ),
+        const SizedBox(width: RanahSpacing.sm),
         Expanded(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -337,7 +349,7 @@ class _LevelSummaryCard extends StatelessWidget {
               Text(
                 '$count',
                 style: TextStyle(
-                  fontSize: compact ? 17 : 20,
+                  fontSize: compact ? 18 : 20,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -346,8 +358,9 @@ class _LevelSummaryCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 12,
-                  color: Color(level.color),
+                  fontSize: 13,
+                  height: 1.25,
+                  color: Color(level.textColor),
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -389,12 +402,16 @@ class _SearchField extends StatelessWidget {
                   controller.clear();
                   onChanged('');
                 },
-                icon: const Icon(Icons.close, size: 18),
+                icon: const Icon(
+                  Icons.close,
+                  size: 18,
+                  color: RanahColors.muted,
+                ),
                 tooltip: 'Hapus pencarian',
               ),
         contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(RanahRadii.pill),
           borderSide: BorderSide.none,
         ),
       ),
@@ -417,7 +434,7 @@ class _ActivityGroups extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
       color: const Color(0xFF174777),
-      borderRadius: BorderRadius.circular(7),
+      borderRadius: BorderRadius.circular(RanahRadii.md),
       border: Border.all(color: const Color(0xFF3275A7)),
     ),
     clipBehavior: Clip.antiAlias,
@@ -425,17 +442,25 @@ class _ActivityGroups extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+          padding: const EdgeInsets.symmetric(
+            horizontal: RanahSpacing.lg,
+            vertical: RanahSpacing.md,
+          ),
           decoration: const BoxDecoration(
             border: Border(bottom: BorderSide(color: Color(0xFF557EA0))),
           ),
           child: const Text(
             'Daftar Tingkat Aktivitas Gunung Api',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontSize: 18,
+              height: 1.25,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
         for (final level in activityLevels)
           _ActivityLevelGroup(
+            key: ValueKey('activity-level-${level.level}'),
             level: level,
             gunung: gunung
                 .where((item) => item.activityLevel == level.level)
@@ -445,6 +470,7 @@ class _ActivityGroups extends StatelessWidget {
           ),
         if (gunung.any((item) => item.activityLevel == null))
           _ActivityLevelGroup(
+            key: const ValueKey('activity-level-unknown'),
             level: unknownActivityLevel,
             gunung: gunung.where((item) => item.activityLevel == null).toList(),
             compact: compact,
@@ -455,12 +481,13 @@ class _ActivityGroups extends StatelessWidget {
   );
 }
 
-class _ActivityLevelGroup extends StatelessWidget {
+class _ActivityLevelGroup extends StatefulWidget {
   const _ActivityLevelGroup({
     required this.level,
     required this.gunung,
     required this.compact,
     required this.onViewReport,
+    super.key,
   });
 
   final ActivityLevelPresentation level;
@@ -469,38 +496,83 @@ class _ActivityLevelGroup extends StatelessWidget {
   final ValueChanged<GunungRecord> onViewReport;
 
   @override
+  State<_ActivityLevelGroup> createState() => _ActivityLevelGroupState();
+}
+
+class _ActivityLevelGroupState extends State<_ActivityLevelGroup> {
+  static const _initialVisibleCount = 4;
+  bool _showAll = false;
+
+  @override
   Widget build(BuildContext context) {
+    final gunung = widget.gunung;
+    final level = widget.level;
+    final visibleGunung = _showAll
+        ? gunung
+        : gunung.take(_initialVisibleCount).toList(growable: false);
+    final hasMore = gunung.length > _initialVisibleCount;
     if (gunung.isEmpty && level.level != 4) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.fromLTRB(13, 9, 13, 8),
+      padding: const EdgeInsets.fromLTRB(
+        RanahSpacing.lg,
+        RanahSpacing.md,
+        RanahSpacing.lg,
+        RanahSpacing.md,
+      ),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFF52799C))),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            level.level == 0
-                ? 'Status aktivitas belum diketahui'
-                : 'Level ${level.level} - ${level.name}',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  level.level == 0
+                      ? 'Status aktivitas belum diketahui'
+                      : 'Level ${level.level} · ${level.name}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    height: 1.25,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: RanahSpacing.sm),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: RanahSpacing.sm,
+                  vertical: RanahSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F3154),
+                  borderRadius: BorderRadius.circular(RanahRadii.pill),
+                  border: Border.all(color: Color(level.color)),
+                ),
+                child: Text(
+                  '${gunung.length} gunung',
+                  style: TextStyle(
+                    color: Color(level.textColor),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (level.level == 0) ...[
+            const SizedBox(height: RanahSpacing.xs),
+            const Text(
+              'API tidak memberikan level aktivitas yang dapat dikenali.',
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: Color(0xFFE0E6EF),
+              ),
             ),
-          ),
-          const SizedBox(height: RanahSpacing.xs),
-          Text(
-            level.level == 0
-                ? 'API tidak memberikan level aktivitas yang dapat dikenali.'
-                : 'Kategori status sesuai tingkat aktivitas yang diterima dari API.',
-            style: const TextStyle(fontSize: 12, color: Color(0xFFE0E6EF)),
-          ),
-          const SizedBox(height: RanahSpacing.xs),
-          Text(
-            '${gunung.length} gunung',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-          ),
+          ],
           if (gunung.isEmpty)
             const Padding(
               padding: EdgeInsets.only(
@@ -512,7 +584,8 @@ class _ActivityLevelGroup extends StatelessWidget {
           else
             LayoutBuilder(
               builder: (context, constraints) {
-                final twoColumns = !compact && constraints.maxWidth >= 760;
+                final twoColumns =
+                    !widget.compact && constraints.maxWidth >= 760;
                 final rowWidth = twoColumns
                     ? (constraints.maxWidth - 12) / 2
                     : constraints.maxWidth;
@@ -522,19 +595,50 @@ class _ActivityLevelGroup extends StatelessWidget {
                     spacing: RanahSpacing.md,
                     runSpacing: RanahSpacing.md,
                     children: [
-                      for (final item in gunung)
+                      for (final item in visibleGunung)
                         SizedBox(
                           width: rowWidth,
                           child: _ActivityVolcanoRow(
                             gunung: item,
                             level: level,
-                            onViewReport: () => onViewReport(item),
+                            onViewReport: () => widget.onViewReport(item),
                           ),
                         ),
                     ],
                   ),
                 );
               },
+            ),
+          if (hasMore)
+            Padding(
+              padding: const EdgeInsets.only(top: RanahSpacing.md),
+              child: Align(
+                alignment: Alignment.center,
+                child: OutlinedButton.icon(
+                  onPressed: () => setState(() => _showAll = !_showAll),
+                  icon: Icon(
+                    _showAll
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                  ),
+                  label: Text(
+                    _showAll
+                        ? 'Tampilkan lebih sedikit'
+                        : 'Muat lainnya (${gunung.length - _initialVisibleCount})',
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFF79A8C5)),
+                    minimumSize: const Size(48, 44),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: RanahSpacing.lg,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(RanahRadii.sm),
+                    ),
+                  ),
+                ),
+              ),
             ),
         ],
       ),
@@ -558,7 +662,7 @@ class _ActivityVolcanoRow extends StatelessWidget {
     padding: const EdgeInsets.all(RanahSpacing.md),
     decoration: BoxDecoration(
       color: RanahColors.cardBlue,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(RanahRadii.md),
       border: Border.all(color: const Color(0xFF3275A7)),
     ),
     child: Column(
@@ -568,7 +672,7 @@ class _ActivityVolcanoRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(RanahRadii.sm),
               child: Container(
                 width: 48,
                 height: 48,
@@ -617,7 +721,7 @@ class _ActivityVolcanoRow extends StatelessWidget {
                       fontSize: 13,
                       height: 1.25,
                       fontWeight: FontWeight.w700,
-                      color: Color(level.color),
+                      color: Color(level.textColor),
                     ),
                   ),
                   const SizedBox(height: RanahSpacing.xs),
@@ -647,7 +751,10 @@ class _ActivityVolcanoRow extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: RanahSpacing.md),
               minimumSize: const Size(48, 48),
               tapTargetSize: MaterialTapTargetSize.padded,
-              textStyle: const TextStyle(fontSize: 12),
+              textStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             child: const Text('Lihat Laporan'),
           ),
@@ -677,7 +784,7 @@ class _EmptySearchResult extends StatelessWidget {
     padding: const EdgeInsets.all(24),
     decoration: BoxDecoration(
       color: const Color(0xFF174777),
-      borderRadius: BorderRadius.circular(7),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
       border: Border.all(color: const Color(0xFF3275A7)),
     ),
     child: const Column(

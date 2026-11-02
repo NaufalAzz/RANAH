@@ -88,17 +88,14 @@ class NewsDetailPage extends StatelessWidget {
                     const SizedBox(height: RanahSpacing.xs),
                     Text(
                       story.date,
-                      style: TextStyle(
-                        color: const Color(0xFF657287),
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: RanahColors.muted, fontSize: 12),
                     ),
                     if (story.region != null) ...[
                       const SizedBox(height: RanahSpacing.sm),
                       Text(
                         'Wilayah: ${story.region}',
                         style: const TextStyle(
-                          color: Color(0xFF657287),
+                          color: RanahColors.muted,
                           fontSize: 12,
                         ),
                       ),
@@ -108,7 +105,7 @@ class NewsDetailPage extends StatelessWidget {
                       Text(
                         'Waktu kejadian: ${_formatStoryDateTime(story.eventAt!)}',
                         style: const TextStyle(
-                          color: Color(0xFF657287),
+                          color: RanahColors.muted,
                           fontSize: 12,
                         ),
                       ),
@@ -138,7 +135,7 @@ class NewsDetailPage extends StatelessWidget {
                       SelectableText(
                         'URL sumber: ${story.sourceUrl}',
                         style: const TextStyle(
-                          color: Color(0xFF657287),
+                          color: RanahColors.muted,
                           fontSize: 12,
                         ),
                       ),
@@ -148,7 +145,7 @@ class NewsDetailPage extends StatelessWidget {
                       const Text(
                         'Konten demonstrasi \u2014 bukan berita terkini yang telah diverifikasi.',
                         style: TextStyle(
-                          color: Color(0xFF657287),
+                          color: RanahColors.muted,
                           fontSize: 12,
                           fontStyle: FontStyle.italic,
                         ),

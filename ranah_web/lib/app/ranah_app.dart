@@ -317,6 +317,7 @@ class _RanahShellState extends State<RanahShell> {
                   bottom: compact ? 80 : null,
                   right: 16,
                   child: _MenuPopup(
+                    onActivity: () => _openActivity(_page),
                     onContact: _openContacts,
                     onMitigation: _openMitigationGuide,
                   ),
@@ -420,22 +421,31 @@ class _RanahShellState extends State<RanahShell> {
 }
 
 class _MenuPopup extends StatelessWidget {
-  const _MenuPopup({required this.onContact, required this.onMitigation});
+  const _MenuPopup({
+    required this.onActivity,
+    required this.onContact,
+    required this.onMitigation,
+  });
 
+  final VoidCallback onActivity;
   final VoidCallback onContact;
   final VoidCallback onMitigation;
 
   @override
   Widget build(BuildContext context) => Container(
-    width: 190,
-    padding: const EdgeInsets.all(4),
-    decoration: const BoxDecoration(
-      color: Color(0xE9092240),
+    width: MediaQuery.sizeOf(context).width < 352
+        ? MediaQuery.sizeOf(context).width - RanahSpacing.xxl
+        : 320,
+    padding: const EdgeInsets.all(RanahSpacing.md),
+    decoration: BoxDecoration(
+      color: RanahColors.backgroundMiddle,
+      borderRadius: BorderRadius.circular(RanahRadii.md),
+      border: Border.all(color: const Color(0xFF537895)),
       boxShadow: [
         BoxShadow(
           color: Color(0x44000000),
-          blurRadius: 8,
-          offset: Offset(0, 3),
+          blurRadius: 16,
+          offset: Offset(0, 6),
         ),
       ],
     ),
@@ -443,15 +453,25 @@ class _MenuPopup extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         _MenuOption(
-          label: 'KONTAK DARURAT',
-          color: RanahColors.eruption,
-          onTap: onContact,
+          icon: Icons.landscape_outlined,
+          title: 'Aktivitas Gunung Api',
+          description:
+              'Lihat daftar gunung dan laporan aktivitas yang tersedia.',
+          onTap: onActivity,
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: RanahSpacing.sm),
         _MenuOption(
-          label: 'PANDUAN MITIGASI',
-          color: const Color(0xFF00695C),
+          icon: Icons.health_and_safety_outlined,
+          title: 'Panduan Mitigasi',
+          description: 'Langkah sebelum, saat, dan setelah erupsi.',
           onTap: onMitigation,
+        ),
+        const SizedBox(height: RanahSpacing.sm),
+        _MenuOption(
+          icon: Icons.phone_in_talk_rounded,
+          title: 'Kontak Darurat & Pengaduan',
+          description: 'Daftar kontak dan formulir laporan kejadian.',
+          onTap: onContact,
         ),
       ],
     ),
@@ -460,41 +480,71 @@ class _MenuPopup extends StatelessWidget {
 
 class _MenuOption extends StatelessWidget {
   const _MenuOption({
-    required this.label,
-    required this.color,
+    required this.icon,
+    required this.title,
+    required this.description,
     required this.onTap,
   });
 
-  final String label;
-  final Color color;
+  final IconData icon;
+  final String title;
+  final String description;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: double.infinity,
-    height: 48,
-    child: Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Center(
-          child: Container(
-            height: 48,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(3),
+  Widget build(BuildContext context) => Material(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(RanahRadii.md),
+    elevation: 2,
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(RanahSpacing.md),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(RanahRadii.md),
+          border: Border.all(color: const Color(0xFFE3E9F0)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAE6F7),
+                borderRadius: BorderRadius.circular(RanahRadii.sm),
+              ),
+              child: Icon(icon, color: const Color(0xFF24106B), size: 25),
             ),
-            alignment: Alignment.center,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+            const SizedBox(width: RanahSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Color(0xFF15243A),
+                      fontSize: 15,
+                      height: 1.25,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: RanahSpacing.xs),
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      color: Color(0xFF65748A),
+                      fontSize: 13,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
+            const SizedBox(width: RanahSpacing.xs),
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFF65748A)),
+          ],
         ),
       ),
     ),
@@ -554,7 +604,7 @@ class _PlaceholderPage extends StatelessWidget {
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: RanahColors.cardBlue,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(RanahRadii.md),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -569,14 +619,7 @@ class _PlaceholderPage extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(subtitle, textAlign: TextAlign.center),
                 const SizedBox(height: 20),
-                OutlinedButton.icon(
-                  onPressed: onBack,
-                  icon: const Icon(Icons.arrow_back),
-                  label: const Text('Kembali ke Beranda'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                  ),
-                ),
+                RanahBackButton(onPressed: onBack, label: 'Kembali ke Beranda'),
               ],
             ),
           ),

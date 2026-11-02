@@ -122,7 +122,9 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFFFF5DC),
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(
+                                      RanahRadii.md,
+                                    ),
                                     border: Border.all(
                                       color: const Color(0xFFE6BB53),
                                     ),
@@ -153,7 +155,9 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
                                   elevation: 1,
                                   color: Colors.white,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(
+                                      RanahRadii.md,
+                                    ),
                                   ),
                                   child: Padding(
                                     padding: const EdgeInsets.all(
@@ -324,6 +328,9 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
     key: const ValueKey('admin-section-picker'),
     initialValue: _selected,
     isExpanded: true,
+    style: const TextStyle(color: RanahColors.ink),
+    iconEnabledColor: RanahColors.ink,
+    iconDisabledColor: RanahColors.muted,
     decoration: const InputDecoration(
       labelText: 'Menu pengelolaan',
       border: OutlineInputBorder(),

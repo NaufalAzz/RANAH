@@ -125,13 +125,22 @@ class _MitigationBanner extends StatelessWidget {
     color: RanahColors.banner,
     maxContentWidth: maxContentWidth,
     child: Container(
-      constraints: const BoxConstraints(minHeight: 76),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      constraints: const BoxConstraints(
+        minHeight: RanahPageHeaderStyle.minHeight,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: RanahPageHeaderStyle.horizontalPadding,
+        vertical: RanahPageHeaderStyle.verticalPadding,
+      ),
       color: RanahColors.banner,
       child: Row(
         children: [
-          const Icon(Icons.shield_outlined, size: 28, color: Colors.white),
-          const SizedBox(width: 10),
+          const Icon(
+            Icons.shield_outlined,
+            size: RanahPageHeaderStyle.iconSize,
+            color: Colors.white,
+          ),
+          const SizedBox(width: RanahPageHeaderStyle.iconGap),
           const Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -141,23 +150,18 @@ class _MitigationBanner extends StatelessWidget {
                   'SIAGA BENCANA',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Color(0xFF91A8D0),
-                    fontSize: 12,
-                    letterSpacing: .45,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: RanahPageHeaderStyle.kicker,
                 ),
                 Text(
                   'Panduan Mitigasi',
                   maxLines: 1,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: RanahPageHeaderStyle.title,
                 ),
                 Text(
                   'Jalur Evakuasi & Langkah Keselamatan',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Color(0xFFC1C8D7), fontSize: 12),
+                  style: RanahPageHeaderStyle.subtitle,
                 ),
               ],
             ),
@@ -217,11 +221,11 @@ class _StageButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: guide.accent.withValues(alpha: selected ? 1 : .62),
-    borderRadius: BorderRadius.circular(9),
+    borderRadius: BorderRadius.circular(RanahRadii.md),
     elevation: selected ? 3 : 1,
     shadowColor: Colors.black54,
     child: InkWell(
-      borderRadius: BorderRadius.circular(9),
+      borderRadius: BorderRadius.circular(RanahRadii.md),
       onTap: onTap,
       child: Center(
         child: Text(
@@ -229,9 +233,9 @@ class _StageButton extends StatelessWidget {
           textAlign: TextAlign.center,
           maxLines: 2,
           style: TextStyle(
-            color: selected
-                ? Colors.white
-                : Colors.white.withValues(alpha: .68),
+            color: selected && guide.stage == MitigationStage.during
+                ? RanahColors.ink
+                : Colors.white,
             fontSize: 12,
             height: 1.05,
             fontWeight: FontWeight.w700,
@@ -264,7 +268,7 @@ class _GuideStepCard extends StatelessWidget {
         begin: Alignment.centerLeft,
         end: Alignment.centerRight,
       ),
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
       border: Border.all(
         color: guide.accent.withValues(alpha: guide.placeholder ? .4 : .12),
       ),

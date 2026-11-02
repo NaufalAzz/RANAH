@@ -85,30 +85,36 @@ class _EvacuationRoutePageState extends State<EvacuationRoutePage> {
           : constraints.maxWidth;
       final horizontalInset = mobile ? 12.0 : 28.0;
       final innerWidth = width - horizontalInset * 2;
-      final mapHeight = mobile
-          ? (constraints.maxWidth < 420 ? 250.0 : 310.0)
-          : (MediaQuery.sizeOf(context).height * .48).clamp(360.0, 560.0);
+      final mapHeight = RanahMapLayout.heightFor(
+        screenWidth: constraints.maxWidth,
+        screenHeight: MediaQuery.sizeOf(context).height,
+      );
 
       return RanahPageScrollLayout(
         maxContentWidth: width,
         horizontalInset: horizontalInset,
-        title: _RouteBanner(maxContentWidth: innerWidth),
+        title: _RouteBanner(maxContentWidth: width),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: RanahSpacing.md),
             Container(
-              height: 48,
               alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: RanahSpacing.xs),
-              color: const Color(0xFF12304C),
+              padding: const EdgeInsets.symmetric(
+                horizontal: RanahSpacing.md,
+                vertical: RanahSpacing.xs,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFF12304C),
+                borderRadius: BorderRadius.circular(RanahRadii.sm),
+              ),
               child: RanahBackButton(
                 key: const ValueKey('evacuation-route-back'),
                 onPressed: widget.onBack,
               ),
             ),
             SizedBox(height: mobile ? RanahSpacing.lg : RanahSpacing.xl),
-            SizedBox(height: mapHeight, child: _buildMap()),
+            RanahFullBleed(height: mapHeight, child: _buildMap()),
             const SizedBox(height: RanahSpacing.sm),
             const _AcademicRouteNotice(),
             const SizedBox(height: RanahSpacing.md),
@@ -194,7 +200,7 @@ class _EvacuationRoutePageState extends State<EvacuationRoutePage> {
     final mapCenter = _referenceCenter(dataset.features);
     final userLocation = widget.currentLocation;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(9),
+      borderRadius: BorderRadius.circular(RanahRadii.md),
       child: DecoratedBox(
         decoration: const BoxDecoration(color: Color(0xFF102B43)),
         child: FlutterMap(
@@ -319,16 +325,25 @@ class _RouteBanner extends StatelessWidget {
     maxContentWidth: maxContentWidth,
     bottomBorder: const BorderSide(color: Color(0xFF263B65)),
     child: Container(
-      constraints: const BoxConstraints(minHeight: 76),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      constraints: const BoxConstraints(
+        minHeight: RanahPageHeaderStyle.minHeight,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: RanahPageHeaderStyle.horizontalPadding,
+        vertical: RanahPageHeaderStyle.verticalPadding,
+      ),
       decoration: const BoxDecoration(
         color: Color(0xFF17003E),
         border: Border(bottom: BorderSide(color: Color(0xFF263B65))),
       ),
       child: const Row(
         children: [
-          Icon(Icons.alt_route_rounded, size: 28, color: Colors.white),
-          SizedBox(width: RanahSpacing.md),
+          Icon(
+            Icons.alt_route_rounded,
+            size: RanahPageHeaderStyle.iconSize,
+            color: Colors.white,
+          ),
+          SizedBox(width: RanahPageHeaderStyle.iconGap),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -336,20 +351,15 @@ class _RouteBanner extends StatelessWidget {
               children: [
                 Text(
                   'SIAGA BENCANA',
-                  style: TextStyle(
-                    fontSize: 12,
-                    letterSpacing: 1,
-                    color: Color(0xFF91A8D0),
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: RanahPageHeaderStyle.kicker,
                 ),
                 Text(
                   'Jalur Evakuasi',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: RanahPageHeaderStyle.title,
                 ),
                 Text(
                   'Referensi OSM · belum diverifikasi',
-                  style: TextStyle(fontSize: 12, color: Color(0xFFC1C8D7)),
+                  style: RanahPageHeaderStyle.subtitle,
                 ),
               ],
             ),
@@ -365,21 +375,21 @@ class _AcademicRouteNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     decoration: BoxDecoration(
       color: const Color(0xFF59452D),
-      borderRadius: BorderRadius.circular(7),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
       border: Border.all(color: const Color(0xFFB38B42)),
     ),
     child: const Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.info_outline, size: 17, color: Color(0xFFFFD37A)),
-        SizedBox(width: 8),
+        Icon(Icons.info_outline, size: 19, color: Color(0xFFFFD37A)),
+        SizedBox(width: RanahSpacing.sm),
         Expanded(
           child: Text(
             'Simulasi Rute Akademik — Bukan Jalur Evakuasi Resmi. Rute hanya dapat diminta secara eksplisit dari peta utama jika layanan ORS pada server tersedia. Referensi ini bukan penetapan titik aman.',
-            style: TextStyle(color: Colors.white, fontSize: 12, height: 1.4),
+            style: TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
           ),
         ),
       ],
@@ -399,10 +409,10 @@ class _FeatureDetailCard extends StatelessWidget {
     final attributes = feature.attributes;
     return Container(
       key: ValueKey('osm-feature-detail-${feature.id}'),
-      padding: const EdgeInsets.all(RanahSpacing.md),
+      padding: const EdgeInsets.all(RanahSpacing.lg),
       decoration: BoxDecoration(
         color: const Color(0xFF174A7D),
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(RanahRadii.md),
         border: Border.all(color: const Color(0xFF2580B5)),
       ),
       child: Column(
@@ -426,7 +436,7 @@ class _FeatureDetailCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 7),
+          const SizedBox(height: RanahSpacing.sm),
           Text(
             feature.status,
             style: const TextStyle(
@@ -434,34 +444,59 @@ class _FeatureDetailCard extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 5),
-          Text('Tipe geometri: ${isArea ? 'area Polygon' : 'Point'}'),
-          Text('ID OSM: ${feature.id}'),
-          Text(
-            'Koordinat tampilan: ${location.latitude.toStringAsFixed(7)}, ${location.longitude.toStringAsFixed(7)}',
+          const SizedBox(height: RanahSpacing.xs),
+          _FeatureMetadataLine(
+            label: 'Tipe geometri',
+            value: isArea ? 'Area Polygon' : 'Point',
+          ),
+          _FeatureMetadataLine(label: 'ID OSM', value: feature.id),
+          _FeatureMetadataLine(
+            label: 'Koordinat tampilan',
+            value:
+                '${location.latitude.toStringAsFixed(6)}, ${location.longitude.toStringAsFixed(6)}',
           ),
           if (isArea)
             const Text(
               'Penanda area hanya untuk memilih geometri; bukan pintu masuk atau akses resmi.',
-              style: TextStyle(color: Color(0xFFC7D2E0), fontSize: 12),
+              style: TextStyle(
+                color: Color(0xFFC7D2E0),
+                fontSize: 13,
+                height: 1.4,
+              ),
             ),
-          Text(
-            'Tag emergency: ${attributes['emergency'] ?? 'tidak tercantum'}',
+          const SizedBox(height: RanahSpacing.sm),
+          _FeatureMetadataLine(
+            label: 'Tag emergency',
+            value: '${attributes['emergency'] ?? 'tidak tercantum'}',
           ),
-          Text(
-            'Kesesuaian tsunami: ${attributes['assembly_point_tsunami'] ?? 'tidak dicantumkan pada ekspor'}',
+          _FeatureMetadataLine(
+            label: 'Kesesuaian tsunami',
+            value:
+                '${attributes['assembly_point_tsunami'] ?? 'tidak dicantumkan pada ekspor'}',
           ),
-          Text('Operator: ${attributes['operator'] ?? 'tidak dicantumkan'}'),
-          Text('Akses: ${attributes['access'] ?? 'tidak dicantumkan'}'),
-          Text(
-            'Waktu pembaruan OSM: ${attributes['tanggal_pembaruan'] ?? 'tidak tersedia'}',
+          _FeatureMetadataLine(
+            label: 'Operator',
+            value: '${attributes['operator'] ?? 'tidak dicantumkan'}',
           ),
-          Text(
-            'Sumber: ${attributes['source'] ?? 'tag sumber tidak tercantum'}',
+          _FeatureMetadataLine(
+            label: 'Akses',
+            value: '${attributes['access'] ?? 'tidak dicantumkan'}',
+          ),
+          _FeatureMetadataLine(
+            label: 'Waktu pembaruan OSM',
+            value: '${attributes['tanggal_pembaruan'] ?? 'tidak tersedia'}',
+          ),
+          _FeatureMetadataLine(
+            label: 'Sumber',
+            value: '${attributes['source'] ?? 'tag sumber tidak tercantum'}',
           ),
           const Text(
             'Jenis bencana tidak ditetapkan dari tag yang tersedia.',
-            style: TextStyle(color: Color(0xFFC7D2E0), fontSize: 12),
+            style: TextStyle(
+              color: Color(0xFFC7D2E0),
+              fontSize: 13,
+              height: 1.4,
+            ),
           ),
         ],
       ),
@@ -483,11 +518,11 @@ class _FeatureListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: selected ? const Color(0xFF1C588A) : const Color(0xFF174A7D),
-    borderRadius: BorderRadius.circular(9),
+    borderRadius: BorderRadius.circular(RanahRadii.md),
     child: InkWell(
       key: ValueKey('select-osm-reference-${feature.id}'),
       onTap: onTap,
-      borderRadius: BorderRadius.circular(9),
+      borderRadius: BorderRadius.circular(RanahRadii.md),
       child: Padding(
         padding: const EdgeInsets.all(RanahSpacing.sm),
         child: Row(
@@ -529,6 +564,33 @@ class _FeatureListCard extends StatelessWidget {
   );
 }
 
+class _FeatureMetadataLine extends StatelessWidget {
+  const _FeatureMetadataLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: RanahSpacing.xs),
+    child: Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: '$label: ',
+            style: const TextStyle(
+              color: Color(0xFFC7D8E8),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          TextSpan(text: value),
+        ],
+      ),
+      style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4),
+    ),
+  );
+}
+
 class _SourceAndCoverageCard extends StatelessWidget {
   const _SourceAndCoverageCard({required this.metadata});
 
@@ -539,7 +601,7 @@ class _SourceAndCoverageCard extends StatelessWidget {
     padding: const EdgeInsets.all(RanahSpacing.md),
     decoration: BoxDecoration(
       color: const Color(0xFF123E68),
-      borderRadius: BorderRadius.circular(9),
+      borderRadius: BorderRadius.circular(RanahRadii.md),
       border: Border.all(color: const Color(0xFF286D9C)),
     ),
     child: Column(
@@ -578,7 +640,7 @@ class _StatusCard extends StatelessWidget {
     padding: const EdgeInsets.all(RanahSpacing.md),
     decoration: BoxDecoration(
       color: const Color(0xFF174A7D),
-      borderRadius: BorderRadius.circular(9),
+      borderRadius: BorderRadius.circular(RanahRadii.md),
       border: Border.all(color: const Color(0xFF286D9C)),
     ),
     child: child,
@@ -594,7 +656,7 @@ class _MapBadge extends StatelessWidget {
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
       color: const Color(0xE6102639),
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
       border: Border.all(color: const Color(0xFF67D3E3)),
     ),
     child: Padding(

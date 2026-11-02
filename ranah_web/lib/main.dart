@@ -135,7 +135,7 @@ class _TextSizeOptions extends StatelessWidget {
   Widget build(BuildContext context) => Material(
     color: Colors.white,
     elevation: 6,
-    borderRadius: BorderRadius.circular(12),
+    borderRadius: BorderRadius.circular(RanahRadii.md),
     child: SizedBox(
       width: 184,
       child: Padding(

@@ -145,7 +145,7 @@ class _WelcomePageState extends State<WelcomePage>
                                         clipBehavior: Clip.antiAlias,
                                         decoration: BoxDecoration(
                                           borderRadius: BorderRadius.circular(
-                                            22,
+                                            RanahRadii.pill,
                                           ),
                                           boxShadow: const [
                                             BoxShadow(
@@ -220,7 +220,7 @@ class _WelcomePageState extends State<WelcomePage>
                     child: SizedBox(
                       width: 112,
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(RanahRadii.xs),
                         child: LinearProgressIndicator(
                           value: progress,
                           minHeight: 3,

@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../data/volcanic_activity_data.dart';
 import '../models/gunung_data.dart';
 import '../models/verified_krb_data.dart';
+import '../theme/ranah_theme.dart';
 
 const _activityColors = <int, Color>{
   1: Color(0xFF36C78B),
@@ -71,7 +73,7 @@ class _VolcanoInteractiveMapState extends State<VolcanoInteractiveMap> {
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
       color: const Color(0xFF102B43),
-      borderRadius: BorderRadius.circular(5),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
       border: Border.all(color: const Color(0xFF4B91B4)),
     ),
     clipBehavior: Clip.antiAlias,
@@ -259,7 +261,12 @@ class _VolcanoInteractiveMapState extends State<VolcanoInteractiveMap> {
               ),
               Text(
                 widget.gunung.statusAktivitas ?? 'Status belum diketahui',
-                style: TextStyle(color: marker.color),
+                style: TextStyle(
+                  color: Color(
+                    activityLevelPresentation(widget.gunung.activityLevel)
+                        .textColor,
+                  ),
+                ),
               ),
               Text(
                 'Diperbarui server: ${_formatDate(widget.gunung.waktuPengambilan)}',
@@ -448,7 +455,7 @@ class _MapNotice extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
     decoration: BoxDecoration(
       color: warning ? const Color(0xE7663D0B) : const Color(0xE6102639),
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(RanahRadii.xs),
     ),
     child: Text(
       text,

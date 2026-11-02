@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/map_sample_data.dart';
+import '../theme/ranah_theme.dart';
 
 class IllustrativeMap extends StatelessWidget {
   const IllustrativeMap({
@@ -19,7 +20,7 @@ class IllustrativeMap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(RanahRadii.xs),
       child: LayoutBuilder(
         builder: (context, constraints) {
           return Stack(
@@ -442,14 +443,23 @@ class _MapText extends StatelessWidget {
     left: left,
     top: top,
     child: IgnorePointer(
-      child: Text(
-        text,
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: .76),
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: .7,
-          shadows: const [Shadow(color: Colors.black87, blurRadius: 3)],
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: RanahSpacing.xs,
+          vertical: 2,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xE6102639),
+          borderRadius: BorderRadius.circular(RanahRadii.xs),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            letterSpacing: .7,
+          ),
         ),
       ),
     ),
@@ -466,7 +476,7 @@ class _MapTag extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
     decoration: BoxDecoration(
       color: const Color(0xB80A2140),
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: BorderRadius.circular(RanahRadii.xs),
     ),
     child: Text(
       text,
@@ -490,7 +500,7 @@ class _ActivityLegend extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
     decoration: BoxDecoration(
       color: const Color(0xD90B2140),
-      borderRadius: BorderRadius.circular(5),
+      borderRadius: BorderRadius.circular(RanahRadii.sm),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
