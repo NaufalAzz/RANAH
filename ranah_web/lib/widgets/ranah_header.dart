@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/ranah_theme.dart';
 
-enum RanahDestination { home, map, news, menu }
+enum RanahDestination { home, map, voice, news, menu }
 
 class RanahBackButton extends StatelessWidget {
   const RanahBackButton({
@@ -187,7 +187,7 @@ class RanahBottomNavigation extends StatelessWidget {
         height: 68,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final contentWidth = math.max(constraints.maxWidth, 192.0);
+            final contentWidth = math.max(constraints.maxWidth, 240.0);
             return SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SizedBox(
@@ -306,6 +306,7 @@ class _NavigationButton extends StatelessWidget {
     final (label, icon) = switch (destination) {
       RanahDestination.home => ('Awal', Icons.home_rounded),
       RanahDestination.map => ('Peta', Icons.map_rounded),
+      RanahDestination.voice => ('Suara', Icons.mic_rounded),
       RanahDestination.news => ('Berita', Icons.article_rounded),
       RanahDestination.menu => ('Menu', Icons.menu_rounded),
     };

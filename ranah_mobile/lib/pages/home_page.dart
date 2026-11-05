@@ -1,3 +1,7 @@
+import 'package:ranah_accessibility/ranah_accessibility.dart';
+
+import '../data/sample_emergency_contacts.dart';
+
 import 'package:flutter/material.dart';
 
 import '../models/news_item.dart';
@@ -9,6 +13,7 @@ import '../widgets/news_artwork.dart';
 class HomePage extends StatefulWidget {
   const HomePage({
     required this.onOpenNews,
+    this.onOpenContacts,
     this.items = const [],
     this.isUsingFallback = false,
     this.isFromCache = false,
@@ -17,6 +22,8 @@ class HomePage extends StatefulWidget {
     this.onRetry,
     super.key,
   });
+
+  final VoidCallback? onOpenContacts;
 
   final ValueChanged<NewsItem> onOpenNews;
   final List<NewsItem> items;
@@ -66,6 +73,20 @@ class _HomePageState extends State<HomePage> {
                 AppSpacing.xl,
               ),
               children: [
+                EmergencyContactsCard(
+                  onOpenAll: widget.onOpenContacts,
+                  contacts: [
+                    for (final contact in sampleEmergencyContacts.take(3))
+                      QuickEmergencyContact(
+                        name: contact.organization,
+                        numbers: contact.dialNumbers,
+                        verified: contact.numberVerified,
+                        source:
+                            '${contact.sourceTitle} (${contact.sourceOrganization}), diakses ${contact.sourceAccessedAt}.\n${contact.sourceUrl}',
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
                 if (widget.items.isEmpty)
                   _NoPublishedNews(
                     loadError: widget.loadError,
