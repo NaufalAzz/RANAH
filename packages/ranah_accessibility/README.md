@@ -1,6 +1,8 @@
 # Navigasi suara dan kontak beranda RANAH
 
-Paket Flutter bersama untuk mobile dan web. Beranda menampilkan tiga kontak
+Paket Flutter bersama untuk mobile dan web. Kartu kontak beranda menggunakan
+warna merah tua dan ikon layanan yang selaras dengan halaman kontak.
+Beranda menampilkan tiga kontak
 pertama dari data kontak yang sudah ada; ini nomor layanan umum, bukan hasil
 penentuan posko terdekat. Atribusi sumber ditampilkan sebelum membuka telepon.
 
@@ -10,13 +12,16 @@ penentuan posko terdekat. Atribusi sumber ditampilkan sebelum membuka telepon.
 - Mikrofon baru diminta setelah pengguna menekan **Mulai bicara**. Izin sistem
   dan locale Bahasa Indonesia diperiksa oleh `speech_to_text`.
 - Perintah final yang dikenal membuka fitur: panduan, peta, status gunung,
-  kontak darurat, berita, notifikasi, menu, beranda. "Evakuasi" memberi pilihan.
+  kontak darurat, berita, notifikasi, menu, beranda. Nama fitur yang spesifik
+  membuka satu fitur; kata umum seperti "gunung" menampilkan aktivitas, peta,
+  panduan, dan berita untuk dipilih. Pilihan hanya muncul setelah hasil final.
 - Perintah parsial, tidak dikenal, atau negatif tidak membuka fitur. Navigasi
   tidak pernah memanggil nomor atau meminta lokasi secara otomatis.
 - Respons pendek dibacakan dengan `flutter_tts` bila id-ID tersedia. Ini belum
   pembacaan seluruh panduan atau chatbot.
-- Tombol fitur tetap tersedia jika izin ditolak, bahasa tidak tersedia, koneksi
-  gagal, atau browser tidak mendukung pengenalan suara.
+- Panel awal tidak berisi quick menu. Ucapan parsial/tidak dikenal dan izin
+  ditolak tidak menampilkan menu pengganti. Pengguna dapat mencoba lagi atau
+  menutup panel untuk menggunakan navigasi biasa.
 - Sesi dihentikan saat dibatalkan, panel ditutup, aplikasi masuk latar belakang,
   atau batas waktu tercapai. Rekaman dan transkrip tidak disimpan oleh RANAH;
   pengenalan ucapan dapat menggunakan layanan perangkat/browser melalui jaringan.

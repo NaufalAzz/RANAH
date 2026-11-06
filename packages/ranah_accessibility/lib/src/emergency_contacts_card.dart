@@ -7,11 +7,13 @@ class QuickEmergencyContact {
     required this.numbers,
     required this.source,
     required this.verified,
+    this.icon = Icons.phone_in_talk_rounded,
   });
   final String name;
   final List<String> numbers;
   final String source;
   final bool verified;
+  final IconData icon;
 }
 
 class EmergencyContactsCard extends StatelessWidget {
@@ -82,42 +84,158 @@ class EmergencyContactsCard extends StatelessWidget {
     child: Builder(builder: _buildCard),
   );
 
-  Widget _buildCard(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('Kontak Darurat', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          const Text(
-            'Nomor layanan umum. Ketersediaan respons bergantung wilayah dan jaringan telepon.',
-          ),
-          const SizedBox(height: 12),
-          for (final contact in contacts)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: OutlinedButton.icon(
-                onPressed: contact.verified && contact.numbers.isNotEmpty
-                    ? () => _call(context, contact)
-                    : null,
-                icon: const Icon(Icons.phone),
-                label: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text(
-                    '${contact.name} · ${contact.numbers.join(' / ')}\nTelepon',
-                    textAlign: TextAlign.center,
+  Widget _buildCard(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Row(
+          children: [
+            Icon(
+              Icons.phone_in_talk_rounded,
+              color: Color(0xFFFF8E98),
+              size: 22,
+            ),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Kontak Darurat',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Akses cepat layanan bantuan',
+          style: TextStyle(color: Color(0xFFC5D4E2), fontSize: 14),
+        ),
+        const SizedBox(height: 14),
+        for (final contact in contacts)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              clipBehavior: Clip.antiAlias,
+              child: Ink(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF552435), Color(0xFF49213A)],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFB03C4A)),
+                ),
+                child: Semantics(
+                  label:
+                      '${contact.name}, ${contact.numbers.join(' atau ')}. Buka pilihan telepon',
+                  button: true,
+                  enabled: contact.verified && contact.numbers.isNotEmpty,
+                  excludeSemantics: true,
+                  child: InkWell(
+                    key: ValueKey('home-emergency-${contact.name}'),
+                    onTap: contact.verified && contact.numbers.isNotEmpty
+                        ? () => _call(context, contact)
+                        : null,
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFD9363D),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              contact.icon,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  contact.name,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  contact.verified
+                                      ? 'Layanan bantuan'
+                                      : 'Nomor belum terverifikasi',
+                                  style: const TextStyle(
+                                    color: Color(0xFFE3C4CC),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            fit: FlexFit.tight,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  contact.numbers.join(' / '),
+                                  textAlign: TextAlign.end,
+                                  style: const TextStyle(
+                                    color: Color(0xFFFFABB2),
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                const Text(
+                                  'Telepon',
+                                  style: TextStyle(
+                                    color: Color(0xFFFFD0D5),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          if (onOpenAll != null)
-            TextButton(
+          ),
+        const Text(
+          'Ketersediaan layanan bergantung wilayah dan jaringan telepon.',
+          style: TextStyle(color: Color(0xFFC5D4E2), fontSize: 13),
+        ),
+        if (onOpenAll != null)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
               onPressed: onOpenAll,
-              child: const Text('Lihat semua kontak'),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFFFABB2),
+              ),
+              label: const Text('Lihat semua kontak'),
             ),
-        ],
-      ),
+          ),
+      ],
     ),
   );
 }

@@ -26,13 +26,13 @@ void main() {
         ),
       ),
     );
-    await tester.tap(find.text('BNPB · 117\nTelepon'));
+    await tester.tap(find.byKey(const ValueKey('home-emergency-BNPB')));
     await tester.pumpAndSettle();
     expect(dialed, isEmpty);
     await tester.tap(find.text('Batal'));
     await tester.pumpAndSettle();
     expect(dialed, isEmpty);
-    await tester.tap(find.text('BNPB · 117\nTelepon'));
+    await tester.tap(find.byKey(const ValueKey('home-emergency-BNPB')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Buka Telepon 117'));
     await tester.pumpAndSettle();
@@ -60,8 +60,10 @@ void main() {
         ),
       ),
     );
-    final button = tester.widget<OutlinedButton>(find.byType(OutlinedButton));
-    expect(button.onPressed, isNull);
+    final button = tester.widget<InkWell>(
+      find.byKey(const ValueKey('home-emergency-Belum diperiksa')),
+    );
+    expect(button.onTap, isNull);
     expect(opened, isFalse);
   });
 }
