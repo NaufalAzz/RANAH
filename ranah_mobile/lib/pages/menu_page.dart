@@ -105,8 +105,8 @@ class _MenuHub extends StatelessWidget {
           const SizedBox(height: 12),
           _MenuHubCard(
             icon: Icons.phone_in_talk_rounded,
-            title: 'Kontak Darurat & Pengaduan',
-            description: 'Daftar kontak dan formulir laporan kejadian.',
+            title: 'Kontak Darurat',
+            description: 'Nomor layanan bantuan beserta sumbernya.',
             onTap: () => onOpen(_MenuSection.contacts),
           ),
         ],

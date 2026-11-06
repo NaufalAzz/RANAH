@@ -1,3 +1,4 @@
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 import 'package:flutter/material.dart';
 
 import '../models/news_item.dart';
@@ -46,7 +47,10 @@ class NewsRepository {
           throw const FormatException('Format item berita tidak sesuai.');
         }
         final json = Map<String, dynamic>.from(rawItem);
-        if (_isInactiveWarning(json)) continue;
+        if (_isInactiveWarning(json) ||
+            !isEruptionContent('${json['kategori'] ?? ''}')) {
+          continue;
+        }
         items.add(_parse(json));
         rawItems.add(json);
       }
@@ -89,7 +93,11 @@ class NewsRepository {
       if (cachedItems.isNotEmpty || lastSyncedAt != null) {
         return NewsFeedSnapshot(
           items: cachedItems
-              .where((item) => !_isInactiveWarning(item))
+              .where(
+                (item) =>
+                    !_isInactiveWarning(item) &&
+                    isEruptionContent('${item['kategori'] ?? ''}'),
+              )
               .map(_parse)
               .toList(),
           isUsingFallback: false,

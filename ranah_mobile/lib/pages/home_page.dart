@@ -14,6 +14,7 @@ class HomePage extends StatefulWidget {
   const HomePage({
     required this.onOpenNews,
     this.onOpenContacts,
+    this.onOpenPreparedness,
     this.items = const [],
     this.isUsingFallback = false,
     this.isFromCache = false,
@@ -24,6 +25,7 @@ class HomePage extends StatefulWidget {
   });
 
   final VoidCallback? onOpenContacts;
+  final void Function(EruptionSection)? onOpenPreparedness;
 
   final ValueChanged<NewsItem> onOpenNews;
   final List<NewsItem> items;
@@ -73,6 +75,8 @@ class _HomePageState extends State<HomePage> {
                 AppSpacing.xl,
               ),
               children: [
+                if (widget.onOpenPreparedness != null)
+                  EruptionDashboard(onOpen: widget.onOpenPreparedness!),
                 EmergencyContactsCard(
                   onOpenAll: widget.onOpenContacts,
                   contacts: [

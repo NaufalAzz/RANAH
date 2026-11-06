@@ -47,6 +47,12 @@ class BeritaController extends Controller
     {
         return Berita::query()
             ->where('status_publikasi', 'published')
+            ->where(function (Builder $query): void {
+                $query->where('kategori', 'like', '%gunung%')
+                    ->orWhere('kategori', 'like', '%erupsi%')
+                    ->orWhere('kategori', 'like', '%vulkan%')
+                    ->orWhere('kategori', 'like', '%lahar%');
+            })
             ->whereNotNull('waktu_publikasi')
             ->where('waktu_publikasi', '<=', now())
             ->where(function (Builder $query): void {
@@ -94,12 +100,12 @@ class BeritaController extends Controller
         }
 
         $disk = Storage::disk('public');
-        if (!$disk->exists($path)) {
+        if (! $disk->exists($path)) {
             abort(404);
         }
 
         $mimeType = $disk->mimeType($path);
-        if (!in_array($mimeType, [
+        if (! in_array($mimeType, [
             'image/avif',
             'image/bmp',
             'image/gif',

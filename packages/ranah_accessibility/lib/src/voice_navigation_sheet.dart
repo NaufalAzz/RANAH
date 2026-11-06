@@ -68,7 +68,8 @@ class _VoiceNavigationSheetState extends State<VoiceNavigationSheet>
         _busy = false;
         _listening = false;
         _opening = false;
-        _message = 'Suara dihentikan. Anda bisa mencoba lagi atau memilih tombol fitur.';
+        _message =
+            'Suara dihentikan. Anda bisa mencoba lagi atau memilih tombol fitur.';
       });
   }
 
@@ -139,7 +140,8 @@ class _VoiceNavigationSheetState extends State<VoiceNavigationSheet>
           setState(() {
             _listening = false;
             _busy = false;
-            _message = 'Sesi selesai. Jika belum terbuka, coba lagi atau pilih tombol fitur.';
+            _message =
+                'Sesi selesai. Jika belum terbuka, coba lagi atau pilih tombol fitur.';
           });
         },
       );
