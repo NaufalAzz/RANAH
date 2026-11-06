@@ -27,9 +27,6 @@ class PengaduanController extends Controller
                 'string',
                 Rule::in([
                     'Erupsi gunung api',
-                    'Gempa bumi',
-                    'Banjir',
-                    'Tsunami',
                     'Lainnya',
                 ]),
             ],

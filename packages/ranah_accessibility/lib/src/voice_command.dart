@@ -1,4 +1,9 @@
 enum VoiceDestination {
+  actions('Tindakan Sekarang'),
+  offline('Paket Siaga Offline'),
+  training('Latihan Erupsi'),
+  local('Arahan Wilayah Saya'),
+  follow('Gunung Saya'),
   home('Beranda'),
   guide('Panduan'),
   map('Peta'),
@@ -27,6 +32,15 @@ List<VoiceDestination> resolveVoiceCommand(String utterance) {
     '',
   );
   const aliases = <VoiceDestination, List<String>>{
+    VoiceDestination.actions: ['tindakan sekarang', 'hujan abu', 'tindakan'],
+    VoiceDestination.offline: ['offline', 'paket siaga', 'paket siaga offline'],
+    VoiceDestination.training: [
+      'latihan',
+      'latihan erupsi',
+      'simulasi keputusan',
+    ],
+    VoiceDestination.local: ['arahan wilayah', 'arahan wilayah saya'],
+    VoiceDestination.follow: ['gunung saya', 'gunung yang saya ikuti'],
     VoiceDestination.home: [
       'beranda',
       'awal',

@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ranah_accessibility/ranah_accessibility.dart';
@@ -25,6 +26,7 @@ void main() {
   testWidgets('home contacts are direct and voice fallback opens mitigation', (
     tester,
   ) async {
+    SharedPreferences.setMockInitialValues({});
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -41,6 +43,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Kontak Darurat'), findsOneWidget);
+    await tester.ensureVisible(find.text('BNPB · 117\nTelepon'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('BNPB · 117\nTelepon'));
     await tester.pumpAndSettle();
     expect(find.text('Hubungi BNPB?'), findsOneWidget);

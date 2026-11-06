@@ -1,15 +1,20 @@
+import 'package:ranah_accessibility/ranah_accessibility.dart';
+
 import '../data/home_stories.dart';
 import 'ranah_api_client.dart';
 
 class NewsRepository {
-  NewsRepository({RanahApiClient? client}) : _client = client ?? RanahApiClient();
+  NewsRepository({RanahApiClient? client})
+    : _client = client ?? RanahApiClient();
 
   final RanahApiClient _client;
 
   Future<List<HomeStory>> load() async {
     final response = await _client.getJson('berita');
     if (response['success'] != true || response['data'] is! List) {
-      throw const RanahApiException('Format daftar berita dari API tidak sesuai.');
+      throw const RanahApiException(
+        'Format daftar berita dari API tidak sesuai.',
+      );
     }
 
     // Laravel orders by publication time. Keep the first record for an ID if
@@ -19,6 +24,7 @@ class NewsRepository {
       if (raw is! Map) {
         throw const FormatException('Item berita dari API bukan objek JSON.');
       }
+      if (!isEruptionContent('${raw['kategori'] ?? ''}')) continue;
       final story = _mapStory(Map<String, dynamic>.from(raw));
       final deduplicationKey = story.sourceId == null
           ? 'id:${story.id}'
@@ -26,8 +32,11 @@ class NewsRepository {
       byId.putIfAbsent(deduplicationKey, () => story);
     }
     final stories = byId.values.toList()
-      ..sort((a, b) => (b.publishedAt ?? DateTime(0))
-          .compareTo(a.publishedAt ?? DateTime(0)));
+      ..sort(
+        (a, b) => (b.publishedAt ?? DateTime(0)).compareTo(
+          a.publishedAt ?? DateTime(0),
+        ),
+      );
     return List.unmodifiable(stories);
   }
 
@@ -39,12 +48,17 @@ class NewsRepository {
     final category = _text(json['kategori']);
     final body = _text(json['isi']);
     final publishedAt = DateTime.tryParse(_text(json['waktu_publikasi']) ?? '');
-    if (id == null || title == null || category == null || body == null || publishedAt == null) {
+    if (id == null ||
+        title == null ||
+        category == null ||
+        body == null ||
+        publishedAt == null) {
       throw const FormatException('Field wajib berita dari API tidak valid.');
     }
 
     final categoryKey = category.toLowerCase();
-    final accent = categoryKey.contains('erupsi') || categoryKey.contains('gunung')
+    final accent =
+        categoryKey.contains('erupsi') || categoryKey.contains('gunung')
         ? 0xFFC93D3D
         : categoryKey.contains('gempa') || categoryKey.contains('tsunami')
         ? 0xFFB7791F
@@ -60,7 +74,9 @@ class NewsRepository {
       date: _formatDate(publishedAt),
       image: '',
       color: accent,
-      summary: summary.length <= 180 ? summary : '${summary.substring(0, 177)}\u2026',
+      summary: summary.length <= 180
+          ? summary
+          : '${summary.substring(0, 177)}\u2026',
       content: body,
       source: source,
       imageUrl: _safeUrl(json['gambar'], requireHttps: false),
@@ -85,15 +101,34 @@ class NewsRepository {
 
   String? _safeUrl(dynamic value, {required bool requireHttps}) {
     final uri = Uri.tryParse(_text(value) ?? '');
-    if (uri == null || !uri.hasAuthority || uri.host.isEmpty || uri.userInfo.isNotEmpty) return null;
-    if (requireHttps ? uri.scheme != 'https' : !{'http', 'https'}.contains(uri.scheme)) return null;
+    if (uri == null ||
+        !uri.hasAuthority ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty) {
+      return null;
+    }
+    if (requireHttps
+        ? uri.scheme != 'https'
+        : !{'http', 'https'}.contains(uri.scheme)) {
+      return null;
+    }
     return uri.toString();
   }
 
   String _formatDate(DateTime value) {
     const months = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
     ];
     final local = value.toLocal();
     return '${local.day.toString().padLeft(2, '0')} ${months[local.month - 1]} ${local.year}';

@@ -188,9 +188,6 @@ class MapHazardResult {
       throw const FormatException('Respons analisis bahaya tidak valid.');
     }
     const names = <String, String>{
-      'tsunami': 'Tsunami',
-      'banjir': 'Banjir',
-      'gempa_bumi': 'Gempa bumi',
       'letusan_gunung_api': 'Kawasan rawan gunung api',
     };
     final items = <MapHazardItem>[];

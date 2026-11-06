@@ -15,8 +15,6 @@ class HazardSpatialAnalysisService
 
     private const string SOURCE_URL = 'https://kspservices.big.go.id/satupeta/rest/services/PUBLIK/SUMBER_DAYA_ALAM_DAN_LINGKUNGAN/MapServer/11';
 
-    public function __construct(private readonly InaRiskRasterAnalysisService $inaRisk) {}
-
     /**
      * Check a WGS84 point against the source feature geometry. Coordinates are
      * sent at their original precision; no location history or cache is kept.
@@ -31,9 +29,6 @@ class HazardSpatialAnalysisService
             'waktu_analisis' => $analyzedAt,
             'sistem_koordinat' => 'EPSG:4326',
             'bahaya' => [
-                'tsunami' => $this->inaRisk->analyze('tsunami', $latitude, $longitude),
-                'banjir' => $this->inaRisk->analyze('banjir', $latitude, $longitude),
-                'gempa_bumi' => $this->inaRisk->analyze('gempa_bumi', $latitude, $longitude),
                 'letusan_gunung_api' => $this->analyzeVolcanoKrb($latitude, $longitude),
             ],
         ];

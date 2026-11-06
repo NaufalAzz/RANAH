@@ -87,8 +87,5 @@ const sampleEmergencyContacts = <EmergencyContact>[
 
 const complaintCategories = <String>[
   'Erupsi gunung api',
-  'Gempa bumi',
-  'Banjir',
-  'Tsunami',
   'Lainnya',
 ];
