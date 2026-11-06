@@ -41,18 +41,18 @@ class DeviceVoiceEngine implements VoiceEngine {
       onError: (error) => _onError?.call(
         error.errorMsg.contains('permission') ||
                 error.errorMsg.contains('not_allowed')
-            ? 'Izin mikrofon atau pengenalan suara belum diberikan. Periksa pengaturan perangkat atau browser, atau pilih tombol fitur.'
-            : 'Ucapan belum dapat dikenali. Coba lagi di tempat lebih tenang atau pilih tombol fitur.',
+            ? 'Izin mikrofon atau pengenalan suara belum diberikan. Periksa pengaturan perangkat atau browser, atau kembali ke navigasi aplikasi.'
+            : 'Ucapan belum dapat dikenali. Coba lagi di tempat lebih tenang atau kembali ke navigasi aplikasi.',
       ),
       onStatus: (status) {
-        if (status == 'done' || status == 'notListening') _onDone?.call();
+        if (status == 'done') _onDone?.call();
       },
     );
     // The sheet can be closed while the OS permission prompt is open.
     if (_onText != onText) return;
     if (!available) {
       throw UnsupportedError(
-        'Suara tidak tersedia atau izin belum diberikan. Periksa pengaturan mikrofon dan pengenalan suara. Anda tetap bisa memilih tombol fitur.',
+        'Suara tidak tersedia atau izin belum diberikan. Periksa pengaturan mikrofon dan pengenalan suara. Anda tetap bisa memakai navigasi aplikasi.',
       );
     }
     // Web Speech cannot enumerate installed recognition languages. Request
@@ -67,7 +67,7 @@ class DeviceVoiceEngine implements VoiceEngine {
       );
       if (indonesian.isEmpty) {
         throw UnsupportedError(
-          'Pengenalan Bahasa Indonesia belum tersedia pada perangkat ini. Pilih tombol fitur di bawah.',
+          'Pengenalan Bahasa Indonesia belum tersedia pada perangkat ini. Kembali ke navigasi aplikasi.',
         );
       }
       localeId = indonesian.first.localeId;

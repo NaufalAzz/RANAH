@@ -84,6 +84,7 @@ class _HomePageState extends State<HomePage> {
                       for (final contact in emergencyContacts.take(3))
                         QuickEmergencyContact(
                           name: contact.organization,
+                          icon: contact.icon,
                           numbers: contact.dialNumbers,
                           verified: contact.numberVerified,
                           source:

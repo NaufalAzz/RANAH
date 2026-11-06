@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -12,6 +13,13 @@ Future<VoiceDestination?> showVoiceNavigation(
   context: context,
   isScrollControlled: true,
   useSafeArea: true,
+  backgroundColor: const Color(0xFF0C2B45),
+  barrierColor: const Color(0xAA030919),
+  constraints: const BoxConstraints(maxWidth: 600),
+  shape: const RoundedRectangleBorder(
+    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  ),
+  clipBehavior: Clip.antiAlias,
   builder: (context) => Theme(
     data: Theme.of(context).copyWith(
       textTheme: Theme.of(context).textTheme.apply(
@@ -37,8 +45,7 @@ class _VoiceNavigationSheetState extends State<VoiceNavigationSheet>
   bool _listening = false;
   bool _opening = false;
   String _words = '';
-  String _message =
-      'Ucapkan nama fitur, misalnya “panduan” atau “kontak darurat”.';
+  String _message = 'Tekan mikrofon, lalu sebutkan fitur yang ingin dicari.';
   List<VoiceDestination> _choices = [];
   int _session = 0;
   Timer? _timeout;
@@ -68,7 +75,8 @@ class _VoiceNavigationSheetState extends State<VoiceNavigationSheet>
         _busy = false;
         _listening = false;
         _opening = false;
-        _message = 'Suara dihentikan. Anda bisa mencoba lagi atau memilih tombol fitur.';
+        _choices = [];
+        _message = 'Sesi dihentikan. Tekan mikrofon untuk mencoba lagi.';
       });
   }
 
@@ -117,14 +125,15 @@ class _VoiceNavigationSheetState extends State<VoiceNavigationSheet>
             if (choices.length == 1) {
               unawaited(_open(choices.single));
             } else {
-              unawaited(widget.engine.cancel().catchError((Object _) {}));
+              _session++;
+              unawaited(_silence());
               setState(() {
                 _busy = false;
                 _listening = false;
                 _choices = choices;
                 _message = choices.isEmpty
-                    ? 'Perintah belum dikenali. Coba “buka panduan” atau pilih tombol fitur.'
-                    : 'Pilih fitur evakuasi yang Anda maksud.';
+                    ? 'Perintah belum dikenali. Coba ucapkan “panduan” atau “gunung” lagi.'
+                    : 'Ada beberapa fitur yang cocok. Pilih yang Anda maksud.';
               });
             }
           }
@@ -139,7 +148,7 @@ class _VoiceNavigationSheetState extends State<VoiceNavigationSheet>
           setState(() {
             _listening = false;
             _busy = false;
-            _message = 'Sesi selesai. Jika belum terbuka, coba lagi atau pilih tombol fitur.';
+            _message = 'Sesi selesai. Tekan mikrofon untuk mencoba lagi.';
           });
         },
       );
@@ -154,7 +163,7 @@ class _VoiceNavigationSheetState extends State<VoiceNavigationSheet>
       setState(
         () => _message = error is UnsupportedError
             ? error.message ?? 'Pengenalan suara tidak tersedia.'
-            : 'Mikrofon belum dapat digunakan. Periksa izin dan koneksi, atau pilih tombol fitur.',
+            : 'Mikrofon belum dapat digunakan. Periksa izin dan koneksi, atau kembali ke navigasi aplikasi.',
       );
     }
   }
@@ -180,83 +189,276 @@ class _VoiceNavigationSheetState extends State<VoiceNavigationSheet>
     Navigator.of(context).pop(destination);
   }
 
+  IconData _icon(VoiceDestination destination) => switch (destination) {
+    VoiceDestination.home => Icons.home_outlined,
+    VoiceDestination.guide => Icons.health_and_safety_outlined,
+    VoiceDestination.map => Icons.map_outlined,
+    VoiceDestination.activity => Icons.landscape_outlined,
+    VoiceDestination.contacts => Icons.phone_in_talk_outlined,
+    VoiceDestination.news => Icons.newspaper_outlined,
+    VoiceDestination.notifications => Icons.notifications_outlined,
+    VoiceDestination.menu => Icons.grid_view_outlined,
+  };
+
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: MediaQuery.sizeOf(context).height * .85,
-    child: SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Bicara ke RANAH',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+    height: math.min(MediaQuery.sizeOf(context).height * .88, 740.0),
+    child: DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1B104A), Color(0xFF0C2B45), Color(0xFF123D5B)],
+        ),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0x558EABC6),
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              IconButton(
-                tooltip: 'Tutup suara',
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'NAVIGASI SUARA',
+                        style: TextStyle(
+                          color: Color(0xFF9FDCE6),
+                          fontSize: 12,
+                          letterSpacing: 1.4,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Bicara ke RANAH',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Tutup suara',
+                  onPressed: () => Navigator.pop(context),
+                  style: IconButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0x223CA2B5),
+                  ),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 26),
+            Center(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0x1133C5D3),
+                  border: Border.all(
+                    color: _listening
+                        ? const Color(0xFF8DE5EC)
+                        : const Color(0x554F899F),
+                    width: 2,
+                  ),
+                ),
+                child: Container(
+                  width: 94,
+                  height: 94,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF442280), Color(0xFF21005E)],
+                    ),
+                  ),
+                  child: Icon(
+                    _listening ? Icons.mic_rounded : Icons.mic_none_rounded,
+                    size: 48,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 22),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                _message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  height: 1.45,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            if (_words.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(top: 16),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF123D5B),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF37617F)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Ucapan Anda',
+                      style: TextStyle(color: Color(0xFFA8CADB), fontSize: 13),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '“$_words”',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              key: const ValueKey('voice-start'),
+              onPressed: _busy ? null : _listen,
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF8DE5EC),
+                foregroundColor: const Color(0xFF0C2B45),
+                disabledBackgroundColor: const Color(0xFF274D66),
+                disabledForegroundColor: const Color(0xFFC4D9E5),
+                minimumSize: const Size(48, 56),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.mic_rounded),
+              label: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  _listening ? 'Sedang mendengarkan' : 'Mulai bicara',
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+            if (_busy)
+              TextButton(
+                onPressed: _cancel,
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFFFFBAC2),
+                ),
+                child: const Text('Hentikan suara'),
+              ),
+            if (_choices.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Text(
+                '${_choices.length} fitur sesuai kata kunci',
+                style: const TextStyle(
+                  color: Color(0xFF9FDCE6),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              for (final choice in _choices)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Material(
+                    color: const Color(0xFF163F60),
+                    borderRadius: BorderRadius.circular(12),
+                    clipBehavior: Clip.antiAlias,
+                    child: ListTile(
+                      key: ValueKey('voice-result-${choice.name}'),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      leading: Icon(
+                        _icon(choice),
+                        color: const Color(0xFF9FDCE6),
+                      ),
+                      title: Text(
+                        choice.label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          choice.description,
+                          style: const TextStyle(
+                            color: Color(0xFFC5D6E4),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right_rounded,
+                        color: Color(0xFF9FDCE6),
+                      ),
+                      onTap: _opening ? null : () => _open(choice),
+                    ),
+                  ),
+                ),
+            ] else if (!_busy && _words.isEmpty) ...[
+              const SizedBox(height: 14),
+              const Text(
+                'Misalnya: “panduan” atau “gunung”.\nPilihan fitur muncul setelah ucapan dikenali.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFFC5D6E4),
+                  fontSize: 14,
+                  height: 1.5,
+                ),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          Icon(
-            _listening ? Icons.mic : Icons.mic_none,
-            size: 64,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          const SizedBox(height: 12),
-          Semantics(
-            liveRegion: true,
-            child: Text(
-              _message,
+            const SizedBox(height: 22),
+            const Text(
+              'Mikrofon hanya aktif selama sesi suara. Pengenalan ucapan dapat memakai layanan daring perangkat atau browser.',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          if (_words.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text('Terdengar: $_words', textAlign: TextAlign.center),
-            ),
-          const SizedBox(height: 16),
-          const Text(
-            'Mikrofon digunakan hanya saat sesi suara. Perangkat atau browser dapat memproses ucapan melalui layanan daring. Ketersediaan Bahasa Indonesia dan koneksi bergantung perangkat.',
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: _busy ? null : _listen,
-            icon: const Icon(Icons.mic),
-            label: const Padding(
-              padding: EdgeInsets.all(12),
-              child: Text('Mulai bicara'),
-            ),
-          ),
-          if (_busy)
-            TextButton(onPressed: _cancel, child: const Text('Hentikan suara')),
-          const SizedBox(height: 16),
-          const Text(
-            'Atau pilih fitur:',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          for (final choice
-              in _choices.isEmpty ? VoiceDestination.values : _choices)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: OutlinedButton(
-                onPressed: _opening ? null : () => _open(choice),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(choice.label),
-                ),
+              style: TextStyle(
+                color: Color(0xFFB0CBDD),
+                fontSize: 13,
+                height: 1.5,
               ),
             ),
-        ],
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF9FDCE6),
+              ),
+              child: const Text('Kembali ke aplikasi'),
+            ),
+          ],
+        ),
       ),
     ),
   );
