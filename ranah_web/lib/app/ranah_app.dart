@@ -1,3 +1,4 @@
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 import 'package:flutter/material.dart';
 
 import '../data/home_stories.dart';
@@ -41,6 +42,7 @@ enum _Page {
 class RanahShell extends StatefulWidget {
   const RanahShell({
     this.newsRepository,
+    this.voiceEngine,
     this.gunungRepository,
     this.locationReader,
     this.areaLookup,
@@ -51,6 +53,7 @@ class RanahShell extends StatefulWidget {
   });
 
   final NewsRepository? newsRepository;
+  final VoiceEngine? voiceEngine;
   final GunungDataRepository? gunungRepository;
   final BrowserLocationReader? locationReader;
   final AdministrativeAreaLookup? areaLookup;
@@ -225,12 +228,41 @@ class _RanahShellState extends State<RanahShell> {
     }
   }
 
+  Future<void> _openVoice() async {
+    setState(() => _menuOpen = false);
+    final destination = await showVoiceNavigation(
+      context,
+      engine: widget.voiceEngine,
+    );
+    if (!mounted || destination == null) return;
+    switch (destination) {
+      case VoiceDestination.home:
+        _navigate(_Page.home);
+      case VoiceDestination.map:
+        _navigate(_Page.map);
+      case VoiceDestination.news:
+        _navigate(_Page.news);
+      case VoiceDestination.guide:
+        _openMitigationGuide();
+      case VoiceDestination.contacts:
+        _openContacts();
+      case VoiceDestination.activity:
+        _openActivity(_page);
+      case VoiceDestination.notifications:
+        _openNotifications();
+      case VoiceDestination.menu:
+        setState(() => _menuOpen = true);
+    }
+  }
+
   void _onDestination(RanahDestination destination) {
     switch (destination) {
       case RanahDestination.home:
         _navigate(_Page.home);
       case RanahDestination.map:
         _navigate(_Page.map);
+      case RanahDestination.voice:
+        _openVoice();
       case RanahDestination.news:
         _navigate(_Page.news);
       case RanahDestination.menu:
@@ -354,6 +386,7 @@ class _RanahShellState extends State<RanahShell> {
   Widget _buildOtherPage() {
     if (_page == _Page.home) {
       return HomePage(
+        onOpenContacts: _openContacts,
         stories: _newsStories,
         isLoading: _newsLoading,
         error: _newsError,
