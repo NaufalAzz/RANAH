@@ -35,11 +35,9 @@ class HazardSpatialAnalysisTest extends TestCase
             ->assertJsonPath('data.bahaya.letusan_gunung_api.fitur.0.tahun_peta', 2006)
             ->assertJsonPath('data.bahaya.letusan_gunung_api.fitur.2.id_fitur_sumber', 991)
             ->assertJsonPath('data.bahaya.letusan_gunung_api.sumber', 'Badan Informasi Geospasial (BIG), Satu Peta')
-            ->assertJsonMissingPath('data.bahaya.tsunami')
-            ->assertJsonMissingPath('data.bahaya.banjir')
-            ->assertJsonMissingPath('data.bahaya.gempa_bumi');
-
-        Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'gis.bnpb.go.id'));
+            ->assertJsonPath('data.bahaya.tsunami.status', 'no_data')
+            ->assertJsonPath('data.bahaya.banjir.status', 'no_data')
+            ->assertJsonPath('data.bahaya.gempa_bumi.status', 'no_data');
 
         Http::assertSent(function (Request $request): bool {
             $query = [];

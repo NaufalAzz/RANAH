@@ -1,4 +1,4 @@
-# Pusat Siaga Erupsi RANAH
+# Navigasi suara dan kontak beranda RANAH
 
 Paket Flutter bersama untuk mobile dan web. Beranda menampilkan tiga kontak
 pertama dari data kontak yang sudah ada; ini nomor layanan umum, bukan hasil
@@ -13,32 +13,13 @@ penentuan posko terdekat. Atribusi sumber ditampilkan sebelum membuka telepon.
   kontak darurat, berita, notifikasi, menu, beranda. "Evakuasi" memberi pilihan.
 - Perintah parsial, tidak dikenal, atau negatif tidak membuka fitur. Navigasi
   tidak pernah memanggil nomor atau meminta lokasi secara otomatis.
-- Respons navigasi dan setiap langkah pada Tindakan Sekarang dapat dibacakan
-  dengan `flutter_tts` bila id-ID tersedia. Ini bukan chatbot.
+- Respons pendek dibacakan dengan `flutter_tts` bila id-ID tersedia. Ini belum
+  pembacaan seluruh panduan atau chatbot.
 - Tombol fitur tetap tersedia jika izin ditolak, bahasa tidak tersedia, koneksi
   gagal, atau browser tidak mendukung pengenalan suara.
 - Sesi dihentikan saat dibatalkan, panel ditutup, aplikasi masuk latar belakang,
   atau batas waktu tercapai. Rekaman dan transkrip tidak disimpan oleh RANAH;
   pengenalan ucapan dapat menggunakan layanan perangkat/browser melalui jaringan.
-
-## Pusat siaga
-
-- Tindakan Sekarang: empat kondisi, satu langkah per layar, pembacaan/berhenti,
-  serta kontak bantuan. Panduan umum merujuk Buku Saku BNPB.
-- Gunung yang Saya Ikuti: pilihan tersimpan, status sumber, rekomendasi laporan,
-  waktu data, pembaruan manual. Tidak ada perintah evakuasi otomatis.
-- Paket Siaga Offline: simpan laporan dan daftar kesiapan lokal. Panduan tindakan
-  sudah dibundel. Web offline bergantung halaman yang telah dimuat dan storage
-  browser; tidak menjanjikan pembukaan ulang aplikasi web secara offline.
-- Latihan: tiga skenario keputusan, umpan balik dan hasil tersimpan. Tidak memakai
-  batas waktu dan tidak menyatakan kesiapan nyata dari skor.
-- Arahan Wilayah Saya: akses rekomendasi gunung tersimpan dan kontak. Pengumuman
-  desa, jalur dan posko resmi belum tersedia, sehingga tidak dihasilkan otomatis.
-- Peta/API hanya menganalisis KRB erupsi. Titik kumpul dan rute OSM umum dihentikan
-  (410), berita/cache disaring ke gunung/erupsi/vulkanik/lahar, dan feed BMKG umum
-  dikeluarkan dari penjadwalan. Data historis tidak dihapus dari database.
-- Konfigurasi `RANAH_API_BASE_URL` tetap mengikuti client aplikasi sebelumnya.
-  Bila API belum terkonfigurasi, tindakan dan latihan lokal tetap bisa dipakai.
 
 ## Menjalankan pemeriksaan
 

@@ -10,6 +10,9 @@ import '../widgets/ranah_header.dart';
 
 const _complaintCategories = [
   'Erupsi gunung api',
+  'Gempa bumi',
+  'Banjir',
+  'Tsunami',
   'Lainnya',
 ];
 

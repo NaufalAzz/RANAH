@@ -12,6 +12,7 @@ import '../pages/map_page.dart';
 import '../pages/evacuation_route_page.dart';
 import '../pages/news_detail_page.dart';
 import '../pages/news_page.dart';
+import '../pages/notifications_page.dart';
 import '../pages/home_page.dart';
 import '../pages/emergency_contacts_page.dart';
 import '../pages/admin_login_page.dart';
@@ -227,50 +228,6 @@ class _RanahShellState extends State<RanahShell> {
     }
   }
 
-  Map<String, dynamic> _volcanoJson(GunungRecord item) => {
-    'id': item.id,
-    'nama': item.nama,
-    'provinsi': item.provinsi,
-    'kabupaten': item.kabupaten,
-    'status_aktivitas': item.statusAktivitas,
-    'sumber_data': item.sumberData,
-    'waktu_pengambilan': item.waktuPengambilan?.toIso8601String(),
-  };
-
-  void _openPreparedness(EruptionSection section) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => EruptionCenterPage(
-          section: section,
-          voiceEngine: widget.voiceEngine,
-          loadVolcanoes: () async =>
-              (await _gunungRepository.loadGunung()).map(_volcanoJson).toList(),
-          loadDetail: (id) async {
-            final detail = await _gunungRepository.loadDetail(id);
-            return {
-              'gunung': _volcanoJson(detail.gunung),
-              'laporan': detail.laporan
-                  .map(
-                    (report) => {
-                      'rekomendasi': report.rekomendasi,
-                      'sumber': report.sumber,
-                      'url_sumber': report.urlSumber,
-                      'waktu_publikasi': report.waktuPublikasi
-                          ?.toIso8601String(),
-                    },
-                  )
-                  .toList(),
-            };
-          },
-          onContacts: () {
-            Navigator.of(context).pop();
-            _openContacts();
-          },
-        ),
-      ),
-    );
-  }
-
   Future<void> _openVoice() async {
     setState(() => _menuOpen = false);
     final destination = await showVoiceNavigation(
@@ -279,16 +236,6 @@ class _RanahShellState extends State<RanahShell> {
     );
     if (!mounted || destination == null) return;
     switch (destination) {
-      case VoiceDestination.actions:
-        _openPreparedness(EruptionSection.actions);
-      case VoiceDestination.offline:
-        _openPreparedness(EruptionSection.offline);
-      case VoiceDestination.training:
-        _openPreparedness(EruptionSection.training);
-      case VoiceDestination.local:
-        _openPreparedness(EruptionSection.local);
-      case VoiceDestination.follow:
-        _openPreparedness(EruptionSection.follow);
       case VoiceDestination.home:
         _navigate(_Page.home);
       case VoiceDestination.map:
@@ -440,7 +387,6 @@ class _RanahShellState extends State<RanahShell> {
     if (_page == _Page.home) {
       return HomePage(
         onOpenContacts: _openContacts,
-        onOpenPreparedness: _openPreparedness,
         stories: _newsStories,
         isLoading: _newsLoading,
         error: _newsError,
@@ -494,9 +440,7 @@ class _RanahShellState extends State<RanahShell> {
       );
     }
     if (_page == _Page.notifications) {
-      return EruptionUpdates(
-        loadVolcanoes: () async =>
-            (await _gunungRepository.loadGunung()).map(_volcanoJson).toList(),
+      return NotificationsPage(
         onBack: () => _navigate(_notificationsReturnPage),
       );
     }
@@ -558,8 +502,8 @@ class _MenuPopup extends StatelessWidget {
         const SizedBox(height: RanahSpacing.sm),
         _MenuOption(
           icon: Icons.phone_in_talk_rounded,
-          title: 'Kontak Darurat',
-          description: 'Nomor layanan bantuan beserta sumbernya.',
+          title: 'Kontak Darurat & Pengaduan',
+          description: 'Daftar kontak dan formulir laporan kejadian.',
           onTap: onContact,
         ),
       ],

@@ -12,7 +12,6 @@ class HomePage extends StatefulWidget {
   const HomePage({
     required this.onStoryTap,
     this.onOpenContacts,
-    this.onOpenPreparedness,
     this.stories = homeStories,
     this.isLoading = false,
     this.error,
@@ -21,7 +20,6 @@ class HomePage extends StatefulWidget {
   });
 
   final VoidCallback? onOpenContacts;
-  final void Function(EruptionSection)? onOpenPreparedness;
 
   final ValueChanged<HomeStory> onStoryTap;
   final List<HomeStory> stories;
@@ -80,8 +78,6 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (widget.onOpenPreparedness != null)
-                    EruptionDashboard(onOpen: widget.onOpenPreparedness!),
                   EmergencyContactsCard(
                     onOpenAll: widget.onOpenContacts,
                     contacts: [

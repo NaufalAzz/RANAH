@@ -1,5 +1,3 @@
-import '../services/api_service.dart';
-
 import 'package:ranah_accessibility/ranah_accessibility.dart';
 
 import '../pages/mitigation_page.dart';
@@ -13,6 +11,7 @@ import '../pages/gunung_report_page.dart';
 import '../pages/map_page.dart';
 import '../pages/menu_page.dart';
 import '../pages/news_page.dart';
+import '../pages/notifications_page.dart';
 import '../pages/volcanic_activity_page.dart';
 import '../services/news_repository.dart';
 import '../services/notifications_repository.dart';
@@ -105,24 +104,6 @@ class _MainShellState extends State<MainShell> {
     });
   }
 
-  void _openPreparedness(EruptionSection section) {
-    final api = ApiService();
-    Navigator.of(context).push(
-      RanahPageRoute<void>(
-        context: context,
-        builder: (_) => EruptionCenterPage(
-          section: section,
-          voiceEngine: widget.voiceEngine,
-          loadVolcanoes: () async => (await api.getGunung())
-              .map((item) => Map<String, dynamic>.from(item as Map))
-              .toList(),
-          loadDetail: api.getDetailGunung,
-          onContacts: _openContacts,
-        ),
-      ),
-    );
-  }
-
   void _openContacts() {
     Navigator.of(context).push(
       RanahPageRoute<void>(
@@ -143,16 +124,6 @@ class _MainShellState extends State<MainShell> {
     );
     if (!mounted || destination == null) return;
     switch (destination) {
-      case VoiceDestination.actions:
-        _openPreparedness(EruptionSection.actions);
-      case VoiceDestination.offline:
-        _openPreparedness(EruptionSection.offline);
-      case VoiceDestination.training:
-        _openPreparedness(EruptionSection.training);
-      case VoiceDestination.local:
-        _openPreparedness(EruptionSection.local);
-      case VoiceDestination.follow:
-        _openPreparedness(EruptionSection.follow);
       case VoiceDestination.home:
         _openTab(0);
       case VoiceDestination.map:
@@ -215,7 +186,6 @@ class _MainShellState extends State<MainShell> {
     final pages = <Widget>[
       HomePage(
         onOpenContacts: _openContacts,
-        onOpenPreparedness: _openPreparedness,
         onOpenNews: _openNews,
         items: _newsItems,
         isUsingFallback: _newsUsingFallback,
@@ -322,42 +292,33 @@ class _MainShellState extends State<MainShell> {
                                   ),
                                 ),
                               ),
-                            if (_showingNotifications)
-                              Positioned.fill(
-                                child: IgnorePointer(
-                                  ignoring: !_showingNotifications,
-                                  child: Offstage(
-                                    offstage: !_showingNotifications,
-                                    child: ExcludeSemantics(
-                                      excluding: !_showingNotifications,
-                                      child: AnimatedOpacity(
-                                        opacity: _showingNotifications ? 1 : 0,
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                ignoring: !_showingNotifications,
+                                child: Offstage(
+                                  offstage: !_showingNotifications,
+                                  child: ExcludeSemantics(
+                                    excluding: !_showingNotifications,
+                                    child: AnimatedOpacity(
+                                      opacity: _showingNotifications ? 1 : 0,
+                                      duration: transitionDuration,
+                                      curve: Curves.easeOutCubic,
+                                      child: AnimatedSlide(
+                                        offset: _showingNotifications
+                                            ? Offset.zero
+                                            : const Offset(0, -0.025),
                                         duration: transitionDuration,
                                         curve: Curves.easeOutCubic,
-                                        child: AnimatedSlide(
-                                          offset: _showingNotifications
-                                              ? Offset.zero
-                                              : const Offset(0, -0.025),
-                                          duration: transitionDuration,
-                                          curve: Curves.easeOutCubic,
-                                          child: EruptionUpdates(
-                                            loadVolcanoes: () async =>
-                                                (await ApiService().getGunung())
-                                                    .map(
-                                                      (item) =>
-                                                          Map<
-                                                            String,
-                                                            dynamic
-                                                          >.from(item as Map),
-                                                    )
-                                                    .toList(),
-                                          ),
+                                        child: NotificationsPage(
+                                          repository:
+                                              widget.notificationsRepository,
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
+                            ),
                           ],
                         ),
                       ),

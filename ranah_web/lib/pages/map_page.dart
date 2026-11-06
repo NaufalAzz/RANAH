@@ -10,6 +10,7 @@ import '../services/browser_geolocation.dart';
 import '../services/hazard_analysis_repository.dart';
 import '../services/osm_assembly_point_repository.dart';
 import '../services/route_simulation_repository.dart';
+import '../services/ranah_api_client.dart';
 import '../theme/ranah_theme.dart';
 import '../widgets/ranah_full_width_title_background.dart';
 import '../widgets/ranah_header.dart';
@@ -17,7 +18,7 @@ import '../widgets/ranah_header.dart';
 typedef BrowserLocationReader = Future<BrowserLocation> Function();
 typedef MapOsmReferenceLoader = Future<OsmAssemblyPointDataset> Function();
 
-enum _LocationUseChoice { locationOnly, cancel }
+enum _LocationUseChoice { locationAndRoute, locationOnly, cancel }
 
 const _maximumAutomaticRouteDistanceKm = 10.0;
 
@@ -80,13 +81,16 @@ class _MapPageState extends State<MapPage> {
   late final bool _ownsHazardRepository;
   OsmAssemblyPointRepository? _ownedOsmRepository;
   bool _ownsOsmRepository = false;
-
+  bool _osmLoading = false;
+  String? _osmError;
   OsmAssemblyPointDataset? _osmDataset;
+  Future<OsmAssemblyPointDataset?>? _osmLoadFuture;
   OsmAssemblyPoint? _selectedOsmFeature;
   late final RouteSimulationRepository _routeRepository;
   late final bool _ownsRouteRepository;
   RouteSimulationResult? _routeResult;
-
+  String? _routeError;
+  bool _routeLoading = false;
   int _routeRequestGeneration = 0;
   int _requestGeneration = 0;
   BrowserLocation? _pendingLocationUpdate;
@@ -108,7 +112,7 @@ class _MapPageState extends State<MapPage> {
       _ownedOsmRepository = OsmAssemblyPointRepository();
     }
     if (widget.currentLocation != null) {
-      // Referensi OSM umum dikeluarkan dari cakupan erupsi.
+      unawaited(_loadOsmReferences());
     }
   }
 
@@ -127,7 +131,8 @@ class _MapPageState extends State<MapPage> {
       } else {
         _routeRequestGeneration++;
         _routeResult = null;
-
+        _routeError = null;
+        _routeLoading = false;
         _pendingLocationUpdate = null;
         _requestGeneration++;
         _areaLoading = false;
@@ -142,7 +147,7 @@ class _MapPageState extends State<MapPage> {
     if (oldLocation == null &&
         newLocation != null &&
         !locationWasSetByCurrentAction) {
-      // Referensi OSM umum dikeluarkan dari cakupan erupsi.
+      unawaited(_loadOsmReferences());
     }
   }
 
@@ -159,6 +164,8 @@ class _MapPageState extends State<MapPage> {
     setState(() {
       _selectedOsmFeature = feature;
       _routeResult = null;
+      _routeError = null;
+      _routeLoading = false;
     });
   }
 
@@ -224,7 +231,8 @@ class _MapPageState extends State<MapPage> {
     final generation = ++_routeRequestGeneration;
     setState(() {
       _selectedOsmFeature = feature;
-
+      _routeLoading = true;
+      _routeError = null;
       _routeResult = null;
     });
     try {
@@ -241,10 +249,13 @@ class _MapPageState extends State<MapPage> {
       }
       setState(() {
         _routeResult = result;
+        _routeLoading = false;
       });
     } catch (error) {
       if (!_isCurrentRouteRequest(generation, origin, feature.id)) return;
       setState(() {
+        _routeError = _routeErrorText(error);
+        _routeLoading = false;
         _routeResult = null;
       });
     }
@@ -261,6 +272,24 @@ class _MapPageState extends State<MapPage> {
           _sameCoordinates(origin, _pendingLocationUpdate)) &&
       _selectedOsmFeature?.id == destinationId;
 
+  String _routeErrorText(Object error) {
+    if (error is RanahApiException) return error.message;
+    if (error is FormatException) {
+      return 'Respons routing tidak dapat divalidasi.';
+    }
+    return 'Rute sementara tidak dapat dimuat. Tidak ada garis rute yang ditampilkan.';
+  }
+
+  void _closeRoute() {
+    _routeRequestGeneration++;
+    setState(() {
+      _routeResult = null;
+      _routeError = null;
+      _routeLoading = false;
+      _selectedOsmFeature = null;
+    });
+  }
+
   String _coordinateKey(BrowserLocation location) =>
       '${location.latitude.toStringAsFixed(5)},${location.longitude.toStringAsFixed(5)}';
 
@@ -269,6 +298,45 @@ class _MapPageState extends State<MapPage> {
       generation == _requestGeneration &&
       (_sameCoordinates(location, widget.currentLocation) ||
           _sameCoordinates(location, _pendingLocationUpdate));
+
+  Future<OsmAssemblyPointDataset?> _loadOsmReferences() {
+    if ((widget.currentLocation ?? _pendingLocationUpdate) == null ||
+        _osmDataset != null) {
+      return Future.value(_osmDataset);
+    }
+    final pending = _osmLoadFuture;
+    if (pending != null) return pending;
+    final future = _fetchOsmReferences();
+    _osmLoadFuture = future;
+    return future;
+  }
+
+  Future<OsmAssemblyPointDataset?> _fetchOsmReferences() async {
+    setState(() {
+      _osmLoading = true;
+      _osmError = null;
+    });
+    try {
+      final dataset =
+          await (widget.osmLoader?.call() ??
+                  (widget.osmRepository ?? _ownedOsmRepository!).load())
+              .timeout(const Duration(seconds: 18));
+      if (!mounted) return null;
+      setState(() {
+        _osmDataset = dataset;
+        _osmLoading = false;
+      });
+      return dataset;
+    } catch (_) {
+      if (!mounted) return null;
+      setState(() {
+        _osmError = 'Referensi OSM tidak dapat dimuat dari API RANAH.';
+        _osmLoading = false;
+        _osmLoadFuture = null;
+      });
+      return null;
+    }
+  }
 
   Future<void> _analyzeHazards(
     BrowserLocation location,
@@ -344,14 +412,17 @@ class _MapPageState extends State<MapPage> {
 
   Future<void> _findLocation() async {
     if (_locationLoading) return;
-    var routeAfterLocation = false;
+    var routeAfterLocation = _routingConsentGranted;
     if (!_locationConsentGranted) {
       final choice = await showDialog<_LocationUseChoice>(
         context: context,
         builder: (dialogContext) => _RanahConsentDialog(
           title: const Text('Pilih penggunaan lokasi'),
           content: const Text(
-            'Lokasi perangkat diproses oleh server RANAH untuk alamat, gunung sekitar, dan analisis KRB. Tidak ada rute atau tujuan evakuasi otomatis.',
+            'Lokasi perangkat diproses oleh server RANAH untuk alamat, gunung '
+            'sekitar, dan analisis bahaya. Jika memilih simulasi jalur, koordinat '
+            'juga diteruskan ke Valhalla demo. Pilihan lokasi saja tidak '
+            'mengirim koordinat ke penyedia routing.',
           ),
           actions: [
             OutlinedButton(
@@ -369,6 +440,14 @@ class _MapPageState extends State<MapPage> {
                       .pop(_LocationUseChoice.locationOnly),
               child: const Text('Gunakan lokasi saja'),
             ),
+            FilledButton(
+              style: _consentPrimaryButtonStyle,
+              key: const ValueKey('accept-location-and-route'),
+              onPressed: () =>
+                  Navigator.of(dialogContext)
+                      .pop(_LocationUseChoice.locationAndRoute),
+              child: const Text('Lokasi + simulasi jalur'),
+            ),
           ],
         ),
       );
@@ -376,7 +455,7 @@ class _MapPageState extends State<MapPage> {
         return;
       }
       _locationConsentGranted = true;
-      routeAfterLocation = false;
+      routeAfterLocation = choice == _LocationUseChoice.locationAndRoute;
       _routingConsentGranted = routeAfterLocation;
     }
     setState(() => _locationLoading = true);
@@ -411,9 +490,10 @@ class _MapPageState extends State<MapPage> {
       setState(() => _locationLoading = false);
       _routeRequestGeneration++;
       _routeResult = null;
-
+      _routeError = null;
+      _routeLoading = false;
       _selectedOsmFeature = null;
-      final osmFuture = Future<OsmAssemblyPointDataset?>.value(null);
+      final osmFuture = _loadOsmReferences();
       final areaFuture = _identifyArea(location, generation);
       unawaited(osmFuture);
       unawaited(areaFuture);
@@ -464,6 +544,8 @@ class _MapPageState extends State<MapPage> {
       unawaited(_analyzeHazards(location, _requestGeneration, force: true));
     }
   }
+
+  void _retryOsm() => unawaited(_loadOsmReferences());
 
   Future<void> _calculateAutomaticNearbyRoute(
     BrowserLocation location,
@@ -565,6 +647,7 @@ class _MapPageState extends State<MapPage> {
           ? RanahLayout.maxContentWidth
           : width;
       final horizontalInset = mobile ? 8.0 : 20.0;
+      final innerWidth = contentWidth - horizontalInset * 2;
       final viewportHeight = MediaQuery.sizeOf(context).height;
       final mapHeight = RanahMapLayout.heightFor(
         screenWidth: width,
@@ -613,10 +696,33 @@ class _MapPageState extends State<MapPage> {
                 onFeatureTap: _showOsmFeatureDetail,
               ),
             ),
+            if (location != null)
+              _OsmMapStatus(
+                loading: _osmLoading,
+                error: _osmError,
+                featureCount: _osmDataset?.features.length ?? 0,
+                onRetry: _retryOsm,
+              ),
+            if (location != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: _RouteSimulationPanel(
+                  selectedFeature: _selectedOsmFeature,
+                  features: _osmDataset?.features ?? const [],
+                  loading: _routeLoading,
+                  error: _routeError,
+                  route: _routeResult,
+                  onSelectFeature: _selectOsmFeature,
+                  onShowRoute: _selectedOsmFeature?.geometryType == 'Point'
+                      ? () => _calculateRoute(_selectedOsmFeature!)
+                      : null,
+                  onClose: _closeRoute,
+                ),
+              ),
             const Padding(
               padding: EdgeInsets.only(top: 5),
               child: Text(
-                'Peta dasar: © OpenStreetMap contributors · ODbL. Poligon KRB yang tersedia dapat dilihat melalui laporan gunung. Bukan peta jalur evakuasi.',
+                'Data peta: © OpenStreetMap contributors · ODbL. Fitur lokal berstatus belum diverifikasi.',
                 style: TextStyle(fontSize: 10, color: Color(0xFFD1DCE9)),
               ),
             ),
@@ -682,141 +788,187 @@ class _MapPageState extends State<MapPage> {
     ),
   );
 
-  Widget _buildLocationDetails(bool mobile, BrowserLocation location) =>
-      Padding(
-        padding: EdgeInsets.fromLTRB(
-          mobile ? RanahSpacing.xs : 0,
-          RanahSpacing.md,
-          mobile ? RanahSpacing.xs : 0,
-          0,
+  Widget _buildLocationDetails(
+    bool mobile,
+    BrowserLocation location,
+  ) => Padding(
+    padding: EdgeInsets.fromLTRB(
+      mobile ? RanahSpacing.xs : 0,
+      RanahSpacing.md,
+      mobile ? RanahSpacing.xs : 0,
+      0,
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _CurrentLocationCard(
+          location: location,
+          area: widget.currentArea,
+          loading: _areaLoading,
+          error: _areaError,
+          onRetryArea: _retryArea,
+          locationLoading: _locationLoading,
+          onRefreshLocation: _findLocation,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _CurrentLocationCard(
-              location: location,
-              area: widget.currentArea,
-              loading: _areaLoading,
-              error: _areaError,
-              onRetryArea: _retryArea,
-              locationLoading: _locationLoading,
-              onRefreshLocation: _findLocation,
-            ),
-            const SizedBox(height: RanahSpacing.lg),
-            const _UnavailableCard(
-              icon: Icons.alt_route_rounded,
-              title: 'Jalur dan Posko Erupsi',
-              description: 'Data jalur, titik penjemputan, dan posko yang ditetapkan petugas belum tersedia. Ikuti arahan BPBD. KRB tidak menetapkan jalur aman.',
-            ),
-            const SizedBox(height: RanahSpacing.lg),
-            _SectionHeading(
-              icon: Icons.landscape_outlined,
-              title: 'Gunung Aktif Sekitar',
-              subtitle: widget.currentArea?.province == null
-                  ? 'Data ditampilkan setelah wilayah ditemukan'
-                  : 'Provinsi ${widget.currentArea!.province}',
-              trailing: TextButton(
-                onPressed: widget.onActivityTap,
-                child: const Text(
-                  'Lihat daftar',
-                  style: TextStyle(color: Colors.white),
+        const SizedBox(height: RanahSpacing.lg),
+        const _SectionHeading(
+          icon: Icons.alt_route_rounded,
+          title: 'Jalur Evakuasi',
+          subtitle: 'Referensi OSM pada peta utama',
+        ),
+        const SizedBox(height: RanahSpacing.sm),
+        _UnavailableCard(
+          icon: Icons.alt_route_rounded,
+          title: 'Referensi OSM ditampilkan pada peta.',
+          description: 'Fitur yang terlihat belum diverifikasi sebagai fasilitas evakuasi, tidak menyatakan titik aman untuk tsunami, dan tidak berarti sebagai tujuan terdekat.',
+          action: widget.onOpenEvacuation == null
+              ? null
+              : TextButton.icon(
+                  key: const ValueKey('open-osm-evacuation-references'),
+                  onPressed: widget.onOpenEvacuation,
+                  icon: const Icon(Icons.map_outlined),
+                  label: const Text('Detail sumber OSM'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.white),
                 ),
+        ),
+        const SizedBox(height: RanahSpacing.lg),
+        _SectionHeading(
+          icon: Icons.landscape_outlined,
+          title: 'Gunung Aktif Sekitar',
+          subtitle: widget.currentArea?.province == null
+              ? 'Data ditampilkan setelah wilayah ditemukan'
+              : 'Provinsi ${widget.currentArea!.province}',
+          trailing: TextButton(
+            onPressed: widget.onActivityTap,
+            child: const Text(
+              'Lihat daftar',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
+        const SizedBox(height: RanahSpacing.sm),
+        _NearbyVolcanoList(
+          area: widget.currentArea,
+          areaLoading: _areaLoading,
+          areaError: _areaError,
+          location: location,
+          records: widget.gunung,
+          isLoading: widget.gunungLoading,
+          error: widget.gunungError,
+          onRetry: widget.onRetryGunung,
+          onOpenReport: widget.onOpenReport,
+        ),
+        const SizedBox(height: RanahSpacing.lg),
+        const _SectionHeading(
+          icon: Icons.monitor_heart_outlined,
+          title: 'Potensi Bencana di Lokasi',
+          subtitle: 'Analisis data geospasial tersedia atas permintaan',
+        ),
+        const SizedBox(height: RanahSpacing.sm),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Analisis empat kategori dijalankan otomatis setelah lokasi diperoleh. Ini adalah kajian data bahaya wilayah, bukan peringatan kejadian real-time atau pernyataan aman.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Color(0xFFD1DCE9),
+                height: 1.35,
               ),
             ),
-            const SizedBox(height: RanahSpacing.sm),
-            _NearbyVolcanoList(
-              area: widget.currentArea,
-              areaLoading: _areaLoading,
-              areaError: _areaError,
-              location: location,
-              records: widget.gunung,
-              isLoading: widget.gunungLoading,
-              error: widget.gunungError,
-              onRetry: widget.onRetryGunung,
-              onOpenReport: widget.onOpenReport,
-            ),
-            const SizedBox(height: RanahSpacing.lg),
-            const _SectionHeading(
-              icon: Icons.monitor_heart_outlined,
-              title: 'Kawasan Rawan Erupsi',
-              subtitle: 'Analisis data geospasial tersedia atas permintaan',
-            ),
-            const SizedBox(height: RanahSpacing.sm),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Analisis KRB gunung api dijalankan setelah lokasi diperoleh. Ini adalah kajian data bahaya wilayah, bukan peringatan kejadian real-time atau pernyataan aman.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFFD1DCE9),
-                    height: 1.35,
-                  ),
+            if (_analysisError != null) ...[
+              const SizedBox(height: 8),
+              _UnavailableCard(
+                icon: Icons.cloud_off,
+                title: 'Analisis belum dapat dimuat.',
+                description: _analysisError!,
+                action: TextButton.icon(
+                  key: const ValueKey('retry-hazard-analysis'),
+                  onPressed: _analysisLoading ? null : _retryHazards,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Coba lagi'),
                 ),
-                if (_analysisError != null) ...[
-                  const SizedBox(height: 8),
-                  _UnavailableCard(
-                    icon: Icons.cloud_off,
-                    title: 'Analisis belum dapat dimuat.',
-                    description: _analysisError!,
-                    action: TextButton.icon(
-                      key: const ValueKey('retry-hazard-analysis'),
-                      onPressed: _analysisLoading ? null : _retryHazards,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Coba lagi'),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: RanahSpacing.sm),
-            LayoutBuilder(
-              builder: (context, box) {
-                final columns = mobile ? 1 : 2;
-                final gap = RanahSpacing.sm;
-                final cardWidth =
-                    (box.maxWidth - gap * (columns - 1)) / columns;
-                return Wrap(
-                  spacing: gap,
-                  runSpacing: gap,
-                  children: [
-                    for (final hazard in _hazardTypes)
-                      SizedBox(
-                        width: cardWidth,
-                        child: _analysisResult == null
-                            ? _UnavailableCard(
-                                icon: hazard.$1,
-                                title: _analysisLoading
-                                    ? 'Menganalisis ${hazard.$2}...'
-                                    : hazard.$2,
-                                description: _analysisLoading
-                                    ? 'Menunggu hasil untuk koordinat lokasi yang dipilih.'
-                                    : _analysisError != null
-                                    ? 'Layanan analisis tidak tersedia.'
-                                    : hazard.$2 == 'Letusan Gunung Api'
-                                    ? 'Informasi kawasan rawan gunung api belum dapat ditentukan untuk lokasi ini.'
-                                    : 'Belum dianalisis pada tahap ini.',
-                              )
-                            : switch (hazard.$2) {
-                                'Letusan Gunung Api' => _VolcanoHazardCard(
-                                  result: _analysisResult!,
-                                  locationUncertain:
-                                      location.accuracyMeters == null ||
-                                      location.accuracyMeters! > 1000,
-                                ),
-                                _ => const SizedBox.shrink(),
-                              },
-                      ),
-                  ],
-                );
-              },
-            ),
+              ),
+            ],
           ],
         ),
-      );
+        const SizedBox(height: RanahSpacing.sm),
+        LayoutBuilder(
+          builder: (context, box) {
+            final columns = mobile ? 1 : 2;
+            final gap = RanahSpacing.sm;
+            final cardWidth = (box.maxWidth - gap * (columns - 1)) / columns;
+            return Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                for (final hazard in _hazardTypes)
+                  SizedBox(
+                    width: cardWidth,
+                    child: _analysisResult == null
+                        ? _UnavailableCard(
+                            icon: hazard.$1,
+                            title: _analysisLoading
+                                ? 'Menganalisis ${hazard.$2}...'
+                                : hazard.$2,
+                            description: _analysisLoading
+                                ? 'Menunggu hasil untuk koordinat lokasi yang dipilih.'
+                                : _analysisError != null
+                                ? 'Layanan analisis tidak tersedia.'
+                                : hazard.$2 == 'Letusan Gunung Api'
+                                ? 'Informasi kawasan rawan gunung api belum dapat ditentukan untuk lokasi ini.'
+                                : 'Belum dianalisis pada tahap ini.',
+                          )
+                        : switch (hazard.$2) {
+                            'Tsunami' => _RasterHazardCard(
+                              icon: hazard.$1,
+                              label: hazard.$2,
+                              result: _analysisResult!.tsunami,
+                              analyzedAt: _analysisResult!.analyzedAt,
+                              locationUncertain:
+                                  location.accuracyMeters == null ||
+                                  location.accuracyMeters! > 1000,
+                            ),
+                            'Banjir' => _RasterHazardCard(
+                              icon: hazard.$1,
+                              label: hazard.$2,
+                              result: _analysisResult!.flood,
+                              analyzedAt: _analysisResult!.analyzedAt,
+                              locationUncertain:
+                                  location.accuracyMeters == null ||
+                                  location.accuracyMeters! > 1000,
+                            ),
+                            'Gempa Bumi' => _RasterHazardCard(
+                              icon: hazard.$1,
+                              label: hazard.$2,
+                              result: _analysisResult!.earthquake,
+                              analyzedAt: _analysisResult!.analyzedAt,
+                              locationUncertain:
+                                  location.accuracyMeters == null ||
+                                  location.accuracyMeters! > 1000,
+                            ),
+                            'Letusan Gunung Api' => _VolcanoHazardCard(
+                              result: _analysisResult!,
+                              locationUncertain:
+                                  location.accuracyMeters == null ||
+                                  location.accuracyMeters! > 1000,
+                            ),
+                            _ => const SizedBox.shrink(),
+                          },
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
+    ),
+  );
 }
 
 const _hazardTypes = <(IconData, String)>[
+  (Icons.waves_rounded, 'Tsunami'),
+  (Icons.water_rounded, 'Banjir'),
+  (Icons.vibration_rounded, 'Gempa Bumi'),
   (Icons.landscape_rounded, 'Letusan Gunung Api'),
 ];
 
@@ -1020,7 +1172,7 @@ class _OsmFeatureQuickDetail extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Data ini belum diverifikasi sebagai fasilitas evakuasi dan tidak menetapkan tujuan evakuasi erupsi.',
+            'Data ini belum diverifikasi sebagai fasilitas evakuasi dan tidak menetapkan keamanan tsunami.',
             style: TextStyle(color: Colors.white),
           ),
           if (feature.geometryType == 'Polygon')
@@ -1052,6 +1204,206 @@ class _OsmFeatureQuickDetail extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _RouteSimulationPanel extends StatelessWidget {
+  const _RouteSimulationPanel({
+    required this.selectedFeature,
+    required this.features,
+    required this.loading,
+    required this.error,
+    required this.route,
+    required this.onSelectFeature,
+    required this.onShowRoute,
+    required this.onClose,
+  });
+
+  final OsmAssemblyPoint? selectedFeature;
+  final List<OsmAssemblyPoint> features;
+  final bool loading;
+  final String? error;
+  final RouteSimulationResult? route;
+  final ValueChanged<OsmAssemblyPoint> onSelectFeature;
+  final VoidCallback? onShowRoute;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = selectedFeature;
+    return Container(
+      key: const ValueKey('route-simulation-panel'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF102B43),
+        borderRadius: BorderRadius.circular(RanahRadii.md),
+        border: Border.all(color: const Color(0xFF45627B)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.alt_route_rounded, color: Color(0xFF7ED5DE)),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Simulasi rute pejalan kaki',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          const Text(
+            'Jika Anda menyetujui lokasi dan simulasi jalur, satu titik Point OSM terdekat dalam cakupan Padang dapat diminta otomatis melalui Laravel. Anda juga dapat memilih Point lain. Polygon tidak digunakan sebagai pintu masuk.',
+            style: TextStyle(color: Color(0xFFD1DCE9), fontSize: 12),
+          ),
+          if (features.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 7,
+              runSpacing: 4,
+              children: [
+                for (final feature in features)
+                  OutlinedButton.icon(
+                    key: ValueKey('select-route-destination-${feature.id}'),
+                    onPressed: loading ? null : () => onSelectFeature(feature),
+                    icon: Icon(
+                      feature.geometryType == 'Point'
+                          ? Icons.location_on_outlined
+                          : Icons.crop_square_rounded,
+                      size: 17,
+                    ),
+                    label: Text(
+                      feature.geometryType == 'Point'
+                          ? 'Pilih tujuan: ${feature.name ?? feature.id}'
+                          : 'Pilih area: ${feature.name ?? feature.id}',
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xFF71889D)),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+          if (selected != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Tujuan: ${selected.name ?? 'Objek OSM tanpa nama'}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              selected.status,
+              style: const TextStyle(color: Color(0xFFFFD37A), fontSize: 12),
+            ),
+            if (selected.geometryType == 'Polygon')
+              const Padding(
+                padding: EdgeInsets.only(top: 5),
+                child: Text(
+                  'Tidak ada garis rute: area Polygon tidak digunakan sebagai pintu masuk.',
+                  style: TextStyle(color: Color(0xFFFFD37A), fontSize: 12),
+                ),
+              ),
+          ],
+          if (loading) ...[
+            const SizedBox(height: 8),
+            const LinearProgressIndicator(),
+            const SizedBox(height: 5),
+            const Text(
+              'Meminta rute pejalan kaki ke Laravel...',
+              style: TextStyle(color: Color(0xFFD1DCE9), fontSize: 12),
+            ),
+          ],
+          if (error != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              error!,
+              key: const ValueKey('route-error'),
+              style: const TextStyle(color: Color(0xFFFFD37A), fontSize: 12),
+            ),
+          ],
+          if (route case final currentRoute?) ...[
+            const SizedBox(height: 8),
+            if (currentRoute.durationSeconds != null)
+              Text(
+                'Perkiraan durasi berjalan kaki: ${_formatRouteDuration(currentRoute.durationSeconds!)}',
+                key: const ValueKey('route-estimated-duration'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            Text(
+              'Jarak jaringan jalan: ${currentRoute.distanceKm.toStringAsFixed(2)} km',
+              key: const ValueKey('route-distance'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              currentRoute.warning,
+              key: const ValueKey('route-warning'),
+              style: const TextStyle(
+                color: Color(0xFFFFD37A),
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+            Text(
+              '${currentRoute.method} · ${currentRoute.attribution}',
+              style: const TextStyle(color: Color(0xFFD1DCE9), fontSize: 11),
+            ),
+          ],
+          if (selected != null && selected.geometryType == 'Point') ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                FilledButton.icon(
+                  key: const ValueKey('calculate-selected-route'),
+                  onPressed: loading ? null : onShowRoute,
+                  icon: const Icon(Icons.alt_route_rounded),
+                  label: Text(loading ? 'Menghitung...' : 'Tampilkan Jalur'),
+                ),
+                if (route != null || error != null)
+                  TextButton.icon(
+                    key: const ValueKey('close-simulated-route'),
+                    onPressed: loading ? null : onClose,
+                    icon: const Icon(Icons.close),
+                    label: const Text('Tutup rute'),
+                    style: TextButton.styleFrom(foregroundColor: Colors.white),
+                  ),
+              ],
+            ),
+          ],
+          if (selected == null)
+            const Padding(
+              padding: EdgeInsets.only(top: 7),
+              child: Text(
+                'Belum ada tujuan dipilih. Rute tidak diminta otomatis.',
+                style: TextStyle(color: Color(0xFFC7D2E0), fontSize: 12),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+String _formatRouteDuration(double seconds) {
+  final minutes = (seconds / 60).ceil();
+  if (minutes < 60) return '$minutes menit';
+  final hours = minutes ~/ 60;
+  final remainingMinutes = minutes % 60;
+  return remainingMinutes == 0
+      ? '$hours jam'
+      : '$hours jam $remainingMinutes menit';
 }
 
 class _MapTitleBanner extends StatelessWidget {
@@ -1096,7 +1448,7 @@ class _MapTitleBanner extends StatelessWidget {
                   style: RanahPageHeaderStyle.kicker,
                 ),
                 Text(
-                  'Peta KRB Gunung Api',
+                  'Peta dan Jalur Evakuasi',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: RanahPageHeaderStyle.title,
@@ -1703,6 +2055,69 @@ String _formatDate(DateTime value) {
   return '${local.day.toString().padLeft(2, '0')}/${local.month.toString().padLeft(2, '0')}/${local.year} ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
 }
 
+class _OsmMapStatus extends StatelessWidget {
+  const _OsmMapStatus({
+    required this.loading,
+    required this.error,
+    required this.featureCount,
+    required this.onRetry,
+  });
+
+  final bool loading;
+  final String? error;
+  final int featureCount;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 6),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Memuat referensi OpenStreetMap...',
+                softWrap: true,
+                style: TextStyle(color: Color(0xFFD1DCE9), fontSize: 11),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    if (error != null) {
+      return _UnavailableCard(
+        icon: Icons.cloud_off,
+        title: 'Referensi OSM tidak tersedia.',
+        description: error!,
+        action: TextButton.icon(
+          key: const ValueKey('retry-map-osm'),
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Coba lagi'),
+          style: TextButton.styleFrom(foregroundColor: Colors.white),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 5),
+      child: Text(
+        featureCount == 0
+            ? 'API RANAH belum menyediakan fitur OSM untuk ditampilkan.'
+            : '$featureCount fitur referensi OSM ditampilkan; bukan daftar fasilitas evakuasi terverifikasi.',
+        style: const TextStyle(fontSize: 11, color: Color(0xFFD1DCE9)),
+      ),
+    );
+  }
+}
+
 class _UnavailableCard extends StatelessWidget {
   const _UnavailableCard({
     required this.icon,
@@ -1952,6 +2367,90 @@ class _VolcanoHazardCard extends StatelessWidget {
     );
   }
 }
+
+class _RasterHazardCard extends StatelessWidget {
+  const _RasterHazardCard({
+    required this.icon,
+    required this.label,
+    required this.result,
+    required this.analyzedAt,
+    required this.locationUncertain,
+  });
+
+  final IconData icon;
+  final String label;
+  final RasterHazardResult result;
+  final DateTime? analyzedAt;
+  final bool locationUncertain;
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = switch (result.status) {
+      'klasifikasi_belum_diverifikasi' => 'Nilai data tersedia, tetapi klasifikasi bahaya tidak tersedia dan tidak disimpulkan.',
+      'no_data' =>
+        'Data untuk lokasi ini belum tersedia. Ini tidak berarti lokasi aman.',
+      'titik_di_luar_cakupan' => 'Lokasi berada di luar cakupan data. Ini bukan penilaian bahwa lokasi aman.',
+      'layanan_bermasalah' => 'Layanan data sementara tidak dapat dimuat.',
+      'belum_dianalisis' => 'Data belum dianalisis.',
+      _ => 'Tingkat bahaya untuk lokasi ini belum dapat ditentukan.',
+    };
+    final finding = result.status == 'layanan_bermasalah'
+        ? _HazardFinding.unavailable
+        : _HazardFinding.uncertain;
+    final details = <String>[result.explanation];
+    if (result.classification != null) {
+      details.add('Klasifikasi: ${result.classification}');
+    }
+    if (result.pixelValue != null) {
+      details.add('Nilai piksel raster (mentah): ${result.pixelValue}');
+    }
+    if (result.dataset != null) details.add('Dataset: ${result.dataset}');
+    if (result.valueType != null) {
+      details.add('Jenis nilai: ${result.valueType}');
+    }
+    if (result.dataType != null) {
+      details.add('Tipe raster: ${result.dataType}');
+    }
+    if (result.methodologyUrl != null) {
+      details.add('Metodologi: ${result.methodologyUrl}');
+    }
+    if (result.queryMethod != null) {
+      details.add('Metode: ${result.queryMethod}');
+    }
+    if (result.source != null) details.add('Sumber: ${result.source}');
+    if (result.sourceUrl != null) details.add(result.sourceUrl!);
+    if (result.year != null) details.add('Tahun data: ${result.year}');
+    if (result.pixelSizeMeters != null) {
+      details.add('Ukuran piksel: ${result.pixelSizeMeters} m');
+    }
+    if (result.spatialReference != null) {
+      details.add('Sistem koordinat data: ${result.spatialReference}');
+    }
+    if (analyzedAt != null) {
+      details.add('Waktu analisis: ${_formatDate(analyzedAt!)}');
+    }
+    if (result.limitations != null) {
+      details.add('Batasan: ${result.limitations}');
+    }
+    return _HazardResultCard(
+      icon: icon,
+      title: label,
+      summary: locationUncertain
+          ? '$summary Akurasi lokasi rendah atau tidak tersedia; hasil titik tidak dapat dipastikan.'
+          : summary,
+      finding: finding,
+      details: details,
+      detailsKey: ValueKey('hazard-details-${_hazardKey(label)}'),
+    );
+  }
+}
+
+String _hazardKey(String label) => switch (label) {
+  'Tsunami' => 'tsunami',
+  'Banjir' => 'banjir',
+  'Gempa Bumi' => 'gempa',
+  _ => 'gunung-api',
+};
 
 class _MapTag extends StatelessWidget {
   const _MapTag({required this.text});
