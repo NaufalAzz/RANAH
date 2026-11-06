@@ -26,10 +26,6 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>RANAH menggunakan mikrofon saat Anda memilih navigasi suara Bahasa Indonesia.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>RANAH mengenali ucapan untuk membuka fitur yang Anda sebutkan.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>RANAH menggunakan foto yang Anda pilih sebagai dokumentasi pengaduan.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

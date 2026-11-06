@@ -35,7 +35,7 @@ void main() {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
       await _pumpReadyApp(tester);
-      for (final destination in ['home', 'map', 'voice', 'news', 'menu']) {
+      for (final destination in ['home', 'map', 'news', 'menu']) {
         final nav = find.byKey(ValueKey('ranah-nav-$destination'));
         expect(tester.getSize(nav).width, greaterThanOrEqualTo(48));
         expect(tester.getSize(nav).height, greaterThanOrEqualTo(48));

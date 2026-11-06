@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ranah_mobile/app/ranah_app.dart';
-import 'package:ranah_mobile/pages/home_page.dart';
 import 'package:ranah_mobile/services/news_api.dart';
 import 'package:ranah_mobile/services/news_repository.dart';
 import 'package:ranah_mobile/services/gunung_local_store.dart';
@@ -47,16 +46,6 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pump(const Duration(milliseconds: 100));
 
-      await tester.scrollUntilVisible(
-        find.text('Memuat berita dari server...'),
-        120,
-        scrollable: find
-            .descendant(
-              of: find.byType(HomePage),
-              matching: find.byType(Scrollable),
-            )
-            .first,
-      );
       expect(find.text('Memuat berita dari server...'), findsOneWidget);
       expect(find.textContaining('Contoh:'), findsNothing);
 
@@ -95,16 +84,6 @@ void main() {
       await _flushLocalDatabase(tester);
       await tester.pump();
 
-      await tester.scrollUntilVisible(
-        find.text('Belum ada berita yang dipublikasikan.'),
-        120,
-        scrollable: find
-            .descendant(
-              of: find.byType(HomePage),
-              matching: find.byType(Scrollable),
-            )
-            .first,
-      );
       expect(
         find.text('Belum ada berita yang dipublikasikan.'),
         findsOneWidget,

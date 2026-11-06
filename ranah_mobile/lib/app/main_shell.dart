@@ -1,8 +1,3 @@
-import 'package:ranah_accessibility/ranah_accessibility.dart';
-
-import '../pages/mitigation_page.dart';
-import '../pages/contact_complaint_page.dart';
-
 import 'package:flutter/material.dart';
 
 import '../models/news_item.dart';
@@ -26,7 +21,6 @@ import '../widgets/ranah_page_route.dart';
 class MainShell extends StatefulWidget {
   const MainShell({
     this.newsRepository,
-    this.voiceEngine,
     this.notificationsRepository,
     this.complaintApi,
     this.mediaPicker,
@@ -36,7 +30,6 @@ class MainShell extends StatefulWidget {
   });
 
   final NewsRepository? newsRepository;
-  final VoiceEngine? voiceEngine;
   final NotificationsRepository? notificationsRepository;
   final ComplaintApi? complaintApi;
   final ComplaintMediaPicker? mediaPicker;
@@ -104,57 +97,6 @@ class _MainShellState extends State<MainShell> {
     });
   }
 
-  void _openContacts() {
-    Navigator.of(context).push(
-      RanahPageRoute<void>(
-        context: context,
-        builder: (_) => ContactComplaintPage(
-          onBack: () => Navigator.of(context).pop(),
-          complaintApi: widget.complaintApi,
-          mediaPicker: widget.mediaPicker,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openVoice() async {
-    final destination = await showVoiceNavigation(
-      context,
-      engine: widget.voiceEngine,
-    );
-    if (!mounted || destination == null) return;
-    switch (destination) {
-      case VoiceDestination.home:
-        _openTab(0);
-      case VoiceDestination.map:
-        _openTab(1);
-      case VoiceDestination.news:
-        _openTab(2);
-      case VoiceDestination.menu:
-        _openTab(3);
-      case VoiceDestination.contacts:
-        _openContacts();
-      case VoiceDestination.notifications:
-        setState(() => _showingNotifications = true);
-      case VoiceDestination.guide:
-        Navigator.of(context).push(
-          RanahPageRoute<void>(
-            context: context,
-            builder: (_) =>
-                MitigationPage(onBackToHome: () => Navigator.of(context).pop()),
-          ),
-        );
-      case VoiceDestination.activity:
-        Navigator.of(context).push(
-          RanahPageRoute<void>(
-            context: context,
-            builder: (_) =>
-                VolcanicActivityPage(onBack: () => Navigator.of(context).pop()),
-          ),
-        );
-    }
-  }
-
   void _toggleNotifications() {
     setState(() => _showingNotifications = !_showingNotifications);
   }
@@ -185,7 +127,6 @@ class _MainShellState extends State<MainShell> {
 
     final pages = <Widget>[
       HomePage(
-        onOpenContacts: _openContacts,
         onOpenNews: _openNews,
         items: _newsItems,
         isUsingFallback: _newsUsingFallback,
@@ -343,16 +284,8 @@ class _MainShellState extends State<MainShell> {
                   width: contentWidth,
                   child: NavigationBar(
                     height: responsiveNavigationHeight,
-                    selectedIndex: _selectedIndex < 2
-                        ? _selectedIndex
-                        : _selectedIndex + 1,
-                    onDestinationSelected: (index) {
-                      if (index == 2) {
-                        _openVoice();
-                      } else {
-                        _openTab(index < 2 ? index : index - 1);
-                      }
-                    },
+                    selectedIndex: _selectedIndex,
+                    onDestinationSelected: _openTab,
                     labelBehavior:
                         NavigationDestinationLabelBehavior.alwaysShow,
                     destinations: const [
@@ -365,11 +298,6 @@ class _MainShellState extends State<MainShell> {
                         icon: Icon(Icons.map_outlined),
                         selectedIcon: Icon(Icons.map_rounded),
                         label: 'Peta',
-                      ),
-                      NavigationDestination(
-                        icon: Icon(Icons.mic_none_rounded),
-                        selectedIcon: Icon(Icons.mic_rounded),
-                        label: 'Suara',
                       ),
                       NavigationDestination(
                         icon: Icon(Icons.newspaper_outlined),

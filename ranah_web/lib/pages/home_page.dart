@@ -1,7 +1,3 @@
-import 'package:ranah_accessibility/ranah_accessibility.dart';
-
-import '../data/emergency_contacts.dart';
-
 import 'package:flutter/material.dart';
 
 import '../data/home_stories.dart';
@@ -11,15 +7,12 @@ import '../widgets/home_story_image.dart';
 class HomePage extends StatefulWidget {
   const HomePage({
     required this.onStoryTap,
-    this.onOpenContacts,
     this.stories = homeStories,
     this.isLoading = false,
     this.error,
     this.onRetry,
     super.key,
   });
-
-  final VoidCallback? onOpenContacts;
 
   final ValueChanged<HomeStory> onStoryTap;
   final List<HomeStory> stories;
@@ -78,20 +71,6 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  EmergencyContactsCard(
-                    onOpenAll: widget.onOpenContacts,
-                    contacts: [
-                      for (final contact in emergencyContacts.take(3))
-                        QuickEmergencyContact(
-                          name: contact.organization,
-                          numbers: contact.dialNumbers,
-                          verified: contact.numberVerified,
-                          source:
-                              '${contact.sourceTitle} (${contact.sourceOrganization}), diakses ${contact.sourceAccessedAt}.\n${contact.sourceUrl}',
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
                   _HeroCard(
                     story: widget.stories.isEmpty
                         ? null

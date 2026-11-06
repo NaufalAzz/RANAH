@@ -28,8 +28,6 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
-  ranah_accessibility:
-    path: ../packages/ranah_accessibility
   flutter:
     sdk: flutter
 
