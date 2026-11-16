@@ -33,21 +33,50 @@ class FakeVoiceEngine implements VoiceEngine {
 }
 
 void main() {
+  test('specific feature names are unique but shared keywords yield several results', () {
+    expect(resolveVoiceCommand('Tolong buka panduan!'), [
+      VoiceDestination.guide,
+    ]);
+    expect(resolveVoiceCommand('menu'), [VoiceDestination.menu]);
+    expect(resolveVoiceCommand('Buka menu kontak darurat'), [
+      VoiceDestination.contacts,
+    ]);
+    expect(
+      resolveVoiceCommand('gunung'),
+      unorderedEquals([
+        VoiceDestination.activity,
+        VoiceDestination.map,
+        VoiceDestination.guide,
+        VoiceDestination.news,
+      ]),
+    );
+    expect(resolveVoiceCommand('gunung api'), hasLength(4));
+    expect(
+      resolveVoiceCommand('EVAKUASI'),
+      unorderedEquals([VoiceDestination.guide, VoiceDestination.map]),
+    );
+    expect(resolveVoiceCommand('jangan buka peta'), isEmpty);
+    expect(
+      resolveVoiceCommand('peta panduan'),
+      unorderedEquals([VoiceDestination.map, VoiceDestination.guide]),
+    );
+    expect(resolveVoiceCommand('petani'), isEmpty);
+    expect(resolveVoiceCommand(''), isEmpty);
+    expect(resolveVoiceCommand('telepon 117'), [VoiceDestination.contacts]);
+  });
+
   test(
-    'specific feature names are unique but shared keywords yield several results',
+    'long sentences collect whole keywords without duplicate destinations',
     () {
-      expect(resolveVoiceCommand('Tolong buka panduan!'), [
+      expect(
+        resolveVoiceCommand('saya pengen membuka peta, tolong buka peta ya'),
+        [VoiceDestination.map],
+      );
+      expect(resolveVoiceCommand('Bisa bantu saya melihat PANDUAN sekarang?'), [
         VoiceDestination.guide,
       ]);
-      expect(resolveVoiceCommand('menu'), [VoiceDestination.menu]);
-      expect(resolveVoiceCommand('Buka menu kontak darurat'), [
-        VoiceDestination.contacts,
-      ]);
-      expect(resolveVoiceCommand('status gunung'), [VoiceDestination.activity]);
-      expect(resolveVoiceCommand('peta gunung'), [VoiceDestination.map]);
-      expect(resolveVoiceCommand('berita gunung'), [VoiceDestination.news]);
       expect(
-        resolveVoiceCommand('gunung'),
+        resolveVoiceCommand('saya ingin gunung dan peta'),
         unorderedEquals([
           VoiceDestination.activity,
           VoiceDestination.map,
@@ -55,16 +84,18 @@ void main() {
           VoiceDestination.news,
         ]),
       );
-      expect(resolveVoiceCommand('gunung api'), hasLength(4));
       expect(
-        resolveVoiceCommand('EVAKUASI'),
-        unorderedEquals([VoiceDestination.guide, VoiceDestination.map]),
+        resolveVoiceCommand('tolong buka berita dan kontak darurat'),
+        unorderedEquals([VoiceDestination.news, VoiceDestination.contacts]),
       );
-      expect(resolveVoiceCommand('jangan buka peta'), isEmpty);
-      expect(resolveVoiceCommand('peta panduan'), isEmpty);
-      expect(resolveVoiceCommand('petani'), isEmpty);
-      expect(resolveVoiceCommand(''), isEmpty);
-      expect(resolveVoiceCommand('telepon 117'), isEmpty);
+      expect(
+        resolveVoiceCommand('saya sedang memetakan petani di perkebunan'),
+        isEmpty,
+      );
+      expect(resolveVoiceCommand('saya tidak ingin membuka peta'), isEmpty);
+      expect(resolveVoiceCommand('kembali ke home ya'), [
+        VoiceDestination.home,
+      ]);
     },
   );
 
@@ -125,11 +156,11 @@ void main() {
     VoiceDestination? selected;
     await openSheet(tester, engine, (value) => selected = value);
     await tap(tester, find.byKey(const ValueKey('voice-start')));
-    engine.result!('panduan', false);
+    engine.result!('saya pengen membuka panduan, tolong ya', false);
     await tester.pumpAndSettle();
     expect(selected, isNull);
     noResults();
-    engine.result!('panduan', true);
+    engine.result!('saya pengen membuka panduan, tolong ya', true);
     await tester.pumpAndSettle();
     expect(selected, VoiceDestination.guide);
   });
@@ -140,10 +171,10 @@ void main() {
       VoiceDestination? selected;
       await openSheet(tester, engine, (value) => selected = value);
       await tap(tester, find.byKey(const ValueKey('voice-start')));
-      engine.result!('gunung', false);
+      engine.result!('saya ingin melihat gunung dan peta', false);
       await tester.pumpAndSettle();
       noResults();
-      engine.result!('gunung', true);
+      engine.result!('saya ingin melihat gunung dan peta', true);
       await tester.pumpAndSettle();
       expect(selected, isNull);
       for (final feature in [
@@ -189,7 +220,7 @@ void main() {
     VoiceDestination? selected;
     await openSheet(tester, engine, (value) => selected = value);
     await tap(tester, find.byKey(const ValueKey('voice-start')));
-    engine.result!('gunung', true);
+    engine.result!('saya ingin melihat gunung dan peta', true);
     await tester.pumpAndSettle();
     await tap(tester, find.byKey(const ValueKey('voice-start')));
     noResults();
@@ -211,7 +242,7 @@ void main() {
     final engine = FakeVoiceEngine();
     await openSheet(tester, engine, (_) {});
     await tap(tester, find.byKey(const ValueKey('voice-start')));
-    engine.result!('gunung', true);
+    engine.result!('saya ingin melihat gunung dan peta', true);
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('voice-result-news')));
     await tester.pumpAndSettle();

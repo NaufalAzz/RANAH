@@ -39,13 +39,15 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Awal'), findsNothing);
     expect(find.text('Kontak Darurat'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('ranah-nav-voice')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('voice-result-guide')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('voice-start')));
     await tester.pumpAndSettle();
-    engine.result!('gunung', true);
+    engine.result!('tolong saya mau melihat gunung dan peta', true);
     await tester.pumpAndSettle();
     await tester.ensureVisible(
       find.byKey(const ValueKey('voice-result-guide')),

@@ -304,7 +304,7 @@ class _NavigationButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, icon) = switch (destination) {
-      RanahDestination.home => ('Awal', Icons.home_rounded),
+      RanahDestination.home => ('Home', Icons.home_rounded),
       RanahDestination.map => ('Peta', Icons.map_rounded),
       RanahDestination.voice => ('Suara', Icons.mic_rounded),
       RanahDestination.news => ('Berita', Icons.article_rounded),

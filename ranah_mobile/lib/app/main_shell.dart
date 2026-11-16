@@ -367,8 +367,8 @@ class _MainShellState extends State<MainShell> {
                         label: 'Peta',
                       ),
                       NavigationDestination(
-                        icon: Icon(Icons.mic_none_rounded),
-                        selectedIcon: Icon(Icons.mic_rounded),
+                        icon: _VoiceNavigationIcon(),
+                        selectedIcon: _VoiceNavigationIcon(),
                         label: 'Suara',
                       ),
                       NavigationDestination(
@@ -387,6 +387,41 @@ class _MainShellState extends State<MainShell> {
               );
             },
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Raised microphone accent while retaining the NavigationDestination tap target.
+class _VoiceNavigationIcon extends StatelessWidget {
+  const _VoiceNavigationIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Transform.translate(
+      offset: const Offset(0, -5),
+      child: Container(
+        key: const ValueKey('voice-navigation-circle'),
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: colors.primaryContainer,
+          border: Border.all(color: colors.surface, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: colors.primary.withValues(alpha: .3),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Icon(
+          Icons.mic_rounded,
+          color: colors.onPrimaryContainer,
+          size: 26,
         ),
       ),
     );
