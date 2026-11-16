@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import '../services/mobile_location_provider.dart';
-import '../services/mobile_map_repository.dart';
 
 import 'package:ranah_accessibility/ranah_accessibility.dart';
 
@@ -56,8 +55,6 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   DeviceLocationFix? _sharedLocation;
-  String? _newsProvince;
-  String? _newsVolcano;
   Timer? _newsTimer;
   Future<void> _requestStartupLocation() async {
     try {
@@ -66,10 +63,6 @@ class _MainShellState extends State<MainShell> {
               .currentFix();
       if (!mounted) return;
       setState(() => _sharedLocation = fix);
-      final area = await LaravelMobileMapRepository().lookupAddress(
-        DeviceCoordinates(latitude: fix.latitude, longitude: fix.longitude),
-      );
-      if (mounted) setState(() => _newsProvince = area.province);
     } catch (_) {
       /* All news remains available when location is unavailable. */
     }
@@ -219,22 +212,15 @@ class _MainShellState extends State<MainShell> {
         : bottomNavigationHeight;
 
     final pages = <Widget>[
-      LocationNewsScope(
-        province: _newsProvince,
-        child: HomePage(
-          onOpenContacts: _openContacts,
-          onOpenNews: _openNews,
-          items: localEruptionNews(
-            _newsItems,
-            (e) => '${e.title} ${e.body}',
-            _newsProvince,
-          ),
-          isUsingFallback: _newsUsingFallback,
-          isFromCache: _newsFromCache,
-          loadError: _newsError,
-          isLoading: _newsLoading,
-          onRetry: _loadNews,
-        ),
+      HomePage(
+        onOpenContacts: _openContacts,
+        onOpenNews: _openNews,
+        items: _newsItems,
+        isUsingFallback: _newsUsingFallback,
+        isFromCache: _newsFromCache,
+        loadError: _newsError,
+        isLoading: _newsLoading,
+        onRetry: _loadNews,
       ),
       MapPage(
         initialLocation: _sharedLocation,
@@ -261,20 +247,9 @@ class _MainShellState extends State<MainShell> {
         ),
       ),
       NewsPage(
-        volcanoFilter: VolcanoNewsPicker(
-          titles: _newsItems.map((e) => '${e.title} ${e.body}').toList(),
-          onChanged: (value) => setState(() => _newsVolcano = value),
-        ),
-
         initialNewsId: _notificationNewsId,
         selectionRevision: _notificationSelectionRevision,
-        items: _newsItems
-            .where(
-              (e) =>
-                  _newsVolcano == null ||
-                  eruptionVolcano('${e.title} ${e.body}') == _newsVolcano,
-            )
-            .toList(),
+        items: _newsItems,
         loadError: _newsError,
         isLoading: _newsLoading,
         onRetry: _loadNews,

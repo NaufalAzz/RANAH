@@ -23,9 +23,6 @@ Route::get('/gunung/{id}', [GunungController::class, 'show'])
 
 Route::get('/berita', [BeritaController::class, 'index']);
 
-Route::get('/berita-media/{key}/gambar', [BeritaController::class, 'mediaImage'])
-    ->where('key', '[a-f0-9]{64}')->name('api.berita.media.image');
-
 Route::get('/berita/{id}/gambar', [BeritaController::class, 'image'])
     ->whereNumber('id')
     ->name('api.berita.image');
