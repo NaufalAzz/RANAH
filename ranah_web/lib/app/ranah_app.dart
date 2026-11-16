@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ranah_accessibility/ranah_accessibility.dart';
 import 'package:flutter/material.dart';
 
@@ -74,6 +76,22 @@ class _RanahShellState extends State<RanahShell> {
   _Page _activityReturnPage = _Page.map;
   _Page _contactsReturnPage = _Page.home;
   final _Page _routeReturnPage = _Page.map;
+  String? _newsVolcano;
+  Timer? _newsTimer;
+  Future<void> _requestStartupLocation() async {
+    try {
+      final fix = await (widget.locationReader ?? readBrowserLocation)();
+      if (!mounted || !fix.isValid) return;
+      setState(() => _mapLocation = fix);
+      final area = await (widget.areaLookup ?? lookupBrowserAdministrativeArea)(
+        fix,
+      );
+      if (mounted) setState(() => _mapArea = area);
+    } catch (_) {
+      /* All news remains available without a location. */
+    }
+  }
+
   BrowserLocation? _mapLocation;
   BrowserAdministrativeArea? _mapArea;
   bool _mapEverOpened = false;
@@ -99,6 +117,15 @@ class _RanahShellState extends State<RanahShell> {
         ? _Page.adminLogin
         : _Page.home;
     _loadNews();
+    _newsTimer = Timer.periodic(
+      const Duration(minutes: 15),
+      (_) => _loadNews(),
+    );
+    if (_page != _Page.adminLogin) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _requestStartupLocation(),
+      );
+    }
   }
 
   Future<void> _loadNews() async {
@@ -151,6 +178,7 @@ class _RanahShellState extends State<RanahShell> {
 
   @override
   void dispose() {
+    _newsTimer?.cancel();
     _newsRepository.close();
     if (_gunungRepository case final GunungRepository repository) {
       repository.close();
@@ -385,13 +413,20 @@ class _RanahShellState extends State<RanahShell> {
 
   Widget _buildOtherPage() {
     if (_page == _Page.home) {
-      return HomePage(
-        onOpenContacts: _openContacts,
-        stories: _newsStories,
-        isLoading: _newsLoading,
-        error: _newsError,
-        onRetry: _loadNews,
-        onStoryTap: (story) => _openStory(story, _Page.home),
+      return LocationNewsScope(
+        province: _mapArea?.province,
+        child: HomePage(
+          onOpenContacts: _openContacts,
+          stories: localEruptionNews(
+            _newsStories,
+            (e) => e.title,
+            _mapArea?.province,
+          ),
+          isLoading: _newsLoading,
+          error: _newsError,
+          onRetry: _loadNews,
+          onStoryTap: (story) => _openStory(story, _Page.home),
+        ),
       );
     }
     if (_page == _Page.evacuationRoute) {
@@ -420,12 +455,22 @@ class _RanahShellState extends State<RanahShell> {
       );
     }
     if (_page == _Page.news) {
-      return NewsPage(
-        stories: _newsStories,
-        isLoading: _newsLoading,
-        error: _newsError,
-        onRetry: _loadNews,
-        onStoryTap: (story) => _openStory(story, _Page.news),
+      return VolcanoNewsFilter(
+        titles: _newsStories.map((e) => e.title).toList(),
+        onChanged: (value) => setState(() => _newsVolcano = value),
+        child: NewsPage(
+          stories: _newsStories
+              .where(
+                (e) =>
+                    _newsVolcano == null ||
+                    eruptionVolcano(e.title) == _newsVolcano,
+              )
+              .toList(),
+          isLoading: _newsLoading,
+          error: _newsError,
+          onRetry: _loadNews,
+          onStoryTap: (story) => _openStory(story, _Page.news),
+        ),
       );
     }
     if (_page == _Page.story && _selectedStory != null) {

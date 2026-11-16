@@ -1,3 +1,8 @@
+import 'dart:async';
+
+import '../services/mobile_location_provider.dart';
+import '../services/mobile_map_repository.dart';
+
 import 'package:ranah_accessibility/ranah_accessibility.dart';
 
 import '../pages/mitigation_page.dart';
@@ -25,6 +30,7 @@ import '../widgets/ranah_page_route.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({
+    this.locationProvider,
     this.newsRepository,
     this.voiceEngine,
     this.notificationsRepository,
@@ -35,6 +41,7 @@ class MainShell extends StatefulWidget {
     super.key,
   });
 
+  final MobileLocationProvider? locationProvider;
   final NewsRepository? newsRepository;
   final VoiceEngine? voiceEngine;
   final NotificationsRepository? notificationsRepository;
@@ -48,6 +55,26 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
+  DeviceLocationFix? _sharedLocation;
+  String? _newsProvince;
+  String? _newsVolcano;
+  Timer? _newsTimer;
+  Future<void> _requestStartupLocation() async {
+    try {
+      final fix =
+          await (widget.locationProvider ?? const GeolocatorLocationProvider())
+              .currentFix();
+      if (!mounted) return;
+      setState(() => _sharedLocation = fix);
+      final area = await LaravelMobileMapRepository().lookupAddress(
+        DeviceCoordinates(latitude: fix.latitude, longitude: fix.longitude),
+      );
+      if (mounted) setState(() => _newsProvince = area.province);
+    } catch (_) {
+      /* All news remains available when location is unavailable. */
+    }
+  }
+
   int _selectedIndex = 0;
   bool _showingNotifications = false;
   String? _notificationNewsId;
@@ -68,6 +95,13 @@ class _MainShellState extends State<MainShell> {
         widget.internetStatusMonitor ?? InternetStatusMonitor();
     _internetStatusMonitor.start();
     _loadNews();
+    _newsTimer = Timer.periodic(
+      const Duration(minutes: 15),
+      (_) => _loadNews(),
+    );
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _requestStartupLocation(),
+    );
   }
 
   Future<void> _loadNews() async {
@@ -93,6 +127,7 @@ class _MainShellState extends State<MainShell> {
 
   @override
   void dispose() {
+    _newsTimer?.cancel();
     _internetStatusMonitor.dispose();
     super.dispose();
   }
@@ -184,17 +219,21 @@ class _MainShellState extends State<MainShell> {
         : bottomNavigationHeight;
 
     final pages = <Widget>[
-      HomePage(
-        onOpenContacts: _openContacts,
-        onOpenNews: _openNews,
-        items: _newsItems,
-        isUsingFallback: _newsUsingFallback,
-        isFromCache: _newsFromCache,
-        loadError: _newsError,
-        isLoading: _newsLoading,
-        onRetry: _loadNews,
+      LocationNewsScope(
+        province: _newsProvince,
+        child: HomePage(
+          onOpenContacts: _openContacts,
+          onOpenNews: _openNews,
+          items: localEruptionNews(_newsItems, (e) => e.title, _newsProvince),
+          isUsingFallback: _newsUsingFallback,
+          isFromCache: _newsFromCache,
+          loadError: _newsError,
+          isLoading: _newsLoading,
+          onRetry: _loadNews,
+        ),
       ),
       MapPage(
+        initialLocation: _sharedLocation,
         tilesEnabled: widget.mapTilesEnabled,
         onOpenReport: (item) {
           final id = int.tryParse(item['id']?.toString() ?? '');
@@ -217,13 +256,23 @@ class _MainShellState extends State<MainShell> {
           ),
         ),
       ),
-      NewsPage(
-        initialNewsId: _notificationNewsId,
-        selectionRevision: _notificationSelectionRevision,
-        items: _newsItems,
-        loadError: _newsError,
-        isLoading: _newsLoading,
-        onRetry: _loadNews,
+      VolcanoNewsFilter(
+        titles: _newsItems.map((e) => e.title).toList(),
+        onChanged: (value) => setState(() => _newsVolcano = value),
+        child: NewsPage(
+          initialNewsId: _notificationNewsId,
+          selectionRevision: _notificationSelectionRevision,
+          items: _newsItems
+              .where(
+                (e) =>
+                    _newsVolcano == null ||
+                    eruptionVolcano(e.title) == _newsVolcano,
+              )
+              .toList(),
+          loadError: _newsError,
+          isLoading: _newsLoading,
+          onRetry: _loadNews,
+        ),
       ),
       MenuPage(
         complaintApi: widget.complaintApi,
