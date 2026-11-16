@@ -101,7 +101,7 @@ class MediaArticlePreviewTest extends TestCase
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aO1sAAAAASUVORK5CYII=');
         Http::fake(['img.antaranews.com/*' => Http::response($png, 200, ['Content-Type' => 'image/png'])]);
         $path = '/api/berita-media/'.$key.'/gambar';
-        $this->withHeaders(['Origin' => 'http://localhost:5000'])->get($path)->assertOk()->assertHeader('Content-Type', 'image/png')->assertHeader('Access-Control-Allow-Origin', '*')->assertContent($png);
+        $this->withHeaders(['Origin' => 'http://localhost:5000'])->get($path)->assertOk()->assertHeader('Content-Type', 'image/png')->assertHeader('Access-Control-Allow-Origin', 'http://localhost:5000')->assertContent($png);
         $this->get($path)->assertOk();
         Http::assertSentCount(1);
         Cache::put('media-preview-v3:'.$key, ['image' => 'http://127.0.0.1/private'], 3600);
