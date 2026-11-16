@@ -192,3 +192,61 @@ class LocationNewsScope extends StatelessWidget {
     );
   }
 }
+
+class VolcanoNewsPicker extends StatefulWidget {
+  const VolcanoNewsPicker({
+    required this.titles,
+    required this.onChanged,
+    super.key,
+  });
+  final List<String> titles;
+  final ValueChanged<String?> onChanged;
+  @override
+  State<VolcanoNewsPicker> createState() => _VolcanoNewsPickerState();
+}
+
+class _VolcanoNewsPickerState extends State<VolcanoNewsPicker> {
+  String? selected;
+  @override
+  Widget build(BuildContext context) {
+    final names =
+        widget.titles.map(eruptionVolcano).whereType<String>().toSet().toList()
+          ..sort();
+    return DropdownButtonFormField<String>(
+      initialValue: selected,
+      isExpanded: true,
+      style: const TextStyle(color: Colors.white, fontSize: 15),
+      dropdownColor: const Color(0xFF123D5B),
+      decoration: InputDecoration(
+        labelText: 'Gunung',
+        labelStyle: const TextStyle(color: Colors.white),
+        filled: true,
+        fillColor: const Color(0xFF123D5B),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      items: [
+        const DropdownMenuItem(value: '', child: Text('Semua gunung')),
+        for (final name in names)
+          DropdownMenuItem(value: name, child: Text(name)),
+      ],
+      onChanged: (value) {
+        setState(() => selected = value);
+        widget.onChanged(value == '' ? null : value);
+      },
+    );
+  }
+}
+
+String readableNewsBody(String title, String body) {
+  final clean = body
+      .split(
+        RegExp(
+          r'\n\n(?:Pratinjau judul|Pratinjau dari penerbit|Ringkasan dari RSS|Pratinjau dari indeks)',
+        ),
+      )
+      .first
+      .trim();
+  return clean == title.trim() || clean.isEmpty
+      ? 'Penjelasan artikel belum berhasil diambil.'
+      : clean;
+}

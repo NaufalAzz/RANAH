@@ -74,6 +74,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Isi berita API untuk detail.'), findsOneWidget);
     expect(find.text('Sumber: BNPB'), findsOneWidget);
+    expect(find.textContaining('URL sumber:'), findsNothing);
     expect(find.textContaining('Kota Padang'), findsOneWidget);
     expect(find.textContaining('CONTOH'), findsNothing);
     expect(_networkImageUrls(tester), contains(_apiStory()['gambar']));
