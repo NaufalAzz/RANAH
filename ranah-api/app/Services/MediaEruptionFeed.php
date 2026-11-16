@@ -18,7 +18,9 @@ class MediaEruptionFeed
         'https://www.antaranews.com/rss/terkini.xml',
     ];
 
-    private const KEY = 'ranah:media-eruption-v1';
+    public const SEARCH_URL = 'https://news.google.com/rss/search?q=erupsi+gunung+when%3A30d&hl=id&gl=ID&ceid=ID%3Aid';
+
+    private const KEY = 'ranah:media-eruption-v2';
 
     public function items(): array
     {
@@ -35,12 +37,22 @@ class MediaEruptionFeed
             $successes = 0;
             foreach (self::FEEDS as $url) {
                 try {
-                    $response = Http::connectTimeout(2)->timeout(4)
+                    $response = Http::connectTimeout(2)->timeout(3)
                         ->withOptions(['allow_redirects' => false])->get($url)->throw();
                     $items = array_merge($items, $this->parse($response->body()));
                     $successes++;
                 } catch (\Throwable) {
                     // Another publisher feed may still be available.
+                }
+            }
+            if ($items === []) {
+                try {
+                    $response = Http::connectTimeout(2)->timeout(3)
+                        ->withOptions(['allow_redirects' => false])->get(self::SEARCH_URL)->throw();
+                    $items = $this->parse($response->body(), true);
+                    $successes++;
+                } catch (\Throwable) {
+                    // Preserve the result from any valid publisher feeds above.
                 }
             }
             if ($successes === 0) {
@@ -62,7 +74,7 @@ class MediaEruptionFeed
         }
     }
 
-    public function parse(string $xml): array
+    public function parse(string $xml, bool $searchFeed = false): array
     {
         if (strlen($xml) > 5_000_000 || stripos($xml, '<!DOCTYPE') !== false) {
             throw new RuntimeException('RSS tidak valid.');
@@ -85,8 +97,31 @@ class MediaEruptionFeed
             $summary = $this->text($xpath->evaluate('string(description)', $node));
             $url = trim($xpath->evaluate('string(link)', $node));
             $parts = parse_url($url);
-            if (! is_array($parts) || ($parts['scheme'] ?? '') !== 'https' || isset($parts['user']) || isset($parts['pass'])
-                || ! preg_match('/^(?:[a-z0-9-]+\.)?antaranews\.com$/i', $parts['host'] ?? '')
+            $publisher = 'ANTARA News';
+            $publisherUrl = trim($xpath->evaluate('string(source/@url)', $node));
+            $publisherHost = strtolower((string) parse_url($publisherUrl, PHP_URL_HOST));
+            $allowedPublishers = ['antaranews.com', 'kompas.com', 'detik.com', 'tempo.co', 'cnnindonesia.com', 'rri.co.id', 'mediaindonesia.com'];
+            $trustedPublisher = false;
+            foreach ($allowedPublishers as $host) {
+                if ($publisherHost === $host || str_ends_with($publisherHost, '.'.$host)) {
+                    $trustedPublisher = true;
+                }
+            }
+            if (! is_array($parts) || ($parts['scheme'] ?? '') !== 'https' || isset($parts['user']) || isset($parts['pass'])) {
+                continue;
+            }
+            if ($searchFeed) {
+                if (! $trustedPublisher || ($parts['host'] ?? '') !== 'news.google.com'
+                    || ! preg_match('~^/(?:rss/)?articles/[a-zA-Z0-9_-]+$~', $parts['path'] ?? '')) {
+                    continue;
+                }
+                $publisher = $this->text($xpath->evaluate('string(source)', $node));
+                if ($publisher === '') {
+                    continue;
+                }
+                $title = preg_replace('/ - '.preg_quote($publisher, '/').'$/u', '', $title) ?? $title;
+                $summary = $title;
+            } elseif (! preg_match('/^(?:[a-z0-9-]+\.)?antaranews\.com$/i', $parts['host'] ?? '')
                 || ! str_contains($parts['path'] ?? '', '/berita/')) {
                 continue;
             }
@@ -110,7 +145,7 @@ class MediaEruptionFeed
             }
             // Canonical article path deduplicates cross-feed links and tracking parameters.
             $canonical = 'https://'.strtolower($parts['host']).$parts['path'];
-            $id = 'antara-'.hash('sha256', $canonical);
+            $id = ($searchFeed ? 'media-' : 'antara-').hash('sha256', $canonical);
             $image = trim($xpath->evaluate('string(enclosure/@url)', $node));
             if (! preg_match('~^https://(?:[a-z0-9-]+\.)*antaranews\.com/~i', $image)) {
                 $image = null;
@@ -118,8 +153,8 @@ class MediaEruptionFeed
             $items[$id] = [
                 'id' => $id, 'sumber_id' => $id, 'judul' => $title,
                 'kategori' => 'Berita Erupsi', 'jenis_konten' => 'artikel',
-                'isi' => mb_strimwidth($summary, 0, 400, '…')."\n\nRingkasan dari RSS ANTARA. Baca artikel lengkap melalui tautan sumber.",
-                'sumber' => 'ANTARA News', 'url_sumber' => $canonical,
+                'isi' => mb_strimwidth($summary, 0, 400, '…').($searchFeed ? "\n\nPratinjau judul dari indeks Google News. Baca artikel media lengkap melalui tautan sumber." : "\n\nRingkasan dari RSS ANTARA. Baca artikel lengkap melalui tautan sumber."),
+                'sumber' => $publisher, 'url_sumber' => $canonical,
                 'gunung' => $match[1], 'wilayah' => null, 'gambar' => $image,
                 'waktu_publikasi' => $at->utc()->toIso8601String(),
                 'waktu_kejadian' => null, 'waktu_pengambilan' => now()->toIso8601String(),

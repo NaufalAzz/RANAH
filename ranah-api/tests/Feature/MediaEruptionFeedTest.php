@@ -22,7 +22,7 @@ class MediaEruptionFeedTest extends TestCase
         $this->getJson('/api/berita')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.judul', 'Erupsi Marapi: warga mendapat bantuan')->assertJsonPath('data.0.sumber', 'ANTARA News')->assertJsonPath('data.0.jenis_konten', 'artikel');
         $this->getJson('/api/berita')->assertOk();
         Http::assertSentCount(3);
-        Cache::forget('ranah:media-eruption-v1:checked');
+        Cache::forget('ranah:media-eruption-v2:checked');
         Http::fake(['*' => Http::response('error', 503)]);
         $this->getJson('/api/berita')->assertOk()->assertJsonCount(1, 'data');
     }
@@ -42,6 +42,17 @@ class MediaEruptionFeedTest extends TestCase
         $this->assertSame([], $parser->parse('<rss><channel><item><title>Wisata ke gunung</title><description>Liburan di Semeru</description><link>https://www.antaranews.com/berita/1/wisata</link><pubDate>'.now()->subHour()->toRfc2822String().'</pubDate></item></channel></rss>'));
         $this->assertSame([], $parser->parse($this->rss('Erupsi Marapi', 'https://evil.test/berita/1')));
         $this->assertCount(1, $parser->parse($this->rss()));
+    }
+
+    public function test_empty_generic_feeds_trigger_targeted_search(): void
+    {
+        Cache::flush();
+        config(['services.media_news.enabled' => true]);
+        $xml = '<rss><channel><item><title>Warga Gunung Marapi terima bantuan erupsi - ANTARA News</title><link>https://news.google.com/rss/articles/VALIDtoken</link><source url="https://www.antaranews.com">ANTARA News</source><pubDate>'.now()->subHour()->toRfc2822String().'</pubDate></item></channel></rss>';
+        Http::fake(['www.antaranews.com/rss/*' => Http::response('<rss><channel/></rss>'), 'news.google.com/*' => Http::response($xml)]);
+        $this->getJson('/api/berita')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.sumber', 'ANTARA News')->assertJsonPath('data.0.judul', 'Warga Gunung Marapi terima bantuan erupsi');
+        Http::assertSentCount(4);
+        $this->assertSame([], app(MediaEruptionFeed::class)->parse(str_replace('https://www.antaranews.com', 'https://untrusted.test', $xml), true));
     }
 
     public function test_unsafe_xml_is_rejected(): void
