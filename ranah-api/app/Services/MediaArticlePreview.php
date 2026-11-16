@@ -18,13 +18,13 @@ class MediaArticlePreview
         if (! is_array($preview)) {
             return $item;
         }
-        if (! empty($preview['description'])) {
+        if (isset($preview['description']) && is_string($preview['description']) && $preview['description'] !== '') {
             $item['isi'] = $preview['description']."\n\nPratinjau dari penerbit. Baca penjelasan lengkap melalui tautan sumber.";
         }
-        if (! empty($preview['image'])) {
+        if (isset($preview['image']) && is_string($preview['image']) && $preview['image'] !== '') {
             $item['gambar'] = $preview['image'];
         }
-        if (! empty($preview['url'])) {
+        if (isset($preview['url']) && is_string($preview['url']) && $preview['url'] !== '') {
             $item['url_sumber'] = $preview['url'];
         }
 
