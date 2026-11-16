@@ -77,11 +77,11 @@ class DeviceVoiceEngine implements VoiceEngine {
           _onText?.call(result.recognizedWords, result.finalResult),
       listenOptions: SpeechListenOptions(
         localeId: localeId,
-        listenFor: const Duration(seconds: 12),
-        pauseFor: const Duration(seconds: 3),
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 4),
         cancelOnError: true,
         partialResults: true,
-        listenMode: ListenMode.confirmation,
+        listenMode: ListenMode.dictation,
       ),
     );
   }

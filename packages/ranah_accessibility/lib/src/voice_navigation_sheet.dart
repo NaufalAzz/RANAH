@@ -109,7 +109,7 @@ class _VoiceNavigationSheetState extends State<VoiceNavigationSheet>
     });
     await _silence();
     if (!mounted || session != _session) return;
-    _timeout = Timer(const Duration(seconds: 20), () {
+    _timeout = Timer(const Duration(seconds: 40), () {
       if (mounted && session == _session && !_opening) {
         _cancel();
       }
@@ -431,7 +431,7 @@ class _VoiceNavigationSheetState extends State<VoiceNavigationSheet>
             ] else if (!_busy && _words.isEmpty) ...[
               const SizedBox(height: 14),
               const Text(
-                'Misalnya: “panduan” atau “gunung”.\nPilihan fitur muncul setelah ucapan dikenali.',
+                'Misalnya: “Saya ingin membuka peta, tolong buka peta ya”.\nJika ada beberapa fitur yang cocok, pilih tujuan Anda.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Color(0xFFC5D6E4),

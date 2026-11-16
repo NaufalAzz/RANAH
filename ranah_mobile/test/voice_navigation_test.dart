@@ -44,6 +44,10 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('voice-navigation-circle')),
+        findsOneWidget,
+      );
       expect(find.text('Kontak Darurat'), findsOneWidget);
       await tester.ensureVisible(
         find.byKey(const ValueKey('home-emergency-BNPB')),
@@ -59,7 +63,7 @@ void main() {
       expect(find.byKey(const ValueKey('voice-result-guide')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('voice-start')));
       await tester.pumpAndSettle();
-      engine.result!('gunung', true);
+      engine.result!('saya ingin membuka peta dan melihat gunung', true);
       await tester.pumpAndSettle();
       await tester.ensureVisible(
         find.byKey(const ValueKey('voice-result-guide')),
