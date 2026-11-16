@@ -25,7 +25,7 @@ class MediaArticlePreviewTest extends TestCase
         Http::assertSentCount(1);
     }
 
-    public function test_listing_uses_publisher_metadata_after_deferred_warming(): void
+    public function test_listing_does_not_fetch_metadata_and_background_warming_adds_the_cover(): void
     {
         Cache::flush();
         config(['services.media_news.enabled' => true, 'services.media_news.previews' => true]);
@@ -33,7 +33,8 @@ class MediaArticlePreviewTest extends TestCase
         $rss = '<rss><channel><item><title>Erupsi Gunung Marapi</title><link>'.$url.'</link><description>Erupsi Gunung Marapi berdampak pada warga.</description><pubDate>'.now()->subHour()->toRfc2822String().'</pubDate></item></channel></rss>';
         Http::fake(['www.antaranews.com/rss/*' => Http::response($rss), $url => Http::response('<meta property="og:image" content="https://cdn.antaranews.com/cover.jpg"><meta name="description" content="Pratinjau penerbit tentang penanganan pengungsi.">')]);
         $this->getJson('/api/berita')->assertOk();
-        \Illuminate\Support\defer()->invoke();
+        Http::assertSentCount(4);
+        $this->artisan('ranah:refresh-news-previews')->assertSuccessful();
         $this->getJson('/api/berita')->assertOk()->assertJsonPath('data.0.gambar', 'https://cdn.antaranews.com/cover.jpg');
     }
 

@@ -20,17 +20,13 @@ class MediaEruptionFeed
 
     public const SEARCH_URL = 'https://news.google.com/rss/search?q=erupsi+gunung+when%3A30d&hl=id&gl=ID&ceid=ID%3Aid';
 
-    private const KEY = 'ranah:media-eruption-v2';
+    private const KEY = 'ranah:media-eruption-v3';
 
     public function items(): array
     {
-        $cached = Cache::get(self::KEY);
-        $previews = app(MediaArticlePreview::class);
+        $cached = Cache::get(self::KEY) ?? Cache::get('ranah:media-eruption-v2');
         if (is_array($cached)) {
-            $cached = array_map($previews->apply(...), $cached);
-        }
-        if (is_array($cached) && config('services.media_news.previews', true)) {
-            \Illuminate\Support\defer(fn () => $previews->warm($cached));
+            $cached = $this->applyPreviews($cached);
         }
         if (Cache::has(self::KEY.':checked')) {
             return $cached ?? throw new RuntimeException('Sumber berita belum dapat diakses. Coba lagi nanti.');
@@ -42,40 +38,32 @@ class MediaEruptionFeed
         try {
             $items = [];
             $successes = 0;
-            foreach (self::FEEDS as $url) {
-                try {
-                    $response = Http::connectTimeout(2)->timeout(3)
-                        ->withOptions(['allow_redirects' => false])->get($url)->throw();
-                    $items = array_merge($items, $this->parse($response->body()));
-                    $successes++;
-                } catch (\Throwable) {
-                    // Another publisher feed may still be available.
-                }
+            try {
+                $response = Http::connectTimeout(2)->timeout(3)
+                    ->withOptions(['allow_redirects' => false])->get(self::SEARCH_URL)->throw();
+                $items = $this->parse($response->body(), true);
+                $successes++;
+            } catch (\Throwable) {
+                // Publisher feeds remain available if the index is unavailable.
             }
             if ($items === []) {
-                try {
-                    $response = Http::connectTimeout(2)->timeout(3)
-                        ->withOptions(['allow_redirects' => false])->get(self::SEARCH_URL)->throw();
-                    $items = $this->parse($response->body(), true);
-                    $successes++;
-                } catch (\Throwable) {
-                    // Preserve the result from any valid publisher feeds above.
+                foreach (self::FEEDS as $url) {
+                    try {
+                        $response = Http::connectTimeout(2)->timeout(3)
+                            ->withOptions(['allow_redirects' => false])->get($url)->throw();
+                        $items = array_merge($items, $this->parse($response->body()));
+                        $successes++;
+                    } catch (\Throwable) {
+                        // Another publisher feed may still be available.
+                    }
                 }
             }
             if ($successes === 0) {
                 throw new RuntimeException('RSS berita ANTARA belum dapat diakses. Coba lagi nanti.');
             }
-            $items = collect($items)->merge($cached ?? [])->unique('id')
-                ->filter(fn ($item) => CarbonImmutable::parse($item['waktu_publikasi'])->isAfter(now()->subDays(30)))
-                ->sortByDesc('waktu_publikasi')->take(250)->values()->all();
-            Cache::put(self::KEY, $items, now()->addDays(7));
-            Cache::put(self::KEY.':checked', true, now()->addMinutes(15));
+            $items = $this->storeArticles(array_merge($items, $cached ?? []));
 
-            if (config('services.media_news.previews', true)) {
-                \Illuminate\Support\defer(fn () => $previews->warm($items));
-            }
-
-            return array_map($previews->apply(...), $items);
+            return $this->applyPreviews($items);
         } catch (\Throwable $error) {
             Cache::put(self::KEY.':checked', true, now()->addMinute());
 
@@ -83,6 +71,35 @@ class MediaEruptionFeed
         } finally {
             $lock->release();
         }
+    }
+
+    /** Accept only records produced by the feed parser, including diagnostic refreshes. */
+    public function storeArticles(array $items): array
+    {
+        $items = collect($items)->unique('id')
+            ->filter(fn ($item) => CarbonImmutable::parse($item['waktu_publikasi'])->isAfter(now()->subDays(30)))
+            ->sortByDesc('waktu_publikasi')->take(250)->values()->all();
+        Cache::put(self::KEY, $items, now()->addDays(7));
+        Cache::put(self::KEY.':checked', true, $items === [] ? now()->addMinute() : now()->addMinutes(15));
+
+        return $items;
+    }
+
+    /** Publisher metadata is optional; the public news request never fetches it. */
+    public function warmPreviews(): void
+    {
+        app(MediaArticlePreview::class)->warm(Cache::get(self::KEY, []));
+    }
+
+    private function applyPreviews(array $items): array
+    {
+        return array_map(function (array $item): array {
+            try {
+                return app(MediaArticlePreview::class)->apply($item);
+            } catch (\Throwable) {
+                return $item;
+            }
+        }, $items);
     }
 
     public function parse(string $xml, bool $searchFeed = false): array

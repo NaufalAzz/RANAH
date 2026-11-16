@@ -21,8 +21,8 @@ class MediaEruptionFeedTest extends TestCase
         Http::fake(['www.antaranews.com/rss/*' => Http::response($this->rss())]);
         $this->getJson('/api/berita')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.judul', 'Erupsi Marapi: warga mendapat bantuan')->assertJsonPath('data.0.sumber', 'ANTARA News')->assertJsonPath('data.0.jenis_konten', 'artikel');
         $this->getJson('/api/berita')->assertOk();
-        Http::assertSentCount(3);
-        Cache::forget('ranah:media-eruption-v2:checked');
+        Http::assertSentCount(4);
+        Cache::forget('ranah:media-eruption-v3:checked');
         Http::fake(['*' => Http::response('error', 503)]);
         $this->getJson('/api/berita')->assertOk()->assertJsonCount(1, 'data');
     }
@@ -51,8 +51,21 @@ class MediaEruptionFeedTest extends TestCase
         $xml = '<rss><channel><item><title>Warga Gunung Marapi terima bantuan erupsi - ANTARA News</title><link>https://news.google.com/rss/articles/VALIDtoken</link><source url="https://www.antaranews.com">ANTARA News</source><pubDate>'.now()->subHour()->toRfc2822String().'</pubDate></item></channel></rss>';
         Http::fake(['www.antaranews.com/rss/*' => Http::response('<rss><channel/></rss>'), 'news.google.com/*' => Http::response($xml)]);
         $this->getJson('/api/berita')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.sumber', 'ANTARA News')->assertJsonPath('data.0.judul', 'Warga Gunung Marapi terima bantuan erupsi');
-        Http::assertSentCount(4);
+        Http::assertSentCount(1);
         $this->assertSame([], app(MediaEruptionFeed::class)->parse(str_replace('https://www.antaranews.com', 'https://untrusted.test', $xml), true));
+    }
+
+    public function test_diagnostic_refresh_populates_the_api_without_flushing_other_cache(): void
+    {
+        Cache::flush();
+        config(['services.media_news.enabled' => true]);
+        Cache::put('ranah:media-eruption-v3', [], 900);
+        Cache::put('ranah:media-eruption-v3:checked', true, 900);
+        Cache::put('unrelated', 'keep', 900);
+        Http::fake(['*' => Http::response($this->rss())]);
+        $this->artisan('ranah:check-news --refresh')->assertSuccessful();
+        $this->getJson('/api/berita')->assertOk()->assertJsonCount(1, 'data');
+        $this->assertSame('keep', Cache::get('unrelated'));
     }
 
     public function test_unsafe_xml_is_rejected(): void
