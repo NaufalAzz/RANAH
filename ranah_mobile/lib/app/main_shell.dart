@@ -224,7 +224,11 @@ class _MainShellState extends State<MainShell> {
         child: HomePage(
           onOpenContacts: _openContacts,
           onOpenNews: _openNews,
-          items: localEruptionNews(_newsItems, (e) => e.title, _newsProvince),
+          items: localEruptionNews(
+            _newsItems,
+            (e) => '${e.title} ${e.body}',
+            _newsProvince,
+          ),
           isUsingFallback: _newsUsingFallback,
           isFromCache: _newsFromCache,
           loadError: _newsError,
@@ -257,7 +261,7 @@ class _MainShellState extends State<MainShell> {
         ),
       ),
       VolcanoNewsFilter(
-        titles: _newsItems.map((e) => e.title).toList(),
+        titles: _newsItems.map((e) => '${e.title} ${e.body}').toList(),
         onChanged: (value) => setState(() => _newsVolcano = value),
         child: NewsPage(
           initialNewsId: _notificationNewsId,
@@ -266,7 +270,7 @@ class _MainShellState extends State<MainShell> {
               .where(
                 (e) =>
                     _newsVolcano == null ||
-                    eruptionVolcano(e.title) == _newsVolcano,
+                    eruptionVolcano('${e.title} ${e.body}') == _newsVolcano,
               )
               .toList(),
           loadError: _newsError,

@@ -182,7 +182,7 @@ class LocationNewsScope extends StatelessWidget {
           padding: const EdgeInsets.all(10),
           child: Text(
             island == null
-                ? 'Laporan erupsi seluruh Indonesia'
+                ? 'Berita erupsi seluruh Indonesia'
                 : 'Erupsi di $island · Prioritas $province',
             style: const TextStyle(color: Colors.white, fontSize: 14),
           ),

@@ -24,6 +24,16 @@ void main() {
     await tempDirectory.delete(recursive: true);
   });
 
+  test('old MAGMA cache is not presented as media news', () async {
+    final report = _article()..['sumber'] = 'MAGMA Indonesia / PVMBG';
+    await NewsRepository(api: _FakeNewsApi([report]), localStore: store).load();
+    final result = await NewsRepository(
+      api: _FakeNewsApi.failure(),
+      localStore: store,
+    ).load();
+    expect(result.items, isEmpty);
+  });
+
   test(
     'server news persists when repository and database are reopened',
     () async {

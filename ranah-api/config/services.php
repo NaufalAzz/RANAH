@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'magma_news' => ['enabled' => env('MAGMA_NEWS_ENABLED', env('APP_ENV') !== 'testing')],
+    'media_news' => ['enabled' => env('MEDIA_NEWS_ENABLED', env('APP_ENV') !== 'testing')],
 
     /*
     |--------------------------------------------------------------------------
