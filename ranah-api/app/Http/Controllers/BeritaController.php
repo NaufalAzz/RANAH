@@ -3,12 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Berita;
-use App\Services\MediaEruptionFeed;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -16,13 +12,6 @@ class BeritaController extends Controller
 {
     public function index(): JsonResponse
     {
-        if (config('services.media_news.enabled')) {
-            try {
-                return response()->json(['success' => true, 'data' => app(MediaEruptionFeed::class)->items()]);
-            } catch (\RuntimeException $error) {
-                return response()->json(['success' => false, 'message' => $error->getMessage(), 'data' => []], 503);
-            }
-        }
         $items = $this->publishedQuery()
             ->orderByDesc('waktu_publikasi')
             ->orderByDesc('id')
@@ -32,42 +21,6 @@ class BeritaController extends Controller
             'success' => true,
             'message' => 'Daftar berita berhasil diambil.',
             'data' => $items->map(fn (Berita $item) => $this->serialize($item)),
-        ]);
-    }
-
-    public function mediaImage(string $key): Response
-    {
-        $preview = Cache::get('media-preview-v3:'.$key);
-        $url = is_array($preview) ? ($preview['image'] ?? null) : null;
-        $parts = is_string($url) ? parse_url($url) : false;
-        $allowed = ['antaranews.com', 'kompas.com', 'detik.com', 'detik.net.id', 'tempo.co', 'cnnindonesia.com', 'rri.co.id', 'mediaindonesia.com', 'kompas.tv', 'tstatic.net'];
-        $trusted = false;
-        foreach ($allowed as $host) {
-            $candidate = strtolower($parts['host'] ?? '');
-            $trusted = $trusted || $candidate === $host || str_ends_with($candidate, '.'.$host);
-        }
-        abort_unless($trusted && ($parts['scheme'] ?? '') === 'https' && ! isset($parts['user']) && ! isset($parts['pass']) && ! isset($parts['port']), 404);
-        $cached = Cache::get('media-cover:'.$key);
-        if (! is_array($cached)) {
-            try {
-                $upstream = Http::connectTimeout(2)->timeout(6)
-                    ->withOptions(['allow_redirects' => false])->get($url)->throw();
-                $bytes = $upstream->body();
-                abort_if(strlen($bytes) > 8_000_000, 502);
-                $info = @getimagesizefromstring($bytes);
-                $mime = $info['mime'] ?? '';
-                abort_unless(in_array($mime, ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'], true), 502);
-                $cached = ['body' => base64_encode($bytes), 'mime' => $mime];
-                Cache::put('media-cover:'.$key, $cached, now()->addDay());
-            } catch (\Throwable) {
-                abort(502, 'Gambar sumber belum dapat diambil.');
-            }
-        }
-
-        return response(base64_decode($cached['body'], true), 200, [
-            'Content-Type' => $cached['mime'],
-            'Cache-Control' => 'public, max-age=3600',
-            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 

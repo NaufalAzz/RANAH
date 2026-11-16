@@ -24,6 +24,21 @@ void main() {
     await tempDirectory.delete(recursive: true);
   });
 
+  test('old media index cache is not shown after returning to BNPB', () async {
+    final article = _article()
+      ..['id'] = 'media-old'
+      ..['sumber'] = 'ANTARA News';
+    await NewsRepository(
+      api: _FakeNewsApi([article]),
+      localStore: store,
+    ).load();
+    final result = await NewsRepository(
+      api: _FakeNewsApi.failure(),
+      localStore: store,
+    ).load();
+    expect(result.items, isEmpty);
+  });
+
   test('old MAGMA cache is not presented as media news', () async {
     final report = _article()..['sumber'] = 'MAGMA Indonesia / PVMBG';
     await NewsRepository(api: _FakeNewsApi([report]), localStore: store).load();

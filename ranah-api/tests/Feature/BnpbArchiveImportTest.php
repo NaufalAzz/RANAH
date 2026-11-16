@@ -5,11 +5,22 @@ namespace Tests\Feature;
 use App\Models\Berita;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class BnpbArchiveImportTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_archive_is_served_even_if_old_media_settings_remain_enabled(): void
+    {
+        config(['services.media_news.enabled' => true, 'services.media_news.previews' => true]);
+        Http::preventStrayRequests();
+        $this->artisan('ranah:import-bnpb-archive')->assertSuccessful();
+        $this->getJson('/api/berita')->assertOk()->assertJsonCount(10, 'data')
+            ->assertJsonPath('data.0.sumber', fn ($source) => str_contains($source, 'BNPB'));
+        Http::assertNothingSent();
+    }
 
     public function test_curated_bnpb_csv_imports_once_and_publishes_records_to_the_normal_api(): void
     {

@@ -92,6 +92,8 @@ class NewsRepository {
               .where(
                 (item) =>
                     !_isInactiveWarning(item) &&
+                    !RegExp(r'^(media|antara|magma)-')
+                        .hasMatch(item['id']?.toString() ?? '') &&
                     !(item['sumber']?.toString().toUpperCase().contains(
                           'MAGMA',
                         ) ??

@@ -1,10 +1,6 @@
 <?php
 
 return [
-    'media_news' => [
-        'enabled' => env('MEDIA_NEWS_ENABLED', env('APP_ENV') !== 'testing'),
-        'previews' => env('MEDIA_NEWS_PREVIEWS', env('APP_ENV') !== 'testing'),
-    ],
 
     /*
     |--------------------------------------------------------------------------

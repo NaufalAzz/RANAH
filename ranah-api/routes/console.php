@@ -27,5 +27,3 @@ Schedule::command('ranah:sync-magma')
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
-
-Schedule::command('ranah:refresh-news-previews')->everyMinute()->withoutOverlapping();

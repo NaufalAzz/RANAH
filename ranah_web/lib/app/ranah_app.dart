@@ -76,7 +76,6 @@ class _RanahShellState extends State<RanahShell> {
   _Page _activityReturnPage = _Page.map;
   _Page _contactsReturnPage = _Page.home;
   final _Page _routeReturnPage = _Page.map;
-  String? _newsVolcano;
   Timer? _newsTimer;
   Future<void> _requestStartupLocation() async {
     try {
@@ -413,20 +412,13 @@ class _RanahShellState extends State<RanahShell> {
 
   Widget _buildOtherPage() {
     if (_page == _Page.home) {
-      return LocationNewsScope(
-        province: _mapArea?.province,
-        child: HomePage(
-          onOpenContacts: _openContacts,
-          stories: localEruptionNews(
-            _newsStories,
-            (e) => '${e.title} ${e.content}',
-            _mapArea?.province,
-          ),
-          isLoading: _newsLoading,
-          error: _newsError,
-          onRetry: _loadNews,
-          onStoryTap: (story) => _openStory(story, _Page.home),
-        ),
+      return HomePage(
+        onOpenContacts: _openContacts,
+        stories: _newsStories,
+        isLoading: _newsLoading,
+        error: _newsError,
+        onRetry: _loadNews,
+        onStoryTap: (story) => _openStory(story, _Page.home),
       );
     }
     if (_page == _Page.evacuationRoute) {
@@ -456,18 +448,7 @@ class _RanahShellState extends State<RanahShell> {
     }
     if (_page == _Page.news) {
       return NewsPage(
-        volcanoFilter: VolcanoNewsPicker(
-          titles: _newsStories.map((e) => '${e.title} ${e.content}').toList(),
-          onChanged: (value) => setState(() => _newsVolcano = value),
-        ),
-
-        stories: _newsStories
-            .where(
-              (e) =>
-                  _newsVolcano == null ||
-                  eruptionVolcano('${e.title} ${e.content}') == _newsVolcano,
-            )
-            .toList(),
+        stories: _newsStories,
         isLoading: _newsLoading,
         error: _newsError,
         onRetry: _loadNews,

@@ -47,7 +47,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text('Erupsi di Sumatra · Prioritas Sumatera Barat'),
-      findsOneWidget,
+      findsNothing,
     );
     await tester.tap(find.byKey(const ValueKey('ranah-nav-map')));
     await tester.pumpAndSettle();
