@@ -25,6 +25,13 @@ class MediaEruptionFeed
     public function items(): array
     {
         $cached = Cache::get(self::KEY);
+        $previews = app(MediaArticlePreview::class);
+        if (is_array($cached)) {
+            $cached = array_map($previews->apply(...), $cached);
+        }
+        if (is_array($cached) && config('services.media_news.previews', true)) {
+            \Illuminate\Support\defer(fn () => $previews->warm($cached));
+        }
         if (Cache::has(self::KEY.':checked')) {
             return $cached ?? throw new RuntimeException('Sumber berita belum dapat diakses. Coba lagi nanti.');
         }
@@ -64,7 +71,11 @@ class MediaEruptionFeed
             Cache::put(self::KEY, $items, now()->addDays(7));
             Cache::put(self::KEY.':checked', true, now()->addMinutes(15));
 
-            return $items;
+            if (config('services.media_news.previews', true)) {
+                \Illuminate\Support\defer(fn () => $previews->warm($items));
+            }
+
+            return array_map($previews->apply(...), $items);
         } catch (\Throwable $error) {
             Cache::put(self::KEY.':checked', true, now()->addMinute());
 
