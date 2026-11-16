@@ -12,6 +12,8 @@ class NewsItem {
     required this.accent,
     this.contentType = 'artikel',
     this.source,
+    this.imageCaption,
+    this.author,
     this.sourceUrl,
     this.region,
     this.imageUrl,
@@ -30,6 +32,8 @@ class NewsItem {
   final Color accent;
   final String contentType;
   final String? source;
+  final String? imageCaption;
+  final String? author;
   final String? sourceUrl;
   final String? region;
   final String? imageUrl;

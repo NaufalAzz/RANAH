@@ -7,29 +7,36 @@ use DOMXPath;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
-/** Only publisher previews and cover metadata; full articles stay on the publisher site. */
+/** Extracts article paragraphs from known publisher containers and cover metadata. */
 class MediaArticlePreview
 {
     private const HOSTS = ['antaranews.com', 'kompas.com', 'detik.com', 'tempo.co', 'cnnindonesia.com', 'rri.co.id', 'mediaindonesia.com'];
 
     public function apply(array $item): array
     {
-        $preview = Cache::get('media-preview-v2:'.hash('sha256', $item['url_sumber']));
-        if (! is_array($preview)) {
+        $preview = Cache::get('media-preview-v3:'.hash('sha256', $item['url_sumber']));
+        if (! is_array($preview) || $preview === []) {
             return $item;
         }
         if (isset($preview['description']) && is_string($preview['description']) && $preview['description'] !== '') {
             $item['isi'] = $preview['description'];
         }
-        if (isset($preview['quote']) && is_string($preview['quote']) && $preview['quote'] !== '' && ! str_contains($item['isi'], $preview['quote'])) {
+        if (isset($preview['body']) && is_string($preview['body']) && trim($preview['body']) !== '') {
+            $item['isi'] = $preview['body'];
+            $item['isi_tersedia'] = true;
+        }
+        if (empty($preview['body']) && isset($preview['quote']) && is_string($preview['quote']) && $preview['quote'] !== '' && ! str_contains($item['isi'], $preview['quote'])) {
             $item['isi'] .= "\n\n\"".$preview['quote'].'"';
         }
         if (isset($preview['image']) && is_string($preview['image']) && $preview['image'] !== '') {
-            $item['gambar'] = $preview['image'];
+            $item['gambar'] = route('api.berita.media.image', ['key' => hash('sha256', $item['url_sumber'])]);
         }
         if (isset($preview['url']) && is_string($preview['url']) && $preview['url'] !== '') {
             $item['url_sumber'] = $preview['url'];
         }
+
+        $item['gambar_keterangan'] = $preview['caption'] ?? null;
+        $item['penulis'] = $preview['author'] ?? null;
 
         return $item;
     }
@@ -37,11 +44,11 @@ class MediaArticlePreview
     public function warm(array $items): void
     {
         $started = microtime(true);
-        foreach (array_slice($items, 0, 12) as $item) {
+        foreach ($items as $item) {
             if (microtime(true) - $started > 5) {
                 break;
             }
-            $key = 'media-preview-v2:'.hash('sha256', $item['url_sumber']);
+            $key = 'media-preview-v3:'.hash('sha256', $item['url_sumber']);
             if (Cache::has($key)) {
                 continue;
             }
@@ -55,7 +62,7 @@ class MediaArticlePreview
                     if (! $this->safe($url, [...self::HOSTS, 'news.google.com'])) {
                         break;
                     }
-                    $response = Http::connectTimeout(1)->timeout(2)->withOptions(['allow_redirects' => false])->get($url);
+                    $response = Http::connectTimeout(3)->timeout(8)->withOptions(['allow_redirects' => false])->get($url);
                     if ($response->redirect()) {
                         $next = $response->header('Location');
                         if (! is_string($next) || ! str_starts_with($next, 'https://')) {
@@ -103,7 +110,7 @@ class MediaArticlePreview
         if ($search === null) {
             return null;
         }
-        $response = Http::connectTimeout(1)->timeout(2)->withOptions(['allow_redirects' => false])->get($search);
+        $response = Http::connectTimeout(3)->timeout(8)->withOptions(['allow_redirects' => false])->get($search);
         if (! $response->successful() || strlen($response->body()) > 2_000_000) {
             return null;
         }
@@ -163,6 +170,36 @@ class MediaArticlePreview
             $image = null;
         }
 
+        // Prefer the publisher's actual content container, never the whole page.
+        $body = '';
+        $selectors = [
+            '//*[@id="newsPost_content"]',
+            '//*[@itemprop="articleBody"]',
+            '//*[contains(concat(" ",normalize-space(@class)," ")," read__content ")]',
+        ];
+        foreach ($selectors as $selector) {
+            $container = $xpath->query($selector)?->item(0);
+            if ($container === null) {
+                continue;
+            }
+            foreach ($xpath->query('.//script | .//style | .//iframe | .//aside | .//nav | .//figure | .//*[contains(concat(" ",normalize-space(@class)," ")," baca-juga ")]', $container) as $excluded) {
+                $excluded->parentNode?->removeChild($excluded);
+            }
+            $paragraphs = [];
+            foreach ($xpath->query('.//p', $container) as $paragraph) {
+                $text = trim(preg_replace('/\s+/u', ' ', $paragraph->textContent) ?? '');
+                if ($text === '' || preg_match('/^(?:baca juga|advertisement|iklan)\b/iu', $text)) {
+                    continue;
+                }
+                $paragraphs[] = $text;
+            }
+            if ($paragraphs !== []) {
+                $body = implode("\n\n", $paragraphs);
+                break;
+            }
+        }
+        $caption = trim(preg_replace('/\s+/u', ' ', $xpath->evaluate('string((//figcaption)[1])')) ?? '');
+        $author = trim($xpath->evaluate('string((//*[@itemprop="author"])[1])'));
         $quote = '';
         foreach ($xpath->query('//*[@itemprop="articleBody"]//p | //article//p | //*[contains(concat(" ",normalize-space(@class)," ")," read__content ")]//p') as $paragraph) {
             $text = trim(preg_replace('/\s+/u', ' ', strip_tags($paragraph->textContent)) ?? '');
@@ -174,7 +211,7 @@ class MediaArticlePreview
             break;
         }
 
-        return ['description' => $description, 'quote' => $quote, 'image' => $image, 'url' => $url];
+        return ['description' => $description, 'body' => $body, 'quote' => $quote, 'image' => $image, 'caption' => $caption, 'author' => $author, 'url' => $url];
     }
 
     private function safe(string $url, array $hosts): bool

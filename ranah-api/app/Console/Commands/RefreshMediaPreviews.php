@@ -18,8 +18,13 @@ class RefreshMediaPreviews extends Command
 
             return self::SUCCESS;
         }
-        $feed->warmPreviews();
-        $this->info('Batch metadata berita selesai.');
+        $counts = $feed->warmPreviews();
+        $this->info('Artikel di cache: '.$counts['articles']);
+        $this->info('Isi artikel ditemukan: '.$counts['bodies']);
+        $this->info('URL sampul tersedia: '.$counts['images']);
+        if ($counts['bodies'] === 0) {
+            $this->warn('Isi artikel belum berhasil diambil; batch selesai tidak berarti pengambilan berhasil.');
+        }
 
         return self::SUCCESS;
     }

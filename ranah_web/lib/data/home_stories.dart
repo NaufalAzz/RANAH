@@ -10,6 +10,8 @@ class HomeStory {
     required this.content,
     this.heroImage,
     this.source,
+    this.imageCaption,
+    this.author,
     this.imageUrl,
     this.sourceUrl,
     this.region,
@@ -34,6 +36,8 @@ class HomeStory {
   final String content;
   final String? heroImage;
   final String? source;
+  final String? imageCaption;
+  final String? author;
   final String? imageUrl;
   final String? sourceUrl;
   final String? region;

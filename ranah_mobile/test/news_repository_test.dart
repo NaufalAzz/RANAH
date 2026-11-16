@@ -84,6 +84,8 @@ void main() {
           'jenis_konten': 'kejadian',
           'isi': 'Tanggal kejadian menurut buletin: 2026-05-05.',
           'sumber': 'BNPB',
+          'penulis': 'Penulis contoh',
+          'gambar_keterangan': 'Foto kegiatan oleh penerbit.',
           'url_sumber': null,
           'wilayah': 'Agam, Sumatera Barat',
           'waktu_publikasi': '2026-10-24T10:00:00Z',

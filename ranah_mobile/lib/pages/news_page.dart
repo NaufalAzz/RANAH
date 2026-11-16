@@ -822,6 +822,16 @@ class _NewsDetailContent extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 8),
+                      if (item.author != null)
+                        Text(
+                          'Penulis: ${item.author}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      if (item.imageUrl != null && item.imageCaption != null)
+                        Text(
+                          item.imageCaption!,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                       Text(
                         'Sumber: ${_displaySource(item)}',
                         style: Theme.of(context).textTheme.bodySmall,
