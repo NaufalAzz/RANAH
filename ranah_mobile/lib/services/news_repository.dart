@@ -89,7 +89,14 @@ class NewsRepository {
       if (cachedItems.isNotEmpty || lastSyncedAt != null) {
         return NewsFeedSnapshot(
           items: cachedItems
-              .where((item) => !_isInactiveWarning(item))
+              .where(
+                (item) =>
+                    !_isInactiveWarning(item) &&
+                    !(item['sumber']?.toString().toUpperCase().contains(
+                          'MAGMA',
+                        ) ??
+                        false),
+              )
               .map(_parse)
               .toList(),
           isUsingFallback: false,

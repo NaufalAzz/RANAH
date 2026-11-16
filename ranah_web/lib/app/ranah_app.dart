@@ -419,7 +419,7 @@ class _RanahShellState extends State<RanahShell> {
           onOpenContacts: _openContacts,
           stories: localEruptionNews(
             _newsStories,
-            (e) => e.title,
+            (e) => '${e.title} ${e.content}',
             _mapArea?.province,
           ),
           isLoading: _newsLoading,
@@ -456,14 +456,14 @@ class _RanahShellState extends State<RanahShell> {
     }
     if (_page == _Page.news) {
       return VolcanoNewsFilter(
-        titles: _newsStories.map((e) => e.title).toList(),
+        titles: _newsStories.map((e) => '${e.title} ${e.content}').toList(),
         onChanged: (value) => setState(() => _newsVolcano = value),
         child: NewsPage(
           stories: _newsStories
               .where(
                 (e) =>
                     _newsVolcano == null ||
-                    eruptionVolcano(e.title) == _newsVolcano,
+                    eruptionVolcano('${e.title} ${e.content}') == _newsVolcano,
               )
               .toList(),
           isLoading: _newsLoading,

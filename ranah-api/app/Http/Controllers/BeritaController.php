@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Berita;
-use App\Services\MagmaEruptionFeed;
+use App\Services\MediaEruptionFeed;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
@@ -13,9 +13,9 @@ class BeritaController extends Controller
 {
     public function index(): JsonResponse
     {
-        if (config('services.magma_news.enabled')) {
+        if (config('services.media_news.enabled')) {
             try {
-                return response()->json(['success' => true, 'data' => app(MagmaEruptionFeed::class)->items()]);
+                return response()->json(['success' => true, 'data' => app(MediaEruptionFeed::class)->items()]);
             } catch (\RuntimeException $error) {
                 return response()->json(['success' => false, 'message' => $error->getMessage(), 'data' => []], 503);
             }
