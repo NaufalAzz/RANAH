@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 
 import '../models/news_item.dart';
 import '../theme/app_theme.dart';
@@ -14,6 +14,7 @@ class NewsPage extends StatefulWidget {
     this.initialNewsId,
     this.selectionRevision = 0,
     this.items = const [],
+    this.volcanoFilter,
     this.loadError,
     this.isLoading = false,
     this.onRetry,
@@ -21,6 +22,7 @@ class NewsPage extends StatefulWidget {
 
   final String? initialNewsId;
   final int selectionRevision;
+  final Widget? volcanoFilter;
   final List<NewsItem> items;
   final Object? loadError;
   final bool isLoading;
@@ -193,6 +195,7 @@ class _NewsPageState extends State<NewsPage> {
               child: _selectedItem == null
                   ? _NewsListContent(
                       key: const ValueKey('news-list'),
+                      volcanoFilter: widget.volcanoFilter,
                       categories: _categories,
                       regions: _regions,
                       selectedCategory: _category,
@@ -332,6 +335,7 @@ class _NewsListContent extends StatelessWidget {
     required this.searchController,
     required this.items,
     required this.hasPublishedNews,
+    this.volcanoFilter,
     required this.loadError,
     required this.isLoading,
     required this.onRetry,
@@ -355,6 +359,7 @@ class _NewsListContent extends StatelessWidget {
   final TextEditingController searchController;
   final List<NewsItem> items;
   final bool hasPublishedNews;
+  final Widget? volcanoFilter;
   final Object? loadError;
   final bool isLoading;
   final VoidCallback? onRetry;
@@ -380,6 +385,11 @@ class _NewsListContent extends StatelessWidget {
             onChanged: onQueryChanged,
           ),
         ),
+        if (volcanoFilter != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+            child: volcanoFilter,
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
           child: Row(
@@ -738,10 +748,11 @@ class _NewsDetailContent extends StatelessWidget {
               key: const PageStorageKey('news-detail-scroll'),
               padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
               children: [
-                AspectRatio(
-                  aspectRatio: 1.8,
-                  child: NewsArtwork(item: item, featured: true),
-                ),
+                if (item.imageUrl != null)
+                  AspectRatio(
+                    aspectRatio: 1.8,
+                    child: NewsArtwork(item: item, featured: true),
+                  ),
                 Container(
                   width: double.infinity,
                   color: Colors.white,
@@ -811,23 +822,13 @@ class _NewsDetailContent extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 8),
-                      if (item.sourceUrl != null)
-                        TextButton.icon(
-                          onPressed: () =>
-                              _openSource(context, item.sourceUrl!),
-                          icon: const Icon(Icons.open_in_new, size: 16),
-                          label: Text('Sumber resmi: ${_displaySource(item)}'),
-                        )
-                      else
-                        Text(
-                          item.source == null
-                              ? 'Sumber berita: belum dicantumkan.'
-                              : 'Sumber berita: ${_displaySource(item)}',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
+                      Text(
+                        'Sumber: ${_displaySource(item)}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                       const SizedBox(height: 12),
                       Text(
-                        item.body,
+                        readableNewsBody(item.title, item.body),
                         style: Theme.of(context).textTheme.bodyLarge
                             ?.copyWith(fontSize: 16, height: 1.55),
                       ),
@@ -855,14 +856,3 @@ String _displaySource(NewsItem item) =>
     item.source?.toUpperCase().contains('BNPB') ?? false
     ? 'BNPB'
     : item.source ?? 'belum dicantumkan';
-
-Future<void> _openSource(BuildContext context, String value) async {
-  final uri = Uri.tryParse(value);
-  if (uri == null || uri.scheme != 'https' || !uri.hasAuthority) return;
-  final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-  if (!opened && context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Tautan sumber tidak dapat dibuka.')),
-    );
-  }
-}

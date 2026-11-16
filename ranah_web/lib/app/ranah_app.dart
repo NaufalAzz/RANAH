@@ -455,22 +455,23 @@ class _RanahShellState extends State<RanahShell> {
       );
     }
     if (_page == _Page.news) {
-      return VolcanoNewsFilter(
-        titles: _newsStories.map((e) => '${e.title} ${e.content}').toList(),
-        onChanged: (value) => setState(() => _newsVolcano = value),
-        child: NewsPage(
-          stories: _newsStories
-              .where(
-                (e) =>
-                    _newsVolcano == null ||
-                    eruptionVolcano('${e.title} ${e.content}') == _newsVolcano,
-              )
-              .toList(),
-          isLoading: _newsLoading,
-          error: _newsError,
-          onRetry: _loadNews,
-          onStoryTap: (story) => _openStory(story, _Page.news),
+      return NewsPage(
+        volcanoFilter: VolcanoNewsPicker(
+          titles: _newsStories.map((e) => '${e.title} ${e.content}').toList(),
+          onChanged: (value) => setState(() => _newsVolcano = value),
         ),
+
+        stories: _newsStories
+            .where(
+              (e) =>
+                  _newsVolcano == null ||
+                  eruptionVolcano('${e.title} ${e.content}') == _newsVolcano,
+            )
+            .toList(),
+        isLoading: _newsLoading,
+        error: _newsError,
+        onRetry: _loadNews,
+        onStoryTap: (story) => _openStory(story, _Page.news),
       );
     }
     if (_page == _Page.story && _selectedStory != null) {

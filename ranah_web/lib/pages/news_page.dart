@@ -103,6 +103,7 @@ class NewsPage extends StatefulWidget {
   const NewsPage({
     required this.onStoryTap,
     this.stories = newsStories,
+    this.volcanoFilter,
     this.isLoading = false,
     this.error,
     this.onRetry,
@@ -110,6 +111,7 @@ class NewsPage extends StatefulWidget {
   });
 
   final ValueChanged<HomeStory> onStoryTap;
+  final Widget? volcanoFilter;
   final List<HomeStory> stories;
   final bool isLoading;
   final String? error;
@@ -260,6 +262,12 @@ class _NewsPageState extends State<NewsPage> {
                       spacing: gap,
                       runSpacing: RanahSpacing.md,
                       children: [
+                        if (widget.volcanoFilter != null)
+                          SizedBox(
+                            width: filterWidth,
+                            height: 56,
+                            child: widget.volcanoFilter,
+                          ),
                         SizedBox(
                           width: filterWidth,
                           height: 56,

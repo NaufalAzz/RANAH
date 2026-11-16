@@ -1,3 +1,4 @@
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 import 'package:flutter/material.dart';
 
 import '../data/home_stories.dart';
@@ -42,15 +43,16 @@ class NewsDetailPage extends StatelessWidget {
                 child: RanahBackButton(onPressed: onBack),
               ),
             ),
-            SizedBox(
-              height: imageHeight,
-              child: HomeStoryImage(
-                story: story,
-                fit: BoxFit.cover,
-                width: double.infinity,
+            if (story.imageUrl != null || story.image.isNotEmpty)
+              SizedBox(
                 height: imageHeight,
+                child: HomeStoryImage(
+                  story: story,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: imageHeight,
+                ),
               ),
-            ),
             Center(
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 1080),
@@ -112,7 +114,7 @@ class NewsDetailPage extends StatelessWidget {
                     ],
                     const SizedBox(height: RanahSpacing.xl),
                     Text(
-                      story.content,
+                      readableNewsBody(story.title, story.content),
                       style: TextStyle(
                         color: RanahColors.ink,
                         fontSize: 16,
@@ -127,16 +129,6 @@ class NewsDetailPage extends StatelessWidget {
                           color: RanahColors.ink,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                    if (story.sourceUrl != null) ...[
-                      const SizedBox(height: RanahSpacing.sm),
-                      SelectableText(
-                        'URL sumber: ${story.sourceUrl}',
-                        style: const TextStyle(
-                          color: RanahColors.muted,
-                          fontSize: 12,
                         ),
                       ),
                     ],

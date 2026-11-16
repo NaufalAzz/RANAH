@@ -69,7 +69,7 @@ void main() {
     );
     await tester.tap(exampleTitle);
     await tester.pumpAndSettle();
-    expect(find.text('Sumber berita: belum dicantumkan.'), findsOneWidget);
+    expect(find.text('Sumber: belum dicantumkan'), findsOneWidget);
     expect(
       find.textContaining('Artikel ini merupakan contoh konten edukasi'),
       findsOneWidget,

@@ -182,7 +182,7 @@ class MediaEruptionFeed
                 'id' => $id, 'sumber_id' => $id, 'judul' => $title,
                 'kategori' => 'Berita Erupsi', 'jenis_konten' => 'artikel',
                 'isi' => mb_strimwidth($summary, 0, 400, '…').($searchFeed ? "\n\nPratinjau judul dari indeks Google News. Baca artikel media lengkap melalui tautan sumber." : "\n\nRingkasan dari RSS ANTARA. Baca artikel lengkap melalui tautan sumber."),
-                'sumber' => $publisher, 'url_sumber' => $canonical,
+                'sumber' => $publisher, 'url_sumber' => $canonical, 'publisher_url' => $searchFeed ? $publisherUrl : 'https://www.antaranews.com',
                 'gunung' => $match[1], 'wilayah' => null, 'gambar' => $image,
                 'waktu_publikasi' => $at->utc()->toIso8601String(),
                 'waktu_kejadian' => null, 'waktu_pengambilan' => now()->toIso8601String(),

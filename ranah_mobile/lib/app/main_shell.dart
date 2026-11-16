@@ -260,23 +260,24 @@ class _MainShellState extends State<MainShell> {
           ),
         ),
       ),
-      VolcanoNewsFilter(
-        titles: _newsItems.map((e) => '${e.title} ${e.body}').toList(),
-        onChanged: (value) => setState(() => _newsVolcano = value),
-        child: NewsPage(
-          initialNewsId: _notificationNewsId,
-          selectionRevision: _notificationSelectionRevision,
-          items: _newsItems
-              .where(
-                (e) =>
-                    _newsVolcano == null ||
-                    eruptionVolcano('${e.title} ${e.body}') == _newsVolcano,
-              )
-              .toList(),
-          loadError: _newsError,
-          isLoading: _newsLoading,
-          onRetry: _loadNews,
+      NewsPage(
+        volcanoFilter: VolcanoNewsPicker(
+          titles: _newsItems.map((e) => '${e.title} ${e.body}').toList(),
+          onChanged: (value) => setState(() => _newsVolcano = value),
         ),
+
+        initialNewsId: _notificationNewsId,
+        selectionRevision: _notificationSelectionRevision,
+        items: _newsItems
+            .where(
+              (e) =>
+                  _newsVolcano == null ||
+                  eruptionVolcano('${e.title} ${e.body}') == _newsVolcano,
+            )
+            .toList(),
+        loadError: _newsError,
+        isLoading: _newsLoading,
+        onRetry: _loadNews,
       ),
       MenuPage(
         complaintApi: widget.complaintApi,
