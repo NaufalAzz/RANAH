@@ -74,6 +74,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Isi berita API untuk detail.'), findsOneWidget);
     expect(find.text('Sumber: BNPB'), findsOneWidget);
+    expect(find.text('Penulis: Penulis contoh'), findsOneWidget);
+    expect(find.text('Foto kegiatan oleh penerbit.'), findsOneWidget);
     expect(find.textContaining('URL sumber:'), findsNothing);
     expect(find.textContaining('Kota Padang'), findsOneWidget);
     expect(find.textContaining('CONTOH'), findsNothing);
@@ -307,6 +309,8 @@ Map<String, dynamic> _apiStory() => {
   'isi': 'Isi berita API untuk detail.',
   'gambar': 'http://api.example.test/api/berita/101/gambar',
   'sumber': 'BNPB',
+  'penulis': 'Penulis contoh',
+  'gambar_keterangan': 'Foto kegiatan oleh penerbit.',
   'sumber_id': 'bnpb-101',
   'url_sumber': 'https://bnpb.go.id/berita/101',
   'wilayah': 'Kota Padang',

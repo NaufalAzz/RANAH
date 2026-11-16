@@ -86,9 +86,17 @@ class MediaEruptionFeed
     }
 
     /** Publisher metadata is optional; the public news request never fetches it. */
-    public function warmPreviews(): void
+    public function warmPreviews(): array
     {
-        app(MediaArticlePreview::class)->warm(Cache::get(self::KEY, []));
+        $items = Cache::get(self::KEY, []);
+        app(MediaArticlePreview::class)->warm($items);
+        $enriched = $this->applyPreviews($items);
+
+        return [
+            'articles' => count($enriched),
+            'bodies' => count(array_filter($enriched, fn ($item) => $item['isi_tersedia'] ?? false)),
+            'images' => count(array_filter($enriched, fn ($item) => ! empty($item['gambar']))),
+        ];
     }
 
     private function applyPreviews(array $items): array

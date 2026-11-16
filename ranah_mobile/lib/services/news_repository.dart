@@ -176,6 +176,8 @@ class NewsRepository {
       icon: icon,
       accent: accent,
       source: source,
+      imageCaption: _optionalString(json['gambar_keterangan']),
+      author: _optionalString(json['penulis']),
       contentType: contentType,
       sourceUrl: _validHttpsUrl(json['url_sumber']),
       region: _optionalString(json['wilayah']),

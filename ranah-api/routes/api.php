@@ -4,10 +4,10 @@ use App\Http\Controllers\BeritaController;
 use App\Http\Controllers\BmkgForecastController;
 use App\Http\Controllers\GunungController;
 use App\Http\Controllers\HazardMapAnalysisController;
-use App\Http\Controllers\PengaduanController;
-use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\NominatimReverseGeocodingController;
+use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\OsmAssemblyPointController;
+use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\RouteSimulationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -22,6 +22,9 @@ Route::get('/gunung/{id}', [GunungController::class, 'show'])
     ->whereNumber('id');
 
 Route::get('/berita', [BeritaController::class, 'index']);
+
+Route::get('/berita-media/{key}/gambar', [BeritaController::class, 'mediaImage'])
+    ->where('key', '[a-f0-9]{64}')->name('api.berita.media.image');
 
 Route::get('/berita/{id}/gambar', [BeritaController::class, 'image'])
     ->whereNumber('id')

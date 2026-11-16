@@ -9,7 +9,7 @@ use Tests\TestCase;
 
 class MediaArticlePreviewTest extends TestCase
 {
-    public function test_publisher_description_and_cover_are_cached_and_applied_without_copying_full_article(): void
+    public function test_publisher_metadata_is_used_when_no_recognized_article_container_exists(): void
     {
         Cache::flush();
         $url = 'https://www.antaranews.com/berita/123/erupsi';
@@ -20,7 +20,7 @@ class MediaArticlePreviewTest extends TestCase
         $result = $service->apply($item);
         $this->assertStringContainsString('pendampingan', $result['isi']);
         $this->assertStringNotContainsString('SELURUH ISI', $result['isi']);
-        $this->assertSame('https://cdn.antaranews.com/cover.jpg', $result['gambar']);
+        $this->assertStringContainsString('/api/berita-media/', $result['gambar']);
         $service->warm([$item]);
         Http::assertSentCount(1);
     }
@@ -35,7 +35,7 @@ class MediaArticlePreviewTest extends TestCase
         $this->getJson('/api/berita')->assertOk();
         Http::assertSentCount(4);
         $this->artisan('ranah:refresh-news-previews')->assertSuccessful();
-        $this->getJson('/api/berita')->assertOk()->assertJsonPath('data.0.gambar', 'https://cdn.antaranews.com/cover.jpg');
+        $this->getJson('/api/berita')->assertOk()->assertJsonPath('data.0.gambar', fn ($url) => str_contains($url, '/api/berita-media/'));
     }
 
     public function test_google_headline_resolves_to_exact_publisher_article_and_cover(): void
@@ -53,10 +53,60 @@ class MediaArticlePreviewTest extends TestCase
         $service->warm([$item]);
         $result = $service->apply($item);
         $this->assertSame($article, $result['url_sumber']);
-        $this->assertSame('https://cdn.antaranews.com/cover.jpg', $result['gambar']);
+        $this->assertStringContainsString('/api/berita-media/', $result['gambar']);
         $this->assertStringContainsString('Bantuan disalurkan', $result['isi']);
         $this->assertSame(25, substr_count($result['isi'], 'keterangan'));
         Http::assertSentCount(2);
+    }
+
+    public function test_antara_content_container_preserves_all_paragraphs_and_excludes_related_news(): void
+    {
+        Cache::flush();
+        $url = 'https://sumbar.antaranews.com/berita/123/latihan';
+        $html = '<meta property="og:image" content="https://img.antaranews.com/cache/1200x800/cover.jpg"><meta name="description" content="Deskripsi pendek."><article><div id="newsPost_content"><p>Paragraf pertama menjelaskan persiapan latihan.</p><p>Paragraf kedua menjelaskan koordinasi petugas.</p><aside><p>IKLAN TIDAK BOLEH IKUT.</p></aside><p>Baca juga: tautan lain.</p><script>TEKS SCRIPT</script><p>Paragraf terakhir menjelaskan tindak lanjut.</p></div><div><p>BERITA TERKAIT TIDAK BOLEH IKUT.</p></div><figcaption>Foto: ANTARA/HO</figcaption><span itemprop="author">Penulis contoh</span></article>';
+        Http::fake([$url => Http::response($html)]);
+        $service = app(MediaArticlePreview::class);
+        $service->warm([['url_sumber' => $url]]);
+        $result = $service->apply(['url_sumber' => $url, 'isi' => 'Judul lama']);
+        $this->assertSame("Paragraf pertama menjelaskan persiapan latihan.\n\nParagraf kedua menjelaskan koordinasi petugas.\n\nParagraf terakhir menjelaskan tindak lanjut.", $result['isi']);
+        $this->assertTrue($result['isi_tersedia']);
+        $this->assertSame('Foto: ANTARA/HO', $result['gambar_keterangan']);
+        $this->assertSame('Penulis contoh', $result['penulis']);
+        $this->assertStringContainsString('/api/berita-media/', $result['gambar']);
+    }
+
+    public function test_cached_top_twelve_do_not_starve_later_articles(): void
+    {
+        Cache::flush();
+        $items = [];
+        for ($i = 0; $i < 13; $i++) {
+            $url = 'https://www.antaranews.com/berita/'.($i + 1).'/contoh';
+            $items[] = ['url_sumber' => $url, 'isi' => 'Pratinjau'];
+            if ($i < 12) {
+                Cache::put('media-preview-v3:'.hash('sha256', $url), [], 3600);
+            }
+        }
+        Http::fake(['*' => Http::response('<div id="newsPost_content"><p>Isi artikel urutan ketiga belas.</p></div>')]);
+        $service = app(MediaArticlePreview::class);
+        $service->warm($items);
+        $this->assertSame('Isi artikel urutan ketiga belas.', $service->apply($items[12])['isi']);
+        Http::assertSentCount(1);
+    }
+
+    public function test_cached_cover_is_served_through_api_and_untrusted_hosts_are_rejected(): void
+    {
+        Cache::flush();
+        $key = hash('sha256', 'article');
+        Cache::put('media-preview-v3:'.$key, ['image' => 'https://img.antaranews.com/cover.png'], 3600);
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aO1sAAAAASUVORK5CYII=');
+        Http::fake(['img.antaranews.com/*' => Http::response($png, 200, ['Content-Type' => 'image/png'])]);
+        $path = '/api/berita-media/'.$key.'/gambar';
+        $this->withHeaders(['Origin' => 'http://localhost:5000'])->get($path)->assertOk()->assertHeader('Content-Type', 'image/png')->assertHeader('Access-Control-Allow-Origin', '*')->assertContent($png);
+        $this->get($path)->assertOk();
+        Http::assertSentCount(1);
+        Cache::put('media-preview-v3:'.$key, ['image' => 'http://127.0.0.1/private'], 3600);
+        $this->get($path)->assertNotFound();
+        Http::assertSentCount(1);
     }
 
     public function test_untrusted_redirect_and_failed_requests_retain_existing_preview(): void

@@ -112,6 +112,17 @@ class NewsDetailPage extends StatelessWidget {
                         ),
                       ),
                     ],
+                    if (story.imageUrl != null &&
+                        story.imageCaption != null) ...[
+                      const SizedBox(height: RanahSpacing.sm),
+                      Text(
+                        story.imageCaption!,
+                        style: const TextStyle(
+                          color: RanahColors.muted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: RanahSpacing.xl),
                     Text(
                       readableNewsBody(story.title, story.content),
@@ -121,6 +132,16 @@ class NewsDetailPage extends StatelessWidget {
                         height: mobile ? 1.35 : 1.55,
                       ),
                     ),
+                    if (story.author != null) ...[
+                      const SizedBox(height: RanahSpacing.sm),
+                      Text(
+                        'Penulis: ${story.author}',
+                        style: const TextStyle(
+                          color: RanahColors.muted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                     if (story.source case final source?) ...[
                       const SizedBox(height: RanahSpacing.xl),
                       Text(
