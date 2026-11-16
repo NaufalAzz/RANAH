@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Berita;
+use App\Services\MagmaEruptionFeed;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
@@ -12,6 +13,13 @@ class BeritaController extends Controller
 {
     public function index(): JsonResponse
     {
+        if (config('services.magma_news.enabled')) {
+            try {
+                return response()->json(['success' => true, 'data' => app(MagmaEruptionFeed::class)->items()]);
+            } catch (\RuntimeException $error) {
+                return response()->json(['success' => false, 'message' => $error->getMessage(), 'data' => []], 503);
+            }
+        }
         $items = $this->publishedQuery()
             ->orderByDesc('waktu_publikasi')
             ->orderByDesc('id')
@@ -94,12 +102,12 @@ class BeritaController extends Controller
         }
 
         $disk = Storage::disk('public');
-        if (!$disk->exists($path)) {
+        if (! $disk->exists($path)) {
             abort(404);
         }
 
         $mimeType = $disk->mimeType($path);
-        if (!in_array($mimeType, [
+        if (! in_array($mimeType, [
             'image/avif',
             'image/bmp',
             'image/gif',
