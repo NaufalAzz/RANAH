@@ -46,7 +46,7 @@ void main() {
     },
   );
   testWidgets(
-    'illustration labels are explicit and unknown names do not borrow another volcano image',
+    'illustrations have no overlay and unknown names keep the map fallback',
     (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -60,7 +60,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Ilustrasi AI · Bromo'), findsOneWidget);
+      expect(find.text('Ilustrasi AI · Bromo'), findsNothing);
+      expect(find.text('AI'), findsNothing);
+      expect(find.byTooltip('Bromo'), findsOneWidget);
       expect(find.byType(Image), findsOneWidget);
       await tester.pumpWidget(
         const MaterialApp(

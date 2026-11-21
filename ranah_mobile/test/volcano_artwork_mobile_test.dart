@@ -72,7 +72,7 @@ void main() {
         expect(image.image!.width, 1536);
         expect(image.size.width, greaterThan(0));
       }
-      expect(find.text('AI'), findsNWidgets(2));
+      expect(find.text('AI'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
