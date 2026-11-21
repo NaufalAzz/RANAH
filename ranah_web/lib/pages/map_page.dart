@@ -42,10 +42,12 @@ class MapPage extends StatefulWidget {
     this.osmRepository,
     this.osmLoader,
     this.routeSimulationRepository,
+    this.volcanoLoader,
     this.tilesEnabled = true,
     super.key,
   });
 
+  final Future<List<GunungRecord>> Function()? volcanoLoader;
   final VoidCallback onActivityTap;
   final BrowserLocation? currentLocation;
   final BrowserAdministrativeArea? currentArea;
@@ -149,6 +151,48 @@ class _MapPageState extends State<MapPage> {
         newLocation != null &&
         !locationWasSetByCurrentAction) {
       unawaited(_loadOsmReferences());
+    }
+  }
+
+  bool _openingOverviewReport = false;
+  List<GunungRecord> _overviewRecords = const [];
+
+  Future<void> _openOverviewReport(VolcanoReference reference) async {
+    if (_openingOverviewReport) return;
+    _openingOverviewReport = true;
+    try {
+      final key = normalizeVolcanoName(reference.name);
+      List<GunungRecord> matching(List<GunungRecord> records) => records
+          .where((record) => normalizeVolcanoName(record.nama) == key)
+          .toList();
+      var matches = matching(
+        widget.gunung.isNotEmpty ? widget.gunung : _overviewRecords,
+      );
+      if (matches.isEmpty && widget.volcanoLoader != null) {
+        _overviewRecords = await widget.volcanoLoader!();
+        if (!mounted) return;
+        matches = matching(_overviewRecords);
+      }
+      if (matches.length == 1) {
+        widget.onOpenReport(matches.single);
+        return;
+      }
+      throw StateError('No unique matching server record');
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Laporan ${reference.name} belum dapat ditemukan. Perbarui data gunung lalu coba lagi.',
+          ),
+          action: SnackBarAction(
+            label: 'Perbarui',
+            onPressed: widget.onRetryGunung,
+          ),
+        ),
+      );
+    } finally {
+      _openingOverviewReport = false;
     }
   }
 
@@ -695,6 +739,7 @@ class _MapPageState extends State<MapPage> {
                 selectedFeatureId: _selectedOsmFeature?.id,
                 route: _routeResult,
                 onFeatureTap: _showOsmFeatureDetail,
+                onVolcanoTap: _openOverviewReport,
               ),
             ),
             if (location != null)
@@ -981,6 +1026,7 @@ class _InteractiveMap extends StatelessWidget {
     required this.selectedFeatureId,
     required this.route,
     required this.onFeatureTap,
+    required this.onVolcanoTap,
     super.key,
   });
 
@@ -990,6 +1036,7 @@ class _InteractiveMap extends StatelessWidget {
   final String? selectedFeatureId;
   final RouteSimulationResult? route;
   final ValueChanged<OsmAssemblyPoint> onFeatureTap;
+  final ValueChanged<VolcanoReference> onVolcanoTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1065,17 +1112,22 @@ class _InteractiveMap extends StatelessWidget {
                           'overview-volcano-${normalizeVolcanoName(volcano.name)}',
                         ),
                         message: 'Gunung ${volcano.name}',
-                        triggerMode: TooltipTriggerMode.tap,
+                        triggerMode: TooltipTriggerMode.manual,
                         child: Semantics(
                           label: 'Gunung ${volcano.name}',
+                          button: true,
                           image: true,
-                          child: const Icon(
-                            Icons.terrain,
-                            color: Color(0xFF173D5B),
-                            size: 18,
-                            shadows: [
-                              Shadow(color: Colors.white, blurRadius: 3),
-                            ],
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => onVolcanoTap(volcano),
+                            child: const Icon(
+                              Icons.terrain,
+                              color: Color(0xFF173D5B),
+                              size: 18,
+                              shadows: [
+                                Shadow(color: Colors.white, blurRadius: 3),
+                              ],
+                            ),
                           ),
                         ),
                       ),

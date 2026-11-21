@@ -12,6 +12,33 @@ import 'package:ranah_mobile/services/mobile_map_repository.dart';
 
 void main() {
   testWidgets(
+    'overview tap opens the matching server record with no device location',
+    (tester) async {
+      Map<String, dynamic>? opened;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MapPage(
+            repository: _FakeMapRepository(),
+            locationProvider: const _FakeLocationProvider(),
+            gunungRepository: _FakeGunungRepository(),
+            tilesEnabled: false,
+            onOpenReport: (record) => opened = record,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      MapController.of(tester.element(find.byType(MarkerLayer)))
+          .move(const LatLng(-0.381, 100.473), 10);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('overview-volcano-marapi')));
+      await tester.pumpAndSettle();
+      expect(opened?['id'], 1);
+      expect(opened?['nama'], 'Marapi');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'initial map shows 69 small volcano icons without KRB or permission',
     (tester) async {
       tester.view.physicalSize = const Size(390, 844);
@@ -42,8 +69,12 @@ void main() {
         );
       }
       final tooltip = markers.first.child as Tooltip;
-      expect(tooltip.triggerMode, TooltipTriggerMode.tap);
-      expect(((tooltip.child as Semantics).child as Icon).size, 18);
+      expect(tooltip.triggerMode, TooltipTriggerMode.manual);
+      expect(
+        (((tooltip.child as Semantics).child as GestureDetector).child as Icon)
+            .size,
+        18,
+      );
       final map = tester.widget<FlutterMap>(find.byType(FlutterMap));
       expect(map.options.initialCameraFit, isNotNull);
       final camera = MapCamera.of(tester.element(find.byType(MarkerLayer)));

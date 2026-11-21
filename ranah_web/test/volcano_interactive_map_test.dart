@@ -32,9 +32,9 @@ void main() {
             gunung: const GunungRecord(
               id: 8,
               nama: 'Bromo',
-              latitude: -8.016,
-              longitude: 112.9,
-              statusValidasiKoordinat: 'terverifikasi',
+              latitude: null,
+              longitude: null,
+              statusValidasiKoordinat: 'belum tervalidasi',
             ),
             showKrb: true,
             tilesEnabled: false,

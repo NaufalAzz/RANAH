@@ -32,10 +32,29 @@ void main() {
     expect(marker.position.longitude, 112.95);
   });
 
+  test(
+    'known MAGMA references fill missing unverified database coordinates',
+    () {
+      final marker = volcanoMapMarkerFrom({'id': 72, 'nama': 'Banda Api'});
+      expect(marker, isNotNull);
+      expect(marker!.position.latitude, -4.523);
+      expect(marker.position.longitude, 129.881);
+    },
+  );
+
   test('only verified in-range coordinates become markers', () {
-    expect(volcanoMapMarkerFrom(_item(1, latitude: null)), isNull);
-    expect(volcanoMapMarkerFrom(_item(1, latitude: 95)), isNull);
-    expect(volcanoMapMarkerFrom(_item(1, validated: false)), isNull);
+    expect(
+      volcanoMapMarkerFrom(_item(1, name: 'Tidak dikenal', latitude: null)),
+      isNull,
+    );
+    expect(
+      volcanoMapMarkerFrom(_item(1, name: 'Tidak dikenal', latitude: 95)),
+      isNull,
+    );
+    expect(
+      volcanoMapMarkerFrom(_item(1, name: 'Tidak dikenal', validated: false)),
+      isNull,
+    );
     expect(volcanoMapMarkerFrom(_item(1)), isNotNull);
   });
 

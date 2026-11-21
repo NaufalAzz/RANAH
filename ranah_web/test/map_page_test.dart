@@ -19,6 +19,79 @@ import 'package:ranah_web/services/route_simulation_repository.dart';
 
 void main() {
   testWidgets(
+    'tapping a mountain fetches API identity when no regional list has loaded',
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      GunungRecord? opened;
+      var calls = 0;
+      await _pumpMap(
+        tester,
+        volcanoLoader: () async {
+          calls++;
+          return const [GunungRecord(id: 482, nama: 'Banda Api')];
+        },
+        onOpenReport: (record) => opened = record,
+      );
+      final context = tester.element(find.byType(MarkerLayer));
+      MapController.of(context).move(const LatLng(-4.523, 129.881), 10);
+      await tester.pumpAndSettle();
+      final marker = find.byKey(const ValueKey('overview-volcano-bandaapi'));
+      await tester.tap(marker);
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+      expect(opened?.id, 482);
+      expect(opened?.nama, 'Banda Api');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'overview icons resolve exact API IDs and aliases without guessing',
+    (tester) async {
+      GunungRecord? opened;
+      await _pumpMap(
+        tester,
+        records: const [
+          GunungRecord(id: 731, nama: 'Merapi'),
+          GunungRecord(id: 849, nama: 'Marapi'),
+          GunungRecord(id: 925, nama: 'Lewotobi Laki'),
+        ],
+        onOpenReport: (record) => opened = record,
+      );
+      final markers = tester
+          .widget<MarkerLayer>(find.byType(MarkerLayer))
+          .markers;
+      Tooltip tooltipFor(String key) => markers
+          .map((marker) => marker.child)
+          .whereType<Tooltip>()
+          .singleWhere(
+            (tooltip) => tooltip.key == ValueKey('overview-volcano-$key'),
+          );
+      for (final entry in {
+        'merapi': 731,
+        'marapi': 849,
+        'lewotobilakilaki': 925,
+      }.entries) {
+        final tooltip = tooltipFor(entry.key);
+        ((tooltip.child as Semantics).child as GestureDetector).onTap!();
+        expect(opened?.id, entry.value);
+      }
+      final tooltip = tooltipFor('bandaapi');
+      ((tooltip.child as Semantics).child as GestureDetector).onTap!();
+      await tester.pump();
+      expect(opened?.id, 925);
+      expect(
+        find.textContaining('Laporan Banda Api belum dapat ditemukan'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'initial map shows all volcano locations without KRB or location permission',
     (tester) async {
       var osmRequests = 0;
@@ -57,8 +130,12 @@ void main() {
       );
       final marker = markers.first;
       final tooltip = marker.child as Tooltip;
-      expect(tooltip.triggerMode, TooltipTriggerMode.tap);
-      expect(((tooltip.child as Semantics).child as Icon).size, 18);
+      expect(tooltip.triggerMode, TooltipTriggerMode.manual);
+      expect(
+        (((tooltip.child as Semantics).child as GestureDetector).child as Icon)
+            .size,
+        18,
+      );
 
       final map = tester.widget<FlutterMap>(find.byType(FlutterMap));
       expect(map.options.initialCenter, const LatLng(-2.5, 118));
@@ -1272,6 +1349,7 @@ Future<void> _pumpMap(
   BrowserAdministrativeArea? area,
   List<GunungRecord> records = const [],
   ValueChanged<GunungRecord>? onOpenReport,
+  Future<List<GunungRecord>> Function()? volcanoLoader,
   VoidCallback? onOpenEvacuation,
   AdministrativeAreaLookup? areaLookup,
   HazardAnalysisRepository? hazardAnalysisRepository,
@@ -1284,7 +1362,8 @@ Future<void> _pumpMap(
   await tester.pumpWidget(
     MaterialApp(
       home: MediaQuery(
-        data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
+        data: MediaQueryData.fromView(tester.view)
+            .copyWith(textScaler: TextScaler.linear(textScale)),
         child: Scaffold(
           body: StatefulBuilder(
             builder: (context, setState) => MapPage(
@@ -1295,6 +1374,7 @@ Future<void> _pumpMap(
                   setState(() => currentLocation = location),
               onAreaChanged: (value) => setState(() => currentArea = value),
               gunung: records,
+              volcanoLoader: volcanoLoader,
               gunungLoading: false,
               gunungError: null,
               onRetryGunung: () {},
