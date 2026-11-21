@@ -65,6 +65,36 @@ class MagmaHtmlParserTest extends TestCase
         self::assertSame('Asap kawah teramati.', $detail['observation']);
     }
 
+    public function test_report_cards_expose_complete_recommendations_and_observations(): void
+    {
+        $html = '<html><head><title>Laporan Aktivitas Gunung Api - Marapi, Jumat - 20 November 2026, periode 00:00-24:00 WIB</title></head>'
+            .'<body><h2>Level II (Waspada)</h2><div class="card"><div class="media-body">'
+            .'<h6 class="slim-card-title">Pengamatan Visual</h6><p>Gunung terlihat jelas.</p></div></div>'
+            .'<div class="card"><div class="media-body"><h6 class="slim-card-title">Klimatologi</h6><p>Cuaca berawan.</p></div></div>'
+            .'<div class="card"><div class="media-body"><h6 class="slim-card-title">Rekomendasi</h6>'
+            .'<p>1. Ikuti arahan petugas.<br />2. Pantau informasi resmi.</p></div></div></body></html>';
+
+        $detail = (new MagmaHtmlParser)->parseReportDetail($html);
+
+        self::assertSame('Marapi', $detail['name']);
+        self::assertSame('20 November 2026', $detail['period_date']);
+        self::assertSame('Gunung terlihat jelas.', $detail['observation']);
+        self::assertSame('Cuaca berawan.', $detail['climate']);
+        self::assertSame('1. Ikuti arahan petugas. 2. Pantau informasi resmi.', $detail['recommendation']);
+    }
+
+    public function test_empty_recommendation_does_not_consume_the_following_section(): void
+    {
+        $html = '<html><head><title>Laporan Aktivitas Gunung Api - Merapi, Jumat - 20 November 2026, periode 00:00-24:00 WIB</title></head>'
+            .'<body><h2>Level III (Siaga)</h2><div><h5>Rekomendasi</h5><p> </p>'
+            .'<h5>Klimatologi</h5><p>Cuaca cerah.</p></div></body></html>';
+
+        $detail = (new MagmaHtmlParser)->parseReportDetail($html);
+
+        self::assertNull($detail['recommendation']);
+        self::assertSame('Cuaca cerah.', $detail['climate']);
+    }
+
     public function test_invalid_or_changed_detail_is_rejected_and_bad_coordinates_ignored(): void
     {
         $parser = new MagmaHtmlParser;

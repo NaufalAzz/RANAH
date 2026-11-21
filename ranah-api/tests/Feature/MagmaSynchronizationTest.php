@@ -191,8 +191,8 @@ class MagmaSynchronizationTest extends TestCase
             ),
             'magma.esdm.go.id/v1/gunung-api/laporan/123*' => Http::response(
                 '<html><head><title>Laporan Aktivitas Gunung Api - Gunung Merapi, Minggu - 25 Oktober 2026, periode 06:00-12:00 WIB</title></head>'
-                .'<body><h2>Level III (Siaga)</h2><h3>Pengamatan Visual</h3><p>Asap kawah teramati.</p>'
-                .'<h3>Rekomendasi</h3><p>Masyarakat mengikuti arahan resmi.</p><script>L.marker([-7.54,110.44])</script></body></html>',
+                .'<body><h2>Level III (Siaga)</h2><h6>Pengamatan Visual</h6><p>Asap kawah teramati.</p>'
+                .'<h6>Rekomendasi</h6><p>Masyarakat mengikuti arahan resmi.</p><script>L.marker([-7.54,110.44])</script></body></html>',
                 200, ['Content-Type' => 'text/html'],
             ),
         ]);
@@ -212,6 +212,7 @@ class MagmaSynchronizationTest extends TestCase
             ->assertJsonPath('data.laporan.0.sumber_id', '123')
             ->assertJsonPath('data.laporan.0.periode_waktu', '06:00-12:00 WIB')
             ->assertJsonPath('data.laporan.0.pengamatan_visual', 'Asap kawah teramati.')
+            ->assertJsonPath('data.laporan.0.rekomendasi', 'Masyarakat mengikuti arahan resmi.')
             ->assertJsonPath('data.laporan.0.url_sumber', 'https://magma.esdm.go.id/v1/gunung-api/laporan/123?signature=fixture')
             ->assertJsonPath('data.laporan.0.waktu_publikasi', '2026-10-25T00:00:00.000000Z');
     }

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use DOMDocument;
 use DOMElement;
+use DOMNode;
 use DOMXPath;
 use RuntimeException;
 
@@ -145,17 +146,23 @@ class MagmaHtmlParser
     private function section(DOMXPath $xpath, array $labels): ?string
     {
         foreach ($labels as $label) {
-            $nodes = $xpath->query('//*[self::h1 or self::h2 or self::h3 or self::h4 or self::strong or self::b]');
+            $nodes = $xpath->query('//*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6 or self::strong or self::b]');
             foreach ($nodes ?: [] as $node) {
                 if (mb_strtolower(trim($node->textContent)) !== mb_strtolower($label)) {
                     continue;
                 }
                 $candidate = $node->nextSibling;
                 for ($i = 0; $candidate !== null && $i < 4; $i++, $candidate = $candidate->nextSibling) {
-                    $text = trim(preg_replace('/\s+/u', ' ', $candidate->textContent) ?? '');
+                    if ($candidate instanceof DOMElement && in_array(strtolower($candidate->tagName), ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'], true)) {
+                        break;
+                    }
+                    $text = $this->sectionText($candidate);
                     if ($text !== '') {
                         return mb_substr($text, 0, 10000);
                     }
+                }
+                if (! $node instanceof DOMElement || ! in_array(strtolower($node->tagName), ['strong', 'b'], true)) {
+                    continue;
                 }
                 $parent = trim(preg_replace('/\s+/u', ' ', $node->parentNode?->textContent ?? '') ?? '');
                 if ($parent !== trim($node->textContent)) {
@@ -165,6 +172,18 @@ class MagmaHtmlParser
         }
 
         return null;
+    }
+
+    private function sectionText(DOMNode $node): string
+    {
+        $copy = $node->cloneNode(true);
+        if ($copy instanceof DOMElement) {
+            foreach (iterator_to_array($copy->getElementsByTagName('br')) as $lineBreak) {
+                $lineBreak->parentNode?->replaceChild($copy->ownerDocument->createTextNode(' '), $lineBreak);
+            }
+        }
+
+        return trim(preg_replace('/\s+/u', ' ', $copy->textContent) ?? '');
     }
 
     /** @return array{?float,?float} */
