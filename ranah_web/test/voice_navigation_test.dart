@@ -52,8 +52,6 @@ void main() {
     await tester.ensureVisible(button);
     await tester.tap(button);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('accept-location-only')));
-    await tester.pumpAndSettle();
     expect(requests, 1);
   });
   testWidgets('web speech results select the existing mitigation page', (
