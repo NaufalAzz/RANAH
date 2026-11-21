@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 import 'package:ranah_web/pages/map_page.dart';
 import 'package:ranah_web/models/gunung_data.dart';
 import 'package:ranah_web/services/administrative_area_lookup.dart';
@@ -17,41 +18,63 @@ import 'package:ranah_web/services/ranah_api_client.dart';
 import 'package:ranah_web/services/route_simulation_repository.dart';
 
 void main() {
-  testWidgets('initial map is interactive and contains no simulated markers', (
-    tester,
-  ) async {
-    var osmRequests = 0;
-    await _pumpMap(
-      tester,
-      osmLoader: () async {
-        osmRequests++;
-        return _emptyOsmDataset;
-      },
-    );
+  testWidgets(
+    'initial map shows all volcano locations without KRB or location permission',
+    (tester) async {
+      var osmRequests = 0;
+      await _pumpMap(
+        tester,
+        osmLoader: () async {
+          osmRequests++;
+          return _emptyOsmDataset;
+        },
+      );
 
-    expect(find.text('Peta dan Jalur Evakuasi'), findsOneWidget);
-    expect(find.text('PETA INTERAKTIF'), findsOneWidget);
-    expect(find.text('Temukan Lokasi Saya'), findsOneWidget);
-    expect(
-      find.textContaining('Tekan tombol untuk menandai lokasi'),
-      findsOneWidget,
-    );
-    expect(find.byType(FlutterMap), findsOneWidget);
-    expect(find.byType(MarkerLayer), findsNothing);
-    expect(osmRequests, 0);
-    expect(find.text('Contoh level'), findsNothing);
-    final map = tester.widget<FlutterMap>(find.byType(FlutterMap));
-    expect(map.options.initialCenter, const LatLng(-2.5, 118));
-    expect(
-      InteractiveFlag.hasDrag(map.options.interactionOptions.flags),
-      isTrue,
-    );
-    expect(
-      InteractiveFlag.hasScrollWheelZoom(map.options.interactionOptions.flags),
-      isTrue,
-    );
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.text('Peta dan Jalur Evakuasi'), findsOneWidget);
+      expect(find.text('PETA INTERAKTIF'), findsOneWidget);
+      expect(find.text('Temukan Lokasi Saya'), findsOneWidget);
+      expect(
+        find.textContaining('Tekan tombol untuk menandai lokasi'),
+        findsOneWidget,
+      );
+      expect(find.byType(FlutterMap), findsOneWidget);
+      expect(find.byType(MarkerLayer), findsOneWidget);
+      expect(osmRequests, 0);
+      expect(find.text('Contoh level'), findsNothing);
+      final markers = tester
+          .widget<MarkerLayer>(find.byType(MarkerLayer))
+          .markers;
+      expect(markers, hasLength(69));
+      for (final reference in volcanoReferences.values) {
+        expect(
+          markers.map((marker) => marker.point),
+          contains(LatLng(reference.latitude, reference.longitude)),
+        );
+      }
+      expect(
+        tester.widget<PolygonLayer>(find.byType(PolygonLayer)).polygons,
+        isEmpty,
+      );
+      final marker = markers.first;
+      final tooltip = marker.child as Tooltip;
+      expect(tooltip.triggerMode, TooltipTriggerMode.tap);
+      expect(((tooltip.child as Semantics).child as Icon).size, 18);
+
+      final map = tester.widget<FlutterMap>(find.byType(FlutterMap));
+      expect(map.options.initialCenter, const LatLng(-2.5, 118));
+      expect(
+        InteractiveFlag.hasDrag(map.options.interactionOptions.flags),
+        isTrue,
+      );
+      expect(
+        InteractiveFlag.hasScrollWheelZoom(
+          map.options.interactionOptions.flags,
+        ),
+        isTrue,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('main map renders OSM Point and Polygon without recentering', (
     tester,
@@ -71,7 +94,7 @@ void main() {
     final polygons = map.children.whereType<PolygonLayer>().single;
     final markers = map.children.whereType<MarkerLayer>().single.markers;
     expect(polygons.polygons, hasLength(1));
-    expect(markers, hasLength(3));
+    expect(markers, hasLength(72));
     expect(
       markers.map((marker) => marker.point),
       contains(const LatLng(-0.8771866, 100.3833966)),
@@ -643,7 +666,7 @@ void main() {
       },
     );
     expect(osmRequests, 0);
-    expect(find.byType(MarkerLayer), findsNothing);
+    expect(find.byType(MarkerLayer), findsOneWidget);
 
     await _tapLocationButton(tester);
     expect(osmRequests, 1);
@@ -718,7 +741,7 @@ void main() {
     expect(find.text('Temukan Lokasi Saya'), findsOneWidget);
     expect(find.text('Lokasi Anda'), findsNothing);
     expect(find.textContaining('Izin lokasi ditolak'), findsOneWidget);
-    expect(find.byType(MarkerLayer), findsNothing);
+    expect(find.byType(MarkerLayer), findsOneWidget);
     expect(osmRequests, 0);
     expect(tester.takeException(), isNull);
   });

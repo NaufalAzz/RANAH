@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:ranah_mobile/models/gunung_snapshot.dart';
@@ -9,6 +11,48 @@ import 'package:ranah_mobile/services/mobile_location_provider.dart';
 import 'package:ranah_mobile/services/mobile_map_repository.dart';
 
 void main() {
+  testWidgets(
+    'initial map shows 69 small volcano icons without KRB or permission',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repository = _FakeMapRepository();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MapPage(
+            repository: repository,
+            locationProvider: const _FakeLocationProvider(),
+            gunungRepository: _FakeGunungRepository(),
+            tilesEnabled: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final markers = tester
+          .widget<MarkerLayer>(find.byType(MarkerLayer))
+          .markers;
+      expect(markers, hasLength(69));
+      expect(find.byType(PolygonLayer), findsNothing);
+      for (final reference in volcanoReferences.values) {
+        expect(
+          markers.map((marker) => marker.point),
+          contains(LatLng(reference.latitude, reference.longitude)),
+        );
+      }
+      final tooltip = markers.first.child as Tooltip;
+      expect(tooltip.triggerMode, TooltipTriggerMode.tap);
+      expect(((tooltip.child as Semantics).child as Icon).size, 18);
+      final map = tester.widget<FlutterMap>(find.byType(FlutterMap));
+      expect(map.options.initialCameraFit, isNotNull);
+      final camera = MapCamera.of(tester.element(find.byType(MarkerLayer)));
+      expect(camera.visibleBounds.contains(const LatLng(5, 95)), isTrue);
+      expect(camera.visibleBounds.contains(const LatLng(-9, 140)), isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   test(
     'GeoJSON Point and Polygon coordinates use longitude, latitude order',
     () {

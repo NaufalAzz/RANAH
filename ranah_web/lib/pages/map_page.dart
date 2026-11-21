@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 
 import '../models/gunung_data.dart';
 import '../services/administrative_area_lookup.dart';
@@ -1003,6 +1004,15 @@ class _InteractiveMap extends StatelessWidget {
           FlutterMap(
             options: MapOptions(
               initialCenter: center,
+              initialCameraFit: location == null
+                  ? CameraFit.bounds(
+                      bounds: LatLngBounds(
+                        const LatLng(-11, 94),
+                        const LatLng(6, 141),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                    )
+                  : null,
               initialZoom: location == null ? 4.2 : 13,
               minZoom: 2,
               maxZoom: 18,
@@ -1042,66 +1052,91 @@ class _InteractiveMap extends StatelessWidget {
                     ),
                   ],
                 ),
-              if (location != null || osmFeatures.isNotEmpty)
-                MarkerLayer(
-                  markers: [
-                    for (final feature in osmFeatures)
-                      Marker(
-                        point: feature.displayPosition,
-                        width: 54,
-                        height: 58,
+              MarkerLayer(
+                markers: [
+                  // Location references only: no activity level or KRB overlay.
+                  for (final volcano in volcanoReferences.values)
+                    Marker(
+                      point: LatLng(volcano.latitude, volcano.longitude),
+                      width: 32,
+                      height: 32,
+                      child: Tooltip(
+                        key: ValueKey(
+                          'overview-volcano-${normalizeVolcanoName(volcano.name)}',
+                        ),
+                        message: 'Gunung ${volcano.name}',
+                        triggerMode: TooltipTriggerMode.tap,
                         child: Semantics(
-                          button: true,
-                          label:
-                              '${feature.name ?? 'Objek OSM'}, ${feature.geometryType}, belum diverifikasi',
-                          child: GestureDetector(
-                            onTap: () => onFeatureTap(feature),
-                            child: Icon(
-                              feature.geometryType == 'Point'
-                                  ? Icons.location_on
-                                  : Icons.crop_square_rounded,
-                              key: ValueKey('map-osm-feature-${feature.id}'),
-                              color: feature.id == selectedFeatureId
-                                  ? const Color(0xFFFFD166)
-                                  : const Color(0xFF62D2E0),
-                              size: 40,
-                              shadows: const [
-                                Shadow(
-                                  color: Colors.black54,
-                                  blurRadius: 4,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
+                          label: 'Gunung ${volcano.name}',
+                          image: true,
+                          child: const Icon(
+                            Icons.terrain,
+                            color: Color(0xFF173D5B),
+                            size: 18,
+                            shadows: [
+                              Shadow(color: Colors.white, blurRadius: 3),
+                            ],
                           ),
                         ),
                       ),
-                    if (location != null)
-                      Marker(
-                        point: center,
-                        width: 48,
-                        height: 56,
-                        child: IgnorePointer(
-                          child: Semantics(
-                            label: 'Lokasi perangkat saat ini',
-                            child: const Icon(
-                              Icons.location_pin,
-                              key: ValueKey('device-location-marker'),
-                              color: Color(0xFFFF3941),
-                              size: 44,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black54,
-                                  blurRadius: 4,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
+                    ),
+                  for (final feature in osmFeatures)
+                    Marker(
+                      point: feature.displayPosition,
+                      width: 54,
+                      height: 58,
+                      child: Semantics(
+                        button: true,
+                        label:
+                            '${feature.name ?? 'Objek OSM'}, ${feature.geometryType}, belum diverifikasi',
+                        child: GestureDetector(
+                          onTap: () => onFeatureTap(feature),
+                          child: Icon(
+                            feature.geometryType == 'Point'
+                                ? Icons.location_on
+                                : Icons.crop_square_rounded,
+                            key: ValueKey('map-osm-feature-${feature.id}'),
+                            color: feature.id == selectedFeatureId
+                                ? const Color(0xFFFFD166)
+                                : const Color(0xFF62D2E0),
+                            size: 40,
+                            shadows: const [
+                              Shadow(
+                                color: Colors.black54,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                  ],
-                ),
+                    ),
+                  if (location != null)
+                    Marker(
+                      point: center,
+                      width: 48,
+                      height: 56,
+                      child: IgnorePointer(
+                        child: Semantics(
+                          label: 'Lokasi perangkat saat ini',
+                          child: const Icon(
+                            Icons.location_pin,
+                            key: ValueKey('device-location-marker'),
+                            color: Color(0xFFFF3941),
+                            size: 44,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black54,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
               if (tilesEnabled)
                 const RichAttributionWidget(
                   attributions: [
