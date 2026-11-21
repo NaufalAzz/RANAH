@@ -1,3 +1,4 @@
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 import 'package:flutter/material.dart';
 
 import '../pages/gunung_report_page.dart';
@@ -548,10 +549,9 @@ class _GunungRow extends StatelessWidget {
               color: const Color(0xFF214C68),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: const Icon(
-              Icons.landscape_rounded,
-              color: Color(0xFFBFD9E8),
-              size: 28,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: VolcanoArtwork(name: nama, showLabel: false),
             ),
           ),
           const SizedBox(width: 10),

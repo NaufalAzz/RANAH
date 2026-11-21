@@ -1,0 +1,54 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ranah_accessibility/ranah_accessibility.dart';
+
+void main() {
+  test(
+    'MAGMA references preserve distinct volcano identities and valid coordinates',
+    () {
+      expect(volcanoReferences, hasLength(69));
+      for (final r in volcanoReferences.values) {
+        expect(r.latitude, inInclusiveRange(-90, 90));
+        expect(r.longitude, inInclusiveRange(-180, 180));
+      }
+      expect(volcanoReference('G. Bromo')?.latitude, -7.942);
+      expect(volcanoReference('Gunung Marapi')?.longitude, 100.473);
+      expect(volcanoReference('Merapi')?.longitude, isNot(100.473));
+      expect(volcanoReference('Gunung yang belum dikenal'), isNull);
+    },
+  );
+  testWidgets(
+    'illustration labels are explicit and unknown names do not borrow another volcano image',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 320,
+              height: 180,
+              child: VolcanoArtwork(name: 'Bromo'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Ilustrasi AI · Bromo'), findsOneWidget);
+      expect(find.byType(Image), findsOneWidget);
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 320,
+              height: 180,
+              child: VolcanoArtwork(name: 'Dempo'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Peta lokasi · Dempo'), findsOneWidget);
+      expect(find.byType(Image), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+}

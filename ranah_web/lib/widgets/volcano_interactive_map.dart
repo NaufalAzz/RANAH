@@ -1,3 +1,4 @@
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -96,8 +97,23 @@ class _VolcanoInteractiveMapState extends State<VolcanoInteractiveMap> {
                 fit: StackFit.expand,
                 children: [
                   FlutterMap(
+                    key: ValueKey(
+                      'web-volcano-map-${widget.gunung.id}-${features.length}',
+                    ),
                     options: MapOptions(
                       initialCenter: center,
+                      initialCameraFit: features.isEmpty
+                          ? null
+                          : CameraFit.bounds(
+                              bounds: LatLngBounds.fromPoints([
+                                ...features
+                                    .expand((f) => f.polygons)
+                                    .expand((p) => p.points),
+                                if (marker != null) marker.position,
+                              ]),
+                              padding: const EdgeInsets.all(32),
+                              maxZoom: 13,
+                            ),
                       initialZoom: marker != null || features.isNotEmpty
                           ? 8
                           : 4,
@@ -277,8 +293,7 @@ class _VolcanoInteractiveMapState extends State<VolcanoInteractiveMap> {
                 style: const TextStyle(color: Colors.white70),
               ),
               Text(
-                'Sumber koordinat: ${widget.gunung.sumberKoordinat ?? 'tidak tersedia'}'
-                '${widget.gunung.sumberKoordinatId == null ? '' : ' · ID ${widget.gunung.sumberKoordinatId}'}',
+                'Sumber koordinat: ${volcanoReference(widget.gunung.nama) != null ? VolcanoReference.source : widget.gunung.sumberKoordinat ?? 'tidak tersedia'}',
                 style: const TextStyle(color: Colors.white70),
               ),
             ],
@@ -313,7 +328,10 @@ _VolcanoMarker? _markerFor(GunungRecord gunung) {
     return null;
   }
   return _VolcanoMarker(
-    LatLng(latitude, longitude),
+    LatLng(
+      volcanoReference(gunung.nama)?.latitude ?? latitude,
+      volcanoReference(gunung.nama)?.longitude ?? longitude,
+    ),
     _activityColors[gunung.activityLevel] ?? _unknownColor,
   );
 }

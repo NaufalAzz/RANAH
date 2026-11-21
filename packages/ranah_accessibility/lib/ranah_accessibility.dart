@@ -6,3 +6,6 @@ export 'src/mitigation_learning_page.dart';
 export 'src/mitigation_content.dart';
 
 export 'src/eruption_region.dart';
+
+export 'src/volcano_reference.dart';
+export 'src/volcano_artwork.dart';

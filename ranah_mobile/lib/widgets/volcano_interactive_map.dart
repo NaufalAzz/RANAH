@@ -1,3 +1,5 @@
+import 'package:ranah_accessibility/ranah_accessibility.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -270,7 +272,10 @@ VolcanoMapMarker? volcanoMapMarkerFrom(Map<String, dynamic> raw) {
         .join(', '),
     status: _display(raw['status_aktivitas'], 'Belum diketahui'),
     updatedAt: raw['waktu_pengambilan']?.toString(),
-    position: LatLng(latitude, longitude),
+    position: LatLng(
+      volcanoReference(raw['nama']?.toString() ?? '')?.latitude ?? latitude,
+      volcanoReference(raw['nama']?.toString() ?? '')?.longitude ?? longitude,
+    ),
     raw: raw,
   );
 }
@@ -402,7 +407,7 @@ class _VolcanoInteractiveMapState extends State<VolcanoInteractiveMap> {
                 FlutterMap(
                   options: MapOptions(
                     initialCenter: center,
-                    initialZoom: selected.isNotEmpty ? 7 : 4,
+                    initialZoom: selected.isNotEmpty ? 11 : 4,
                     minZoom: 3,
                     maxZoom: 18,
                   ),
@@ -637,7 +642,7 @@ class _VolcanoInteractiveMapState extends State<VolcanoInteractiveMap> {
                 const SizedBox(height: 9),
                 Text(
                   '${markers.length} dari ${widget.items.length} gunung memiliki '
-                  'koordinat BIG yang terverifikasi. Gunung lain tidak '
+                  'koordinat terverifikasi. Gunung lain tidak '
                   'dipetakan sampai kecocokannya terkonfirmasi.',
                   style: const TextStyle(
                     color: Color(0xFFD5E2ED),
@@ -690,6 +695,11 @@ class _VolcanoInteractiveMapState extends State<VolcanoInteractiveMap> {
                 style: const TextStyle(color: Colors.white70),
               ),
               Text(marker.status, style: TextStyle(color: marker.color)),
+              if (volcanoReference(marker.name) != null)
+                const Text(
+                  'Koordinat referensi: MAGMA Indonesia / PVMBG',
+                  style: TextStyle(color: Colors.white70),
+                ),
               Text(
                 'Diperbarui: ${_formatTime(marker.updatedAt)}',
                 style: const TextStyle(color: Colors.white70),

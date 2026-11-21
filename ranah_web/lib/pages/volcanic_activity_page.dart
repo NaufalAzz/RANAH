@@ -1,3 +1,4 @@
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 import 'package:flutter/material.dart';
 
 import '../data/volcanic_activity_data.dart';
@@ -158,10 +159,7 @@ class _ActivityTitleBanner extends StatelessWidget {
       color: RanahColors.banner,
       child: const Row(
         children: [
-          Icon(
-            Icons.landscape_outlined,
-            size: RanahPageHeaderStyle.iconSize,
-          ),
+          Icon(Icons.landscape_outlined, size: RanahPageHeaderStyle.iconSize),
           SizedBox(width: RanahPageHeaderStyle.iconGap),
           Expanded(
             child: Column(
@@ -326,7 +324,7 @@ class _LevelSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    height: compact ? 68 : 76,
+    constraints: BoxConstraints(minHeight: compact ? 68 : 76),
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
     decoration: BoxDecoration(
       color: RanahColors.cardBlue,
@@ -678,10 +676,7 @@ class _ActivityVolcanoRow extends StatelessWidget {
                 height: 48,
                 color: RanahColors.backgroundStart,
                 alignment: Alignment.center,
-                child: const Icon(
-                  Icons.landscape_outlined,
-                  color: Colors.white70,
-                ),
+                child: VolcanoArtwork(name: gunung.nama, showLabel: false),
               ),
             ),
             const SizedBox(width: RanahSpacing.md),
