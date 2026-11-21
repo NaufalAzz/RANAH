@@ -77,20 +77,6 @@ class _RanahShellState extends State<RanahShell> {
   _Page _contactsReturnPage = _Page.home;
   final _Page _routeReturnPage = _Page.map;
   Timer? _newsTimer;
-  Future<void> _requestStartupLocation() async {
-    try {
-      final fix = await (widget.locationReader ?? readBrowserLocation)();
-      if (!mounted || !fix.isValid) return;
-      setState(() => _mapLocation = fix);
-      final area = await (widget.areaLookup ?? lookupBrowserAdministrativeArea)(
-        fix,
-      );
-      if (mounted) setState(() => _mapArea = area);
-    } catch (_) {
-      /* All news remains available without a location. */
-    }
-  }
-
   BrowserLocation? _mapLocation;
   BrowserAdministrativeArea? _mapArea;
   bool _mapEverOpened = false;
@@ -120,11 +106,6 @@ class _RanahShellState extends State<RanahShell> {
       const Duration(minutes: 15),
       (_) => _loadNews(),
     );
-    if (_page != _Page.adminLogin) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _requestStartupLocation(),
-      );
-    }
   }
 
   Future<void> _loadNews() async {

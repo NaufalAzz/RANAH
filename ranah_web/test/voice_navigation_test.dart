@@ -1,5 +1,4 @@
 import 'package:ranah_web/services/browser_location.dart';
-import 'package:ranah_web/pages/map_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ranah_accessibility/ranah_accessibility.dart';
@@ -26,7 +25,7 @@ class SilentVoiceEngine implements VoiceEngine {
 }
 
 void main() {
-  testWidgets('startup location is reused by the map without another request', (
+  testWidgets('location is requested only after using the map button', (
     tester,
   ) async {
     var requests = 0;
@@ -45,16 +44,16 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(
-      find.text('Erupsi di Sumatra · Prioritas Sumatera Barat'),
-      findsNothing,
-    );
+    expect(requests, 0);
     await tester.tap(find.byKey(const ValueKey('ranah-nav-map')));
     await tester.pumpAndSettle();
-    expect(
-      tester.widget<MapPage>(find.byType(MapPage)).currentLocation?.latitude,
-      -0.95,
-    );
+    expect(requests, 0);
+    final button = find.byKey(const ValueKey('find-device-location'));
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('accept-location-only')));
+    await tester.pumpAndSettle();
     expect(requests, 1);
   });
   testWidgets('web speech results select the existing mitigation page', (
