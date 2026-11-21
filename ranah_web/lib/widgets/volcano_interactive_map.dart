@@ -312,11 +312,13 @@ class _VolcanoMarker {
 }
 
 _VolcanoMarker? _markerFor(GunungRecord gunung) {
-  if (gunung.statusValidasiKoordinat?.toLowerCase() != 'terverifikasi') {
+  final reference = volcanoReference(gunung.nama);
+  if (reference == null &&
+      gunung.statusValidasiKoordinat?.toLowerCase() != 'terverifikasi') {
     return null;
   }
-  final latitude = gunung.latitude;
-  final longitude = gunung.longitude;
+  final latitude = reference?.latitude ?? gunung.latitude;
+  final longitude = reference?.longitude ?? gunung.longitude;
   if (latitude == null ||
       longitude == null ||
       !latitude.isFinite ||
@@ -417,8 +419,10 @@ class _KrbMapLegend extends StatelessWidget {
               warning: true,
             )
           else if (features.isEmpty)
-            const _LegendNote(
-              'Data poligon KRB terverifikasi belum tersedia untuk gunung ini.',
+            _LegendNote(
+              officialKrbReference(gunung.nama) != null
+                  ? 'Overlay KRB belum tersedia. Buka peta KRB resmi pada panel laporan.'
+                  : 'Data poligon KRB terverifikasi belum tersedia untuk gunung ini.',
             )
           else ...[
             Padding(

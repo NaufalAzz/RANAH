@@ -245,13 +245,18 @@ class VolcanoMapMarker {
 /// Returns a marker only when both coordinates are in range and explicitly
 /// marked as verified against a geospatial source.
 VolcanoMapMarker? volcanoMapMarkerFrom(Map<String, dynamic> raw) {
-  if (raw['status_validasi_koordinat']?.toString().toLowerCase() !=
-      'terverifikasi') {
+  final reference = volcanoReference(raw['nama']?.toString() ?? '');
+  if (reference == null &&
+      raw['status_validasi_koordinat']?.toString().toLowerCase() !=
+          'terverifikasi') {
     return null;
   }
   final id = int.tryParse(raw['id']?.toString() ?? '');
-  final latitude = double.tryParse(raw['latitude']?.toString() ?? '');
-  final longitude = double.tryParse(raw['longitude']?.toString() ?? '');
+  final latitude =
+      reference?.latitude ?? double.tryParse(raw['latitude']?.toString() ?? '');
+  final longitude =
+      reference?.longitude ??
+      double.tryParse(raw['longitude']?.toString() ?? '');
   if (id == null ||
       latitude == null ||
       longitude == null ||

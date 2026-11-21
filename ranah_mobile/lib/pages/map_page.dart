@@ -99,6 +99,46 @@ class _MapPageState extends State<MapPage> {
     });
   }
 
+  bool _openingOverviewReport = false;
+
+  Future<void> _openOverviewReport(VolcanoReference reference) async {
+    if (_openingOverviewReport || widget.onOpenReport == null) return;
+    _openingOverviewReport = true;
+    try {
+      List<Map<String, dynamic>> records;
+      try {
+        records = (await _gunungRepository.syncGunung()).items;
+      } catch (_) {
+        records = (await _gunungRepository.readGunungCache()).items;
+      }
+      if (!mounted) return;
+      final key = normalizeVolcanoName(reference.name);
+      final matches = records
+          .where(
+            (record) =>
+                normalizeVolcanoName(record['nama']?.toString() ?? '') == key &&
+                int.tryParse(record['id']?.toString() ?? '') != null,
+          )
+          .toList();
+      if (matches.length != 1) {
+        throw StateError('Laporan ${reference.name} belum dapat ditemukan.');
+      }
+      widget.onOpenReport!(matches.single);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Laporan ${reference.name} belum tersedia. Periksa koneksi lalu coba lagi.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      _openingOverviewReport = false;
+    }
+  }
+
   @override
   void dispose() {
     if (widget.repository == null) _repository.close();
@@ -135,6 +175,7 @@ class _MapPageState extends State<MapPage> {
                   selectedDestinationId: _selectedDestination?.id,
                   onSelectDestination: _selectDestination,
                   tilesEnabled: widget.tilesEnabled,
+                  onVolcanoTap: _openOverviewReport,
                 ),
                 if (!_locationRequested) ...[
                   const SizedBox(height: 14),
@@ -853,6 +894,7 @@ class _InteractiveMobileMap extends StatelessWidget {
     required this.route,
     required this.selectedDestinationId,
     required this.onSelectDestination,
+    required this.onVolcanoTap,
     required this.tilesEnabled,
   });
 
@@ -862,6 +904,7 @@ class _InteractiveMobileMap extends StatelessWidget {
   final WalkingRoute? route;
   final String? selectedDestinationId;
   final ValueChanged<MapOsmFeature> onSelectDestination;
+  final ValueChanged<VolcanoReference> onVolcanoTap;
   final bool tilesEnabled;
 
   @override
@@ -949,17 +992,22 @@ class _InteractiveMobileMap extends StatelessWidget {
                             'overview-volcano-${normalizeVolcanoName(volcano.name)}',
                           ),
                           message: 'Gunung ${volcano.name}',
-                          triggerMode: TooltipTriggerMode.tap,
+                          triggerMode: TooltipTriggerMode.manual,
                           child: Semantics(
                             label: 'Gunung ${volcano.name}',
+                            button: true,
                             image: true,
-                            child: const Icon(
-                              Icons.terrain,
-                              color: Color(0xFF173D5B),
-                              size: 18,
-                              shadows: [
-                                Shadow(color: Colors.white, blurRadius: 3),
-                              ],
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => onVolcanoTap(volcano),
+                              child: const Icon(
+                                Icons.terrain,
+                                color: Color(0xFF173D5B),
+                                size: 18,
+                                shadows: [
+                                  Shadow(color: Colors.white, blurRadius: 3),
+                                ],
+                              ),
                             ),
                           ),
                         ),

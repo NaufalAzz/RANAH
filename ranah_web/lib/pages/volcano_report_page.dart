@@ -485,6 +485,8 @@ class _ReportPanel extends StatelessWidget {
                                 style: const TextStyle(fontSize: 12),
                               ),
                             ),
+                            if (officialKrbReference(gunung.nama) != null)
+                              OfficialKrbMapButton(name: gunung.nama),
                             const SizedBox(height: RanahSpacing.sm),
                             SizedBox(
                               height: 48,
@@ -701,7 +703,8 @@ String _coordinates(GunungRecord gunung) {
   final latitude = reference?.latitude ?? gunung.latitude;
   final longitude = reference?.longitude ?? gunung.longitude;
   if (latitude == null || longitude == null) return 'Koordinat belum tersedia.';
-  if (gunung.statusValidasiKoordinat?.toLowerCase() != 'terverifikasi') {
+  if (reference == null &&
+      gunung.statusValidasiKoordinat?.toLowerCase() != 'terverifikasi') {
     return 'Koordinat tersimpan tetapi belum terverifikasi.';
   }
   final source = _display(

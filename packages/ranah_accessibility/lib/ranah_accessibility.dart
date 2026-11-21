@@ -9,3 +9,6 @@ export 'src/eruption_region.dart';
 
 export 'src/volcano_reference.dart';
 export 'src/volcano_artwork.dart';
+
+export 'src/official_krb_reference.dart';
+export 'src/official_krb_map_button.dart';

@@ -175,6 +175,8 @@ class _GunungReportPageState extends State<GunungReportPage> {
             onOpenDetail: _openMapDetail,
             tilesEnabled: widget.showMapTiles,
           ),
+          if (officialKrbReference(gunung['nama']?.toString() ?? '') != null)
+            OfficialKrbMapButton(name: gunung['nama'].toString()),
           const SizedBox(height: 10),
           _StatusBadge(
             status: _text(gunung['status_aktivitas'], 'Belum diverifikasi'),
@@ -199,10 +201,7 @@ class _GunungReportPageState extends State<GunungReportPage> {
             rows: [
               ('Kabupaten', _text(gunung['kabupaten'], 'Belum tersedia')),
               ('Provinsi', _text(gunung['provinsi'], 'Belum tersedia')),
-              (
-                'Koordinat',
-                _coordinates(gunung['latitude'], gunung['longitude']),
-              ),
+              ('Koordinat', _coordinatesFor(gunung)),
             ],
           ),
           if (laporan != null) ...[
@@ -348,6 +347,14 @@ class _GunungReportPageState extends State<GunungReportPage> {
       return raw;
     }
     return null;
+  }
+
+  String _coordinatesFor(Map<String, dynamic> gunung) {
+    final reference = volcanoReference(gunung['nama']?.toString() ?? '');
+    if (reference != null) {
+      return '${reference.latitude}, ${reference.longitude}\nSumber: ${VolcanoReference.source}';
+    }
+    return _coordinates(gunung['latitude'], gunung['longitude']);
   }
 
   String _coordinates(dynamic latitude, dynamic longitude) {
