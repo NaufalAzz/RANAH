@@ -156,7 +156,7 @@ class _VolcanoInteractiveMapState extends State<VolcanoInteractiveMap> {
                                   padding: EdgeInsets.zero,
                                   onPressed: () => _showMarker(marker),
                                   icon: Icon(
-                                    Icons.location_on,
+                                    Icons.terrain,
                                     size: 40,
                                     color: marker.color,
                                     shadows: const [
