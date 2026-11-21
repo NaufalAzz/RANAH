@@ -2,7 +2,7 @@
 
 Cakupan: 69 nama gunung dalam referensi MAGMA yang dibundel aplikasi. Setiap nama dipasangkan secara eksplisit dengan satu sel gambar. Alias nama mengikuti `normalizeVolcanoName`; nama yang tidak dikenal tetap memakai peta lokasi.
 
-Gambar merupakan ilustrasi AI konseptual, bukan foto pengamatan atau gambaran kondisi erupsi terkini. Foto laporan dari API tetap diutamakan. Label AI muncul pada thumbnail dan panel laporan.
+Gambar merupakan ilustrasi AI konseptual, bukan foto pengamatan atau gambaran kondisi erupsi terkini. Foto laporan dari API tetap diutamakan. Thumbnail dan panel laporan menampilkan gambar tanpa label atau badge AI. Nama gunung tetap tersedia pada tooltip dan aksesibilitas.
 
 Enam atlas WebP lokal memakai kisi 4 kolom × 3 baris. Atlas terakhir memakai 9 sel; 3 sel sisanya tidak dipetakan. Pengurutan sel dari kiri ke kanan, lalu atas ke bawah. Tidak perlu layanan gambar eksternal saat aplikasi berjalan.
 

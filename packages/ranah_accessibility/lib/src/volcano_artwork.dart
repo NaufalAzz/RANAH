@@ -87,7 +87,7 @@ class VolcanoArtwork extends StatelessWidget {
   Widget build(BuildContext context) {
     final illustration = _illustrations[normalizeVolcanoName(name)];
     final tile = illustration?.$2;
-    final label = tile == null ? 'Peta lokasi · $name' : 'Ilustrasi AI · $name';
+    final label = tile == null ? 'Peta lokasi · $name' : name;
     return Semantics(
       label: label,
       image: true,
@@ -122,7 +122,7 @@ class VolcanoArtwork extends StatelessWidget {
                     ),
                   if (tile == null)
                     CustomPaint(painter: _Locator(volcanoReference(name))),
-                  if (!showLabel)
+                  if (!showLabel && tile == null)
                     Positioned(
                       right: 1,
                       bottom: 1,
@@ -133,7 +133,7 @@ class VolcanoArtwork extends StatelessWidget {
                           vertical: 1,
                         ),
                         child: Text(
-                          tile == null ? 'Peta' : 'AI',
+                          'Peta',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 8,
@@ -141,7 +141,7 @@ class VolcanoArtwork extends StatelessWidget {
                         ),
                       ),
                     ),
-                  if (showLabel)
+                  if (showLabel && tile == null)
                     Positioned(
                       left: 0,
                       right: 0,
