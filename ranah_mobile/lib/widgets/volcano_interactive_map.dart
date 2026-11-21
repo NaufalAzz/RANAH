@@ -462,7 +462,7 @@ class _VolcanoInteractiveMapState extends State<VolcanoInteractiveMap> {
                                 key: ValueKey('volcano-marker-${marker.id}'),
                                 onTap: () => _showMarker(context, marker),
                                 child: Icon(
-                                  Icons.location_on,
+                                  Icons.terrain,
                                   color: marker.color,
                                   size: 42,
                                   shadows: const [
