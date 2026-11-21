@@ -48,7 +48,6 @@ class _VolcanicActivityPageState extends State<VolcanicActivityPage> {
           ? RanahLayout.maxContentWidth
           : width;
       final horizontalInset = compact ? 8.0 : 28.0;
-      final innerWidth = contentWidth - horizontalInset * 2;
       final query = _query.trim().toLowerCase();
       final visible = widget.gunung.where((item) {
         return item.nama.toLowerCase().contains(query) ||

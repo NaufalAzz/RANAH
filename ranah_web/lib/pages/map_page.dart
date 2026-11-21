@@ -692,7 +692,6 @@ class _MapPageState extends State<MapPage> {
           ? RanahLayout.maxContentWidth
           : width;
       final horizontalInset = mobile ? 8.0 : 20.0;
-      final innerWidth = contentWidth - horizontalInset * 2;
       final viewportHeight = MediaQuery.sizeOf(context).height;
       final mapHeight = RanahMapLayout.heightFor(
         screenWidth: width,

@@ -84,7 +84,6 @@ class _EvacuationRoutePageState extends State<EvacuationRoutePage> {
           ? RanahLayout.maxContentWidth
           : constraints.maxWidth;
       final horizontalInset = mobile ? 12.0 : 28.0;
-      final innerWidth = width - horizontalInset * 2;
       final mapHeight = RanahMapLayout.heightFor(
         screenWidth: constraints.maxWidth,
         screenHeight: MediaQuery.sizeOf(context).height,

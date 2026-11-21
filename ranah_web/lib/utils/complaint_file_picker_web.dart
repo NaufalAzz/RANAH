@@ -1,23 +1,23 @@
-// ignore: deprecated_member_use, avoid_web_libraries_in_flutter
 import 'dart:async';
-import 'dart:html' as html;
+import 'dart:js_interop';
 import 'dart:typed_data';
+
+import 'package:web/web.dart' as web;
 
 import '../services/complaint_repository.dart';
 
 Future<List<ComplaintAttachment>> pickComplaintFiles() async {
-  final input = html.FileUploadInputElement()
+  final input = web.HTMLInputElement()
+    ..type = 'file'
     ..accept = 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp'
     ..multiple = true
     ..style.display = 'none';
-  html.document.body?.children.add(input);
+  web.document.body?.appendChild(input);
   try {
     final selected = await _selectFiles(input);
-    final files = selected?.toList(growable: false) ?? const <html.File>[];
+    final files = selected ?? const <web.File>[];
     if (files.length > 3) {
-      throw const ComplaintSubmissionException(
-        'Pilih maksimal tiga foto.',
-      );
+      throw const ComplaintSubmissionException('Pilih maksimal tiga foto.');
     }
 
     final attachments = <ComplaintAttachment>[];
@@ -33,19 +33,8 @@ Future<List<ComplaintAttachment>> pickComplaintFiles() async {
           'Ukuran setiap foto maksimal 5 MB.',
         );
       }
-      final reader = html.FileReader()..readAsArrayBuffer(file);
-      await Future.any([reader.onLoad.first, reader.onError.first]);
-      final result = reader.result;
-      final bytes = switch (result) {
-        Uint8List value => value,
-        ByteBuffer value => value.asUint8List(),
-        _ => null,
-      };
-      if (bytes == null) {
-        throw const ComplaintSubmissionException(
-          'Foto tidak dapat dibaca. Pilih kembali berkasnya.',
-        );
-      }
+      final buffer = await file.arrayBuffer().toDart;
+      final bytes = Uint8List.view(buffer.toDart);
       attachments.add(
         ComplaintAttachment(
           name: file.name,
@@ -60,28 +49,35 @@ Future<List<ComplaintAttachment>> pickComplaintFiles() async {
   }
 }
 
-Future<List<html.File>?> _selectFiles(html.FileUploadInputElement input) async {
-  final result = Completer<List<html.File>?>();
-  final subscription = input.onChange.listen((_) {
-    if (!result.isCompleted) result.complete(input.files);
-  });
-  void handleCancel(html.Event _) {
+Future<List<web.File>?> _selectFiles(web.HTMLInputElement input) async {
+  final result = Completer<List<web.File>?>();
+  final onChange = ((web.Event _) {
+    if (!result.isCompleted) result.complete(_selectedFiles(input.files));
+  }).toJS;
+  final onCancel = ((web.Event _) {
     if (!result.isCompleted) result.complete(null);
-  }
+  }).toJS;
 
-  // `cancel` is a browser event but isn't exposed as a typed dart:html getter
-  // by the Dart SDK bundled with this Flutter project.
-  input.addEventListener('cancel', handleCancel);
+  input.addEventListener('change', onChange);
+  input.addEventListener('cancel', onCancel);
   input.click();
   try {
     return await result.future;
   } finally {
-    input.removeEventListener('cancel', handleCancel);
-    await subscription.cancel();
+    input.removeEventListener('change', onChange);
+    input.removeEventListener('cancel', onCancel);
   }
 }
 
-String? _contentType(html.File file) {
+List<web.File> _selectedFiles(web.FileList? fileList) {
+  if (fileList == null) return const [];
+  return List<web.File?>.generate(
+    fileList.length,
+    fileList.item,
+  ).whereType<web.File>().toList(growable: false);
+}
+
+String? _contentType(web.File file) {
   final type = file.type.toLowerCase();
   if (const {'image/jpeg', 'image/png', 'image/webp'}.contains(type)) {
     return type;
