@@ -1,3 +1,4 @@
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -190,7 +191,6 @@ class _GunungReportPageState extends State<GunungReportPage> {
             _ReportCard(
               nama: _text(gunung['nama'], widget.namaGunung ?? 'Gunung api'),
               imageUrl: _imageUrl(laporan['foto']),
-              fallbackPhotoPath: laporan['foto']?.toString(),
             ),
           const SizedBox(height: 10),
           _InfoSection(
@@ -468,14 +468,9 @@ class _StatusBadge extends StatelessWidget {
 }
 
 class _ReportCard extends StatelessWidget {
-  const _ReportCard({
-    required this.nama,
-    required this.imageUrl,
-    required this.fallbackPhotoPath,
-  });
+  const _ReportCard({required this.nama, required this.imageUrl});
   final String nama;
   final String? imageUrl;
-  final String? fallbackPhotoPath;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -511,51 +506,18 @@ class _ReportCard extends StatelessWidget {
             width: double.infinity,
             height: 148,
             child: imageUrl == null
-                ? _PhotoUnavailable(path: fallbackPhotoPath)
+                ? VolcanoArtwork(name: nama)
                 : Image.network(
                     imageUrl!,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) =>
-                        _PhotoUnavailable(path: fallbackPhotoPath),
+                        VolcanoArtwork(name: nama),
                   ),
           ),
         ),
       ],
     ),
   );
-}
-
-class _PhotoUnavailable extends StatelessWidget {
-  const _PhotoUnavailable({this.path});
-  final String? path;
-
-  @override
-  Widget build(BuildContext context) {
-    final pathValue = path;
-    final hasPath = pathValue != null && pathValue.trim().isNotEmpty;
-    return Container(
-      color: const Color(0xFF23445B),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.image_not_supported_outlined,
-              color: Color(0xFFD0E0E9),
-              size: 34,
-            ),
-            const SizedBox(height: 5),
-            Text(
-              hasPath
-                  ? 'Foto belum dapat ditampilkan'
-                  : 'Foto laporan belum tersedia',
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _InfoSection extends StatelessWidget {

@@ -1,3 +1,5 @@
+import 'package:ranah_accessibility/ranah_accessibility.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -277,10 +279,7 @@ class _ReportTitleBanner extends StatelessWidget {
       color: const Color(0xFF17003E),
       child: const Row(
         children: [
-          Icon(
-            Icons.landscape_outlined,
-            size: RanahPageHeaderStyle.iconSize,
-          ),
+          Icon(Icons.landscape_outlined, size: RanahPageHeaderStyle.iconSize),
           SizedBox(width: RanahPageHeaderStyle.iconGap),
           Expanded(
             child: Column(
@@ -437,185 +436,177 @@ class _ReportPanel extends StatelessWidget {
               ),
             ],
           ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeInOut,
-            alignment: Alignment.topCenter,
-            child: collapsed
-                ? const SizedBox.shrink()
-                : ConstrainedBox(
-                    constraints: BoxConstraints(maxHeight: maxContentHeight),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: RanahSpacing.sm),
-                          AspectRatio(
-                            aspectRatio: 1.78,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(
-                                RanahRadii.xs,
+          Flexible(
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeInOut,
+              alignment: Alignment.topCenter,
+              child: collapsed
+                  ? const SizedBox.shrink()
+                  : ConstrainedBox(
+                      constraints: BoxConstraints(maxHeight: maxContentHeight),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: RanahSpacing.sm),
+                            AspectRatio(
+                              aspectRatio: 1.78,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(
+                                  RanahRadii.xs,
+                                ),
+                                child: photoUrl == null
+                                    ? VolcanoArtwork(name: gunung.nama)
+                                    : Image.network(
+                                        photoUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, error, _) {
+                                          debugPrint(
+                                            'Foto laporan gunung ${gunung.id} gagal dimuat: $error',
+                                          );
+                                          return VolcanoArtwork(
+                                            name: gunung.nama,
+                                          );
+                                        },
+                                      ),
                               ),
-                              child: photoUrl == null
-                                  ? const _ReportPhotoPlaceholder()
-                                  : Image.network(
-                                      photoUrl,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, error, _) {
-                                        debugPrint(
-                                          'Foto laporan gunung ${gunung.id} gagal dimuat: $error',
-                                        );
-                                        return const _ReportPhotoPlaceholder();
-                                      },
-                                    ),
                             ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              top: RanahSpacing.xs,
-                            ),
-                            child: Text(
-                              report == null
-                                  ? 'Foto laporan tidak tersedia.'
-                                  : photoUrl == null
-                                  ? 'Foto laporan tidak tersedia dari sumber API.'
-                                  : 'Foto dari laporan sumber.',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ),
-                          const SizedBox(height: RanahSpacing.sm),
-                          SizedBox(
-                            height: 48,
-                            child: OutlinedButton(
-                              onPressed: onToggleKrb,
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                backgroundColor: const Color(0xFF164D79),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                ),
-                                alignment: Alignment.centerLeft,
-                                side: const BorderSide(
-                                  color: Color(0xFF7AB2D2),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    RanahRadii.xs,
-                                  ),
-                                ),
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: RanahSpacing.xs,
                               ),
                               child: Text(
-                                showKrb
-                                    ? 'Sembunyikan Zona KRB'
-                                    : 'Tampilkan Peta KRB',
+                                report == null
+                                    ? 'Referensi visual gunung; bukan foto pengamatan terkini.'
+                                    : photoUrl == null
+                                    ? 'Referensi visual gunung; bukan foto pengamatan terkini.'
+                                    : 'Foto laporan bila tersedia; ilustrasi/peta sebagai referensi.',
                                 style: const TextStyle(fontSize: 12),
                               ),
                             ),
-                          ),
-                          if (showKrb)
-                            const Padding(
-                              padding: EdgeInsets.only(top: RanahSpacing.xs),
-                              child: Text(
-                                'Poligon hanya ditampilkan bila cocok dengan ID gunung dan berstatus terverifikasi. Data sumber dapat lama; bukan panduan evakuasi.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFFFFD77D),
-                                  fontWeight: FontWeight.w600,
+                            const SizedBox(height: RanahSpacing.sm),
+                            SizedBox(
+                              height: 48,
+                              child: OutlinedButton(
+                                onPressed: onToggleKrb,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  backgroundColor: const Color(0xFF164D79),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7,
+                                  ),
+                                  alignment: Alignment.centerLeft,
+                                  side: const BorderSide(
+                                    color: Color(0xFF7AB2D2),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      RanahRadii.xs,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  showKrb
+                                      ? 'Sembunyikan Zona KRB'
+                                      : 'Tampilkan Peta KRB',
+                                  style: const TextStyle(fontSize: 12),
                                 ),
                               ),
                             ),
-                          const SizedBox(height: RanahSpacing.sm),
-                          _ReportSection(
-                            title: 'Lokasi Administratif dan Geografis',
-                            body: _region(gunung),
-                          ),
-                          _ReportSection(
-                            title: 'Koordinat',
-                            body: _coordinates(gunung),
-                          ),
-                          if (report == null)
-                            const _ReportSection(
-                              title: 'Laporan Pengamatan',
-                              body: 'Belum ada laporan pengamatan tersimpan untuk gunung ini.',
-                            )
-                          else ...[
-                            _ReportSection(
-                              title: 'Periode Pengamatan',
-                              body: _period(report),
-                            ),
-                            _ReportSection(
-                              title: 'Klimatologi',
-                              body: _display(
-                                report.dataKlimatologi,
-                                'Belum tersedia pada laporan.',
-                              ),
-                            ),
-                            _ReportSection(
-                              title: 'Pengamatan Visual',
-                              body: _display(
-                                report.pengamatanVisual,
-                                'Belum tersedia pada laporan.',
-                              ),
-                            ),
-                            _ReportSection(
-                              title: 'Rekomendasi',
-                              body: _display(
-                                report.rekomendasi,
-                                'Belum tersedia pada laporan.',
-                              ),
-                            ),
-                            _ReportSection(
-                              title: 'Sumber dan Pembaruan',
-                              body:
-                                  'Sumber: ${_display(report.sumber, 'Belum tersedia')}\n'
-                                  'Waktu publikasi sumber: ${_formatDateTime(report.waktuPublikasi)}\n'
-                                  'Waktu pengambilan server: ${_formatDateTime(report.waktuPengambilan)}',
-                            ),
-                            if (_safeSourceUrl(report.urlSumber)
-                                case final url?)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  top: RanahSpacing.sm,
-                                ),
-                                child: SelectableText(
-                                  'URL sumber: ${_safeDisplayUrl(url)}',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Color(0xFFD8E6F2),
+                            if (showKrb)
+                              const Padding(
+                                padding: EdgeInsets.only(top: RanahSpacing.xs),
+                                child: Text(
+                                  'Poligon hanya ditampilkan bila cocok dengan ID gunung dan berstatus terverifikasi. Data sumber dapat lama; bukan panduan evakuasi.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFFFFD77D),
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
-                          ],
-                          const SizedBox(height: RanahSpacing.sm),
-                          const Text(
-                            'Status dan laporan berasal dari API RANAH. Peta dasar memerlukan internet. '
-                            'Batas KRB bersumber dari layer BIG bila tersedia; data dapat lama dan bukan panduan evakuasi.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFFFFD77D),
+                            const SizedBox(height: RanahSpacing.sm),
+                            _ReportSection(
+                              title: 'Lokasi Administratif dan Geografis',
+                              body: _region(gunung),
                             ),
-                          ),
-                        ],
+                            _ReportSection(
+                              title: 'Koordinat',
+                              body: _coordinates(gunung),
+                            ),
+                            if (report == null)
+                              const _ReportSection(
+                                title: 'Laporan Pengamatan',
+                                body: 'Belum ada laporan pengamatan tersimpan untuk gunung ini.',
+                              )
+                            else ...[
+                              _ReportSection(
+                                title: 'Periode Pengamatan',
+                                body: _period(report),
+                              ),
+                              _ReportSection(
+                                title: 'Klimatologi',
+                                body: _display(
+                                  report.dataKlimatologi,
+                                  'Belum tersedia pada laporan.',
+                                ),
+                              ),
+                              _ReportSection(
+                                title: 'Pengamatan Visual',
+                                body: _display(
+                                  report.pengamatanVisual,
+                                  'Belum tersedia pada laporan.',
+                                ),
+                              ),
+                              _ReportSection(
+                                title: 'Rekomendasi',
+                                body: _display(
+                                  report.rekomendasi,
+                                  'Belum tersedia pada laporan.',
+                                ),
+                              ),
+                              _ReportSection(
+                                title: 'Sumber dan Pembaruan',
+                                body:
+                                    'Sumber: ${_display(report.sumber, 'Belum tersedia')}\n'
+                                    'Waktu publikasi sumber: ${_formatDateTime(report.waktuPublikasi)}\n'
+                                    'Waktu pengambilan server: ${_formatDateTime(report.waktuPengambilan)}',
+                              ),
+                              if (_safeSourceUrl(report.urlSumber)
+                                  case final url?)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: RanahSpacing.sm,
+                                  ),
+                                  child: SelectableText(
+                                    'URL sumber: ${_safeDisplayUrl(url)}',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFFD8E6F2),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                            const SizedBox(height: RanahSpacing.sm),
+                            const Text(
+                              'Status dan laporan berasal dari API RANAH. Peta dasar memerlukan internet. '
+                              'Batas KRB bersumber dari layer BIG bila tersedia; data dapat lama dan bukan panduan evakuasi.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFFFFD77D),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
+            ),
           ),
         ],
       ),
     );
   }
-}
-
-class _ReportPhotoPlaceholder extends StatelessWidget {
-  const _ReportPhotoPlaceholder();
-
-  @override
-  Widget build(BuildContext context) => const ColoredBox(
-    color: Color(0xFF26384A),
-    child: Center(
-      child: Icon(Icons.photo_outlined, color: Color(0xFFB8C3CF), size: 32),
-    ),
-  );
 }
 
 class _ReportSection extends StatelessWidget {
@@ -706,14 +697,15 @@ String _region(GunungRecord gunung) {
 }
 
 String _coordinates(GunungRecord gunung) {
-  final latitude = gunung.latitude;
-  final longitude = gunung.longitude;
+  final reference = volcanoReference(gunung.nama);
+  final latitude = reference?.latitude ?? gunung.latitude;
+  final longitude = reference?.longitude ?? gunung.longitude;
   if (latitude == null || longitude == null) return 'Koordinat belum tersedia.';
   if (gunung.statusValidasiKoordinat?.toLowerCase() != 'terverifikasi') {
     return 'Koordinat tersimpan tetapi belum terverifikasi.';
   }
   final source = _display(
-    gunung.sumberKoordinat,
+    reference == null ? gunung.sumberKoordinat : VolcanoReference.source,
     'Sumber koordinat tidak tersedia',
   );
   return '$latitude, $longitude\nSumber: $source';

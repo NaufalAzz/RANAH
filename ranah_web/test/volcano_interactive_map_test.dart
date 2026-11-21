@@ -1,3 +1,5 @@
+import 'package:latlong2/latlong.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -18,6 +20,64 @@ void main() {
       'assets/geojson/ranah_krb_big_terverifikasi.geojson',
     );
     dataset = parseVerifiedKrbGeoJson(source);
+  });
+
+  testWidgets('Bromo marker is the official MAGMA point inside its KRB III', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: VolcanoInteractiveMap(
+            gunung: const GunungRecord(
+              id: 8,
+              nama: 'Bromo',
+              latitude: -8.016,
+              longitude: 112.9,
+              statusValidasiKoordinat: 'terverifikasi',
+            ),
+            showKrb: true,
+            tilesEnabled: false,
+            krbDataset: Future.value(dataset),
+          ),
+        ),
+      ),
+    );
+    await _pumpFrames(tester);
+    final marker = tester
+        .widget<MarkerLayer>(find.byType(MarkerLayer))
+        .markers
+        .single
+        .point;
+    expect(marker.latitude, -7.942);
+    expect(marker.longitude, 112.95);
+    final zones = dataset.features.where(
+      (f) => f.databaseVolcanoId == 8 && f.zone == 'III',
+    );
+    bool inside(List<LatLng> ring) {
+      var result = false;
+      for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        final a = ring[i], b = ring[j];
+        if ((a.latitude > marker.latitude) != (b.latitude > marker.latitude) &&
+            marker.longitude <
+                (b.longitude - a.longitude) *
+                        (marker.latitude - a.latitude) /
+                        (b.latitude - a.latitude) +
+                    a.longitude) {
+          result = !result;
+        }
+      }
+      return result;
+    }
+
+    expect(
+      zones
+          .expand((f) => f.polygons)
+          .any(
+            (p) => inside(p.points) && !(p.holePointsList ?? []).any(inside),
+          ),
+      isTrue,
+    );
   });
 
   testWidgets('shows only the selected gunung marker and matched BIG KRB', (

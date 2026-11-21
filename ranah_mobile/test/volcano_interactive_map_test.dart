@@ -22,6 +22,16 @@ void main() {
     officialPolygons = parseOfficialKrbGeoJson(officialGeoJson);
   });
 
+  test('Bromo marker uses the MAGMA crater reference instead of the displaced database point', () {
+    final raw = _item(8)
+      ..['nama'] = 'Bromo'
+      ..['latitude'] = -8.016
+      ..['longitude'] = 112.9;
+    final marker = volcanoMapMarkerFrom(raw)!;
+    expect(marker.position.latitude, -7.942);
+    expect(marker.position.longitude, 112.95);
+  });
+
   test('only verified in-range coordinates become markers', () {
     expect(volcanoMapMarkerFrom(_item(1, latitude: null)), isNull);
     expect(volcanoMapMarkerFrom(_item(1, latitude: 95)), isNull);
@@ -159,9 +169,7 @@ void main() {
     expect(find.byType(PolygonLayer), findsOneWidget);
     expect(find.byType(MarkerLayer), findsOneWidget);
     expect(
-      find.textContaining(
-        '2 dari 3 gunung memiliki koordinat BIG yang terverifikasi.',
-      ),
+      find.textContaining('2 dari 3 gunung memiliki koordinat terverifikasi.'),
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('volcano-marker-3')), findsNothing);
