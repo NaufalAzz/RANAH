@@ -244,6 +244,7 @@ class _MapPageState extends State<MapPage> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => SiagaLocationPage(
+          autoLocate: true,
           initialLocation: location == null
               ? null
               : SiagaLocation(
@@ -811,15 +812,6 @@ class _MapPageState extends State<MapPage> {
                 style: TextStyle(fontSize: 10, color: Color(0xFFD1DCE9)),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
-              child: FilledButton.icon(
-                key: const ValueKey('open-siaga-preview'),
-                onPressed: _openSiagaPreview,
-                icon: const Icon(Icons.health_and_safety_outlined),
-                label: const Text('Siaga di Lokasi Saya'),
-              ),
-            ),
             if (location == null)
               _buildMapActions(mobile)
             else
@@ -850,7 +842,7 @@ class _MapPageState extends State<MapPage> {
             SizedBox(
               width: constraints.maxWidth,
               child: const Text(
-                'Tekan tombol untuk menandai lokasi dan memuat perkiraan alamat, data gunung di wilayah, serta informasi bahaya yang tersedia.',
+                'Tekan tombol untuk melihat gunung terdekat, status, dan rekomendasi erupsi sesuai lokasi.',
                 style: TextStyle(
                   fontSize: 12,
                   color: Color(0xFFD1DCE9),
@@ -865,8 +857,8 @@ class _MapPageState extends State<MapPage> {
               label: _locationLoading
                   ? 'Mencari Lokasi...'
                   : 'Temukan Lokasi Saya',
-              description: 'Lihat lokasi perangkat dan informasi sekitar.',
-              onTap: _locationLoading ? null : _findLocation,
+              description: 'Lihat gunung terdekat dan rekomendasi erupsi.',
+              onTap: _openSiagaPreview,
               loading: _locationLoading,
             ),
             _MapAction(
@@ -1583,13 +1575,13 @@ class _MapTitleBanner extends StatelessWidget {
                   style: RanahPageHeaderStyle.kicker,
                 ),
                 Text(
-                  'Peta dan Jalur Evakuasi',
+                  'Peta dan Siaga Erupsi',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: RanahPageHeaderStyle.title,
                 ),
                 Text(
-                  'Peta interaktif dan lokasi perangkat',
+                  'Gunung api dan panduan sesuai lokasi',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: RanahPageHeaderStyle.subtitle,

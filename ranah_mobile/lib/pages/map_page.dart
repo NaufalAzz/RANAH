@@ -217,6 +217,7 @@ class _MapPageState extends State<MapPage> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => SiagaLocationPage(
+          autoLocate: true,
           initialLocation: location == null
               ? null
               : SiagaLocation(
@@ -291,19 +292,10 @@ class _MapPageState extends State<MapPage> {
                   tilesEnabled: widget.tilesEnabled,
                   onVolcanoTap: _openOverviewReport,
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-                  child: FilledButton.icon(
-                    key: const ValueKey('open-siaga-preview'),
-                    onPressed: _openSiagaPreview,
-                    icon: const Icon(Icons.health_and_safety_outlined),
-                    label: const Text('Siaga di Lokasi Saya'),
-                  ),
-                ),
                 if (!_locationRequested) ...[
                   const SizedBox(height: 14),
                   _LocationAction(
-                    onTap: _findLocation,
+                    onTap: _openSiagaPreview,
                     loading: _locationLoading,
                   ),
                 ],
@@ -945,8 +937,8 @@ class _MapTitlePanel extends StatelessWidget {
     return const AppPageBanner(
       icon: Icons.landscape_outlined,
       eyebrow: 'PETA DAN KESIAPSIAGAAN',
-      title: 'Peta dan Zona Bencana',
-      subtitle: 'Zona bahaya dan titik evakuasi',
+      title: 'Peta dan Siaga Erupsi',
+      subtitle: 'Gunung api dan panduan sesuai lokasi',
       padding: EdgeInsets.fromLTRB(
         AppSpacing.xl,
         AppSpacing.lg,
@@ -1345,7 +1337,7 @@ class _LocationAction extends StatelessWidget {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'Minta lokasi untuk melihat alamat dan informasi terkait di sekitar.',
+                        'Lihat gunung terdekat dan rekomendasi erupsi sesuai lokasi.',
                         style: TextStyle(
                           color: Color(0xFFD0C9E7),
                           fontSize: 13,

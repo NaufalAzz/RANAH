@@ -102,6 +102,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: SiagaLocationPage(
+            autoLocate: true,
             loadGuide: (_) async {
               calls++;
               return guide;
@@ -113,7 +114,6 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Gunakan Lokasi Saya'));
       await tester.pumpAndSettle();
       expect(
         find.text('Lokasi belum dapat dibaca. Pilih gunung secara manual.'),

@@ -13,6 +13,7 @@ class SiagaLocationPage extends StatefulWidget {
     required this.contacts,
     required this.onOpenReport,
     this.initialLocation,
+    this.autoLocate = false,
     this.store,
     this.voiceEngine,
     super.key,
@@ -22,6 +23,7 @@ class SiagaLocationPage extends StatefulWidget {
   final List<QuickEmergencyContact> contacts;
   final ValueChanged<SiagaGuide> onOpenReport;
   final SiagaLocation? initialLocation;
+  final bool autoLocate;
   final SiagaGuideStore? store;
   final VoiceEngine? voiceEngine;
   @override
@@ -53,6 +55,16 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
         : null;
     _selected = _location?.nearest.name;
     _restore();
+    if (widget.autoLocate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_location == null) {
+          _locate();
+        } else {
+          _load();
+        }
+      });
+    }
   }
 
   Future<void> _restore() async {
