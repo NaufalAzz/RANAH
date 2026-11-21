@@ -56,18 +56,6 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   DeviceLocationFix? _sharedLocation;
   Timer? _newsTimer;
-  Future<void> _requestStartupLocation() async {
-    try {
-      final fix =
-          await (widget.locationProvider ?? const GeolocatorLocationProvider())
-              .currentFix();
-      if (!mounted) return;
-      setState(() => _sharedLocation = fix);
-    } catch (_) {
-      /* All news remains available when location is unavailable. */
-    }
-  }
-
   int _selectedIndex = 0;
   bool _showingNotifications = false;
   String? _notificationNewsId;
@@ -91,9 +79,6 @@ class _MainShellState extends State<MainShell> {
     _newsTimer = Timer.periodic(
       const Duration(minutes: 15),
       (_) => _loadNews(),
-    );
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _requestStartupLocation(),
     );
   }
 
