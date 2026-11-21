@@ -180,9 +180,18 @@ class _MapPageState extends State<MapPage> {
       throw const FormatException('Identitas laporan tidak cocok.');
     }
     final reports = data['laporan'];
-    final report = reports is List && reports.isNotEmpty && reports.first is Map
-        ? reports.first as Map
-        : <String, dynamic>{};
+    final officialReports = reports is List
+        ? reports.whereType<Map>().where(
+            (report) =>
+                (report['gunung_id'] == null ||
+                    int.tryParse(report['gunung_id'].toString()) == id) &&
+                report['sumber']?.toString().trim().toLowerCase() ==
+                    'magma indonesia',
+          )
+        : <Map>[];
+    final report = officialReports.isEmpty
+        ? <String, dynamic>{}
+        : officialReports.first;
     return SiagaGuide(
       id: id,
       name: volcanoReference(name)!.name,

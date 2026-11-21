@@ -28,6 +28,16 @@ class MagmaHtmlParserTest extends TestCase
         self::assertNull($parser->signedReportUrl('https://magma.esdm.go.id/v1/gunung-api/laporan/123'));
     }
 
+    public function test_hyphenated_volcano_names_are_not_split_into_the_province(): void
+    {
+        $html = '<table><tr><td>Level II (Waspada)</td></tr><tr><td>Lewotobi Laki-laki - Nusa Tenggara Timur <a href="https://magma.esdm.go.id/v1/gunung-api/laporan/123?signature=fixture">Lihat laporan</a></td></tr></table>';
+
+        $rows = (new MagmaHtmlParser)->parseActivityListing($html);
+
+        self::assertSame('Lewotobi Laki-laki', $rows[0]['name']);
+        self::assertSame('Nusa Tenggara Timur', $rows[0]['province']);
+    }
+
     public function test_incomplete_empty_and_changed_activity_pages_are_rejected(): void
     {
         $parser = new MagmaHtmlParser;

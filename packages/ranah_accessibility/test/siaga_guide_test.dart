@@ -33,6 +33,35 @@ class _Voice extends VoiceEngine {
 }
 
 void main() {
+  test(
+    'period dates are localized once and numbered recommendations keep decimal distances intact',
+    () {
+      const report = SiagaGuide(
+        id: 1,
+        name: 'Marapi',
+        status: 'Level II (Waspada)',
+        period:
+            '2026-11-20T00:00:00.000000Z · 2026-11-20T00:00:00.000000Z · 00:00-24:00 WIB',
+        recommendation:
+            '1. Jarak contoh 3.5 km tetap utuh. 2. Ikuti arahan petugas. 3. Pantau informasi resmi.',
+        retrievedAt: null,
+      );
+      expect(report.displayPeriod, '20 November 2026 · 00:00-24:00 WIB');
+      expect(report.recommendationParagraphs, [
+        '1. Jarak contoh 3.5 km tetap utuh.',
+        '2. Ikuti arahan petugas.',
+        '3. Pantau informasi resmi.',
+      ]);
+      expect(report.displayRetrievedAt, 'Waktu belum tersedia');
+      expect(
+        formatSiagaTimestamp(DateTime(2026, 11, 21, 21, 36)),
+        matches(
+          r'^21 November 2026, 21\.36 (WIB|WITA|WIT|UTC(?:[+-]\d\d:\d\d)?)$',
+        ),
+      );
+    },
+  );
+
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   test(

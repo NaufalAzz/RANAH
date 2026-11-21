@@ -161,7 +161,7 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
       await _voice.speak(
         '${guide!.fromCache ? 'Panduan tersimpan. Kondisi terbaru belum dipastikan. ' : ''}'
         'Rekomendasi untuk Gunung ${guide.name}. '
-        'Periode ${guide.period}. ${guide.recommendation}',
+        'Periode ${guide.displayPeriod}. ${guide.recommendation}',
       );
     } catch (_) {
       if (mounted)
@@ -209,7 +209,31 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF102F49),
       appBar: AppBar(
-        title: const Text('Siaga di Lokasi Saya'),
+        backgroundColor: const Color(0xFF17003E),
+        foregroundColor: Colors.white,
+        toolbarHeight: MediaQuery.textScalerOf(
+          context,
+        ).scale(56).clamp(76.0, 120.0).toDouble(),
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'SIAGA ERUPSI',
+              style: TextStyle(
+                fontSize: 11,
+                color: Color(0xFFB7B9DD),
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+            Text(
+              'Siaga di Lokasi Saya',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'Kontak bantuan',
@@ -231,69 +255,114 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
+            constraints: const BoxConstraints(maxWidth: 1040),
             child: ListView(
               controller: _scroll,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
               children: [
                 if (guide != null)
-                  _section('Rekomendasi · ${guide.name}', [
-                    Text(
-                      guide.status,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      'Periode pengamatan: ${guide.period.isEmpty ? 'belum tersedia' : guide.period}',
-                    ),
-                    Text(
-                      'Data diambil: ${guide.retrievedAt?.toLocal().toString() ?? 'waktu belum tersedia'}',
-                    ),
-                    Text('Sumber: ${guide.source}'),
-                    if (guide.fromCache)
-                      const Text(
-                        'Salinan tersimpan; belum memastikan kondisi terbaru.',
-                        style: TextStyle(color: Colors.deepOrange),
-                      ),
-                    const Divider(),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        FilledButton.icon(
-                          onPressed:
-                              guide.recommendation?.trim().isNotEmpty == true
-                              ? _speak
-                              : null,
-                          icon: Icon(_speaking ? Icons.stop : Icons.volume_up),
-                          label: Text(
-                            _speaking
-                                ? 'Hentikan Suara'
-                                : 'Dengarkan Rekomendasi',
+                  _section(
+                    'Rekomendasi · ${guide.name}',
+                    [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _statusColor(
+                              guide.status,
+                            ).withValues(alpha: .13),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: _statusColor(guide.status),
+                            ),
+                          ),
+                          child: Text(
+                            guide.status,
+                            style: TextStyle(
+                              color: _statusColor(guide.status),
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                        OutlinedButton.icon(
-                          onPressed: _save,
-                          icon: const Icon(Icons.save_alt),
-                          label: const Text('Simpan Panduan Offline'),
+                      ),
+                      const SizedBox(height: 14),
+                      _metadata(
+                        Icons.event_outlined,
+                        'Periode pengamatan: ${guide.displayPeriod}',
+                      ),
+                      _metadata(
+                        Icons.update,
+                        'Data diambil: ${guide.displayRetrievedAt}',
+                      ),
+                      _metadata(
+                        Icons.verified_outlined,
+                        'Sumber: ${guide.source}',
+                      ),
+                      if (guide.fromCache)
+                        Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF0D4),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text(
+                            'Salinan tersimpan; belum memastikan kondisi terbaru.',
+                            style: TextStyle(color: Color(0xFF855000)),
+                          ),
                         ),
-                        OutlinedButton(
-                          onPressed: () => widget.onOpenReport(guide),
-                          child: const Text('Buka Laporan Gunung'),
-                        ),
-                      ],
-                    ),
-                    SelectableText(
-                      guide.recommendation?.trim().isNotEmpty == true
-                          ? guide.recommendation!
-                          : 'Rekomendasi belum tersedia pada laporan ini. Buka laporan gunung atau hubungi pihak berwenang.',
-                    ),
-                    OfficialKrbMapButton(name: guide.name),
-                    const Text(
-                      'Penyimpanan offline berisi teks laporan. Peta KRB resmi memerlukan internet.',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ]),
+                      const Divider(),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          FilledButton.icon(
+                            onPressed:
+                                guide.recommendation?.trim().isNotEmpty == true
+                                ? _speak
+                                : null,
+                            icon: Icon(
+                              _speaking ? Icons.stop : Icons.volume_up,
+                            ),
+                            label: Text(
+                              _speaking
+                                  ? 'Hentikan Suara'
+                                  : 'Dengarkan Rekomendasi',
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: _save,
+                            icon: const Icon(Icons.save_alt),
+                            label: const Text('Simpan Panduan Offline'),
+                          ),
+                          OutlinedButton(
+                            onPressed: () => widget.onOpenReport(guide),
+                            child: const Text('Buka Laporan Gunung'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (guide.recommendationParagraphs.isEmpty)
+                        const Text(
+                          'Rekomendasi belum tersedia pada laporan ini. Buka laporan gunung atau hubungi pihak berwenang.',
+                        )
+                      else
+                        for (final paragraph in guide.recommendationParagraphs)
+                          _recommendationItem(paragraph),
+                      OfficialKrbMapButton(name: guide.name),
+                      const Text(
+                        'Penyimpanan offline berisi teks laporan. Peta KRB resmi memerlukan internet.',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ],
+                    icon: Icons.landscape_rounded,
+                    subtitle: 'Rekomendasi dari laporan gunung pilihan',
+                  ),
                 _section('Panduan erupsi untuk gunung pilihan', [
                   const Text(
                     'Gunakan lokasi untuk memilih gunung terdekat atau pilih manual. '
@@ -348,7 +417,14 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
                     ),
                     items: [
                       for (final name in names)
-                        DropdownMenuItem(value: name, child: Text(name)),
+                        DropdownMenuItem(
+                          value: name,
+                          child: Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                     ],
                     onChanged: _locating || _loading
                         ? null
@@ -415,7 +491,96 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
     );
   }
 
-  Widget _section(String title, List<Widget> children) {
+  Color _statusColor(String value) {
+    final level = RegExp(
+      r'Level\s+(IV|III|II|I)\b',
+      caseSensitive: false,
+    ).firstMatch(value)?.group(1)?.toUpperCase();
+    return switch (level) {
+      'I' => const Color(0xFF12694D),
+      'II' => const Color(0xFF855600),
+      'III' => const Color(0xFFAD470B),
+      'IV' => const Color(0xFFB42336),
+      _ => const Color(0xFF52687C),
+    };
+  }
+
+  Widget _metadata(IconData icon, String text) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: const Color(0xFF59728A)),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF52677E),
+              height: 1.5,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _recommendationItem(String paragraph) {
+    final badgeSize = MediaQuery.textScalerOf(context).scale(28);
+    final match = RegExp(r'^(\d{1,2})[.)]\s+').firstMatch(paragraph);
+    final text = match == null ? paragraph : paragraph.substring(match.end);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF0F8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFD8E3EF)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: badgeSize,
+            height: badgeSize,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFF21005E),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: match == null
+                ? const Icon(Icons.info_outline, size: 17, color: Colors.white)
+                : Text(
+                    match.group(1)!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SelectableText(
+              text,
+              style: const TextStyle(
+                fontSize: 15,
+                height: 1.65,
+                color: Color(0xFF172742),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _section(
+    String title,
+    List<Widget> children, {
+    IconData icon = Icons.my_location,
+    String? subtitle,
+  }) {
     final theme = Theme.of(context);
     const ink = Color(0xFF172742);
     return Theme(
@@ -426,23 +591,67 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
       child: DefaultTextStyle(
         style: (theme.textTheme.bodyMedium ?? const TextStyle()).copyWith(
           color: ink,
+          height: 1.5,
         ),
-        child: Card(
-          color: const Color(0xFFF3F6FC),
-          margin: const EdgeInsets.only(bottom: 12),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 18),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F9FD),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFC6D8E8)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x16000000),
+                blurRadius: 14,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF21005E),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(icon, size: 24, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              height: 1.3,
+                            ),
+                          ),
+                          if (subtitle != null)
+                            Text(
+                              subtitle,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF60758B),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 18),
                 ...children,
               ],
             ),

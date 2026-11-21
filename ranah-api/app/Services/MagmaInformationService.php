@@ -2,13 +2,16 @@
 
 namespace App\Services;
 
-use App\Models\Gunung;
 use App\Models\Berita;
+use App\Models\Gunung;
 use App\Models\LaporanGunung;
 use Carbon\CarbonImmutable;
+use Closure;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 use RuntimeException;
 
 class MagmaInformationService
@@ -22,12 +25,23 @@ class MagmaInformationService
     /** Synchronizes the current listing only; it never removes records absent from MAGMA. */
     public function synchronizeActivityListing(?string $reportFor = null): int
     {
-        $activityHtml = $this->fetch(self::ACTIVITY_URL);
-        $activity = $this->parser->parseActivityListing($activityHtml);
+        return $this->storeActivityListing($this->readActivityListing(), $reportFor);
+    }
+
+    /** @return list<array{name:string,province:string,status:string,report_id:string,report_url:string}> */
+    private function readActivityListing(): array
+    {
+        $activity = $this->parser->parseActivityListing($this->fetch(self::ACTIVITY_URL));
         if ($activity === []) {
             throw new RuntimeException('MAGMA activity listing did not contain usable volcano records.');
         }
 
+        return $activity;
+    }
+
+    /** @param list<array{name:string,province:string,status:string,report_id:string,report_url:string}> $activity */
+    private function storeActivityListing(array $activity, ?string $reportFor = null): int
+    {
         $fetchedAt = now();
         $previousStatuses = [];
         foreach ($activity as $row) {
@@ -92,6 +106,66 @@ class MagmaInformationService
         return count($activity);
     }
 
+    /**
+     * @param  Closure(string, string): void|null  $progress
+     * @return array{total:int,updated:int,skipped:int,missing:int,failed:int,remaining:int,halted_status:?int,retry_after_seconds:int}
+     */
+    public function synchronizeAllReports(?Closure $progress = null): array
+    {
+        $activity = $this->readActivityListing();
+        $this->storeActivityListing($activity);
+        $summary = ['total' => count($activity), 'updated' => 0, 'skipped' => 0, 'missing' => 0,
+            'failed' => 0, 'remaining' => count($activity), 'halted_status' => null, 'retry_after_seconds' => 3600];
+        $requests = 0;
+        foreach ($activity as $row) {
+            $gunung = $this->findByNameAndProvince($row['name'], $row['province']);
+            $saved = LaporanGunung::query()->where('gunung_id', $gunung?->id)
+                ->where('sumber', self::SOURCE)->where('sumber_id', $row['report_id'])->first();
+            if ($saved !== null && trim((string) $saved->rekomendasi) !== '') {
+                $summary['skipped']++;
+                $summary['remaining']--;
+                $progress?->__invoke($row['name'], 'SUDAH TERISI');
+
+                continue;
+            }
+            if ($requests > 0) {
+                Sleep::for(3)->seconds();
+            }
+            $requests++;
+            try {
+                $this->synchronizeReportFromActivity($activity, $row['name'], $row['status'], true);
+                $complete = LaporanGunung::query()->where('gunung_id', $gunung?->id)
+                    ->where('sumber', self::SOURCE)->where('sumber_id', $row['report_id'])->first();
+                if (trim((string) $complete?->rekomendasi) === '') {
+                    $summary['missing']++;
+                    $progress?->__invoke($row['name'], 'REKOMENDASI BELUM TERSEDIA DI SUMBER');
+                } else {
+                    $summary['updated']++;
+                    $progress?->__invoke($row['name'], 'TERISI');
+                }
+            } catch (RequestException $exception) {
+                $summary['failed']++;
+                $progress?->__invoke($row['name'], 'GAGAL MENGAMBIL LAPORAN');
+                if (in_array($exception->response->status(), [403, 429], true)) {
+                    $summary['halted_status'] = $exception->response->status();
+                    $retryAfter = $exception->response->header('Retry-After');
+                    if (is_string($retryAfter) && ctype_digit($retryAfter)) {
+                        $summary['retry_after_seconds'] = max(3600, (int) $retryAfter);
+                    }
+                }
+            } catch (ConnectionException|RuntimeException) {
+                $summary['failed']++;
+                $progress?->__invoke($row['name'], 'LAPORAN BELUM DAPAT DIBACA');
+            }
+            $summary['remaining']--;
+            if ($summary['halted_status'] !== null) {
+                break;
+            }
+        }
+
+        return $summary;
+    }
+
     /** Fetches at most one exact signed detail URL selected from MAGMA's public listing. */
     public function synchronizeOneReport(string $volcanoName): int
     {
@@ -106,8 +180,8 @@ class MagmaInformationService
         array $activity,
         string $volcanoName,
         ?string $previousStatusOverride = null,
-    ): int
-    {
+        bool $preserveActivityStatus = false,
+    ): int {
         $selected = null;
         foreach ($activity as $row) {
             if ($this->normalizeName($row['name']) === $this->normalizeName($volcanoName)) {
@@ -125,7 +199,7 @@ class MagmaInformationService
         $date = $this->parseIndonesianDate($detail['period_date']);
         $fetchedAt = now();
 
-        DB::transaction(function () use ($selected, $detail, $date, $fetchedAt, $previousStatusOverride): void {
+        DB::transaction(function () use ($selected, $detail, $date, $fetchedAt, $previousStatusOverride, $preserveActivityStatus): void {
             $gunung = $this->findByNameAndProvince($selected['name'], $selected['province']);
             if ($gunung === null) {
                 throw new RuntimeException('The selected volcano must first be synchronized from the MAGMA listing.');
@@ -134,10 +208,12 @@ class MagmaInformationService
             $statusChanged = $this->isKnownActivityStatus($previousStatus)
                 && $previousStatus !== $detail['status'];
             $attributes = [
-                'status_aktivitas' => $detail['status'],
                 'sumber_data' => self::SOURCE,
                 'waktu_pengambilan' => $fetchedAt,
             ];
+            if (! $preserveActivityStatus) {
+                $attributes['status_aktivitas'] = $detail['status'];
+            }
             if ($gunung->status_validasi_koordinat !== 'terverifikasi') {
                 $attributes['latitude'] = $detail['latitude'] ?? $gunung->latitude;
                 $attributes['longitude'] = $detail['longitude'] ?? $gunung->longitude;
@@ -203,7 +279,9 @@ class MagmaInformationService
     {
         $name = preg_replace('/^Gunung\s+/iu', '', trim($name)) ?? trim($name);
 
-        return mb_strtolower(preg_replace('/[^\pL\pN]+/u', '', $name) ?? $name);
+        $normalized = mb_strtolower(preg_replace('/[^\pL\pN]+/u', '', $name) ?? $name);
+
+        return $normalized === 'lewotobilaki' ? 'lewotobilakilaki' : $normalized;
     }
 
     private function volcanoKey(string $name, string $province): string

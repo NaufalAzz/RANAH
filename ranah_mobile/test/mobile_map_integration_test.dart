@@ -360,6 +360,10 @@ class _SiagaRepository extends _FakeGunungRepository {
         },
         'laporan': [
           {
+            'rekomendasi': 'Panduan lama dari data lokal.',
+            'sumber': 'Data lokal',
+          },
+          {
             'rekomendasi': 'Arahan resmi untuk uji mobile.',
             'sumber': 'MAGMA Indonesia',
             'periode_waktu': '00:00-24:00 WIB',

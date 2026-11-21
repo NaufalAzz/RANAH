@@ -35,6 +35,12 @@ void main() {
             ),
             laporan: [
               GunungReportRecord(
+                id: 100,
+                gunungId: 731,
+                rekomendasi: 'Panduan lama dari data lokal.',
+                sumber: 'Data lokal',
+              ),
+              GunungReportRecord(
                 id: 99,
                 gunungId: 731,
                 rekomendasi: 'Arahan resmi untuk uji pratinjau.',

@@ -1,0 +1,278 @@
+[
+  {
+    "name": "Anak Krakatau",
+    "province": "Lampung"
+  },
+  {
+    "name": "Merapi",
+    "province": "Daerah Istimewa Yogyakarta dan Jawa Tengah"
+  },
+  {
+    "name": "Semeru",
+    "province": "Jawa Timur"
+  },
+  {
+    "name": "Anak Ranakah",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Awu",
+    "province": "Sulawesi Utara"
+  },
+  {
+    "name": "Banda Api",
+    "province": "Maluku"
+  },
+  {
+    "name": "Bromo",
+    "province": "Jawa Timur"
+  },
+  {
+    "name": "Dempo",
+    "province": "Sumatera Selatan"
+  },
+  {
+    "name": "Dukono",
+    "province": "Maluku Utara"
+  },
+  {
+    "name": "Gamalama",
+    "province": "Maluku Utara"
+  },
+  {
+    "name": "Gamkonora",
+    "province": "Maluku Utara"
+  },
+  {
+    "name": "Ibu",
+    "province": "Maluku Utara"
+  },
+  {
+    "name": "Ili Lewotolok",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Iya",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Karangetang",
+    "province": "Sulawesi Utara"
+  },
+  {
+    "name": "Kerinci",
+    "province": "Jambi, Sumatera Barat"
+  },
+  {
+    "name": "Lewotobi Laki-laki",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Lokon",
+    "province": "Sulawesi Utara"
+  },
+  {
+    "name": "Marapi",
+    "province": "Sumatera Barat"
+  },
+  {
+    "name": "Raung",
+    "province": "Jawa Timur"
+  },
+  {
+    "name": "Rinjani",
+    "province": "Nusa Tenggara Barat"
+  },
+  {
+    "name": "Sangeangapi",
+    "province": "Nusa Tenggara Barat"
+  },
+  {
+    "name": "Sinabung",
+    "province": "Sumatera Utara"
+  },
+  {
+    "name": "Slamet",
+    "province": "Jawa Tengah"
+  },
+  {
+    "name": "Soputan",
+    "province": "Sulawesi Utara"
+  },
+  {
+    "name": "Sorikmarapi",
+    "province": "Sumatera Utara"
+  },
+  {
+    "name": "Tambora",
+    "province": "Nusa Tenggara Barat"
+  },
+  {
+    "name": "Agung",
+    "province": "Bali"
+  },
+  {
+    "name": "Ambang",
+    "province": "Sulawesi Utara"
+  },
+  {
+    "name": "Arjuno Welirang",
+    "province": "Jawa Timur"
+  },
+  {
+    "name": "Batur",
+    "province": "Bali"
+  },
+  {
+    "name": "Batutara",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Bur Ni Telong",
+    "province": "Aceh"
+  },
+  {
+    "name": "Ciremai",
+    "province": "Jawa Barat"
+  },
+  {
+    "name": "Colo",
+    "province": "Sulawesi Tengah"
+  },
+  {
+    "name": "Dieng",
+    "province": "Jawa Tengah"
+  },
+  {
+    "name": "Ebulobo",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Egon",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Galunggung",
+    "province": "Jawa Barat"
+  },
+  {
+    "name": "Gede",
+    "province": "Jawa Barat"
+  },
+  {
+    "name": "Guntur",
+    "province": "Jawa Barat"
+  },
+  {
+    "name": "Hobal",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Ijen",
+    "province": "Jawa Timur"
+  },
+  {
+    "name": "Ile Werung",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Ili Boleng",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Inielika",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Inierie",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Kaba",
+    "province": "Bengkulu"
+  },
+  {
+    "name": "Kelimutu",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Kelud",
+    "province": "Jawa Timur"
+  },
+  {
+    "name": "Kie Besi",
+    "province": "Maluku Utara"
+  },
+  {
+    "name": "Lamongan",
+    "province": "Jawa Timur"
+  },
+  {
+    "name": "Lereboleng",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Lewotobi Perempuan",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Mahawu",
+    "province": "Sulawesi Utara"
+  },
+  {
+    "name": "Papandayan",
+    "province": "Jawa Barat"
+  },
+  {
+    "name": "Peut Sague",
+    "province": "Daerah Istimewa Aceh"
+  },
+  {
+    "name": "Rokatenda",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Ruang",
+    "province": "Sulawesi Utara"
+  },
+  {
+    "name": "Salak",
+    "province": "Jawa Barat"
+  },
+  {
+    "name": "Seulawah Agam",
+    "province": "Daerah Istimewa Aceh"
+  },
+  {
+    "name": "Sirung",
+    "province": "Nusa Tenggara Timur"
+  },
+  {
+    "name": "Sumbing",
+    "province": "Jawa Tengah"
+  },
+  {
+    "name": "Sundoro",
+    "province": "Jawa Tengah"
+  },
+  {
+    "name": "Talang",
+    "province": "Sumatera Barat"
+  },
+  {
+    "name": "Tandikat",
+    "province": "Sumatera Barat"
+  },
+  {
+    "name": "Tangkoko",
+    "province": "Sulawesi Utara"
+  },
+  {
+    "name": "Tangkuban Parahu",
+    "province": "Jawa Barat"
+  },
+  {
+    "name": "Wurlali",
+    "province": "Maluku"
+  }
+]
