@@ -19,6 +19,57 @@ import 'package:ranah_web/services/route_simulation_repository.dart';
 
 void main() {
   testWidgets(
+    'Siaga preview uses the matching API report and exposes its recommendation',
+    (tester) async {
+      int? requestedId;
+      await _pumpMap(
+        tester,
+        records: const [GunungRecord(id: 731, nama: 'Marapi')],
+        reportLoader: (id) async {
+          requestedId = id;
+          return const GunungDetailRecord(
+            gunung: GunungRecord(
+              id: 731,
+              nama: 'Marapi',
+              statusAktivitas: 'Level II (Waspada)',
+            ),
+            laporan: [
+              GunungReportRecord(
+                id: 99,
+                gunungId: 731,
+                rekomendasi: 'Arahan resmi untuk uji pratinjau.',
+                sumber: 'MAGMA Indonesia',
+                periodeWaktu: '00:00-24:00 WIB',
+              ),
+            ],
+          );
+        },
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('open-siaga-preview')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('open-siaga-preview')));
+      await tester.pumpAndSettle();
+      expect(find.text('Siaga di Lokasi Saya'), findsOneWidget);
+      tester
+          .widget<DropdownButtonFormField<String>>(
+            find.byType(DropdownButtonFormField<String>),
+          )
+          .onChanged!('Marapi');
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Tampilkan Panduan'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tampilkan Panduan'));
+      await tester.pumpAndSettle();
+      expect(requestedId, 731);
+      expect(find.text('Arahan resmi untuk uji pratinjau.'), findsOneWidget);
+      expect(find.text('Sumber: MAGMA Indonesia'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'tapping a mountain fetches API identity when no regional list has loaded',
     (tester) async {
       tester.view.physicalSize = const Size(1280, 1200);
@@ -1350,6 +1401,7 @@ Future<void> _pumpMap(
   List<GunungRecord> records = const [],
   ValueChanged<GunungRecord>? onOpenReport,
   Future<List<GunungRecord>> Function()? volcanoLoader,
+  Future<GunungDetailRecord> Function(int)? reportLoader,
   VoidCallback? onOpenEvacuation,
   AdministrativeAreaLookup? areaLookup,
   HazardAnalysisRepository? hazardAnalysisRepository,
@@ -1375,6 +1427,7 @@ Future<void> _pumpMap(
               onAreaChanged: (value) => setState(() => currentArea = value),
               gunung: records,
               volcanoLoader: volcanoLoader,
+              reportLoader: reportLoader,
               gunungLoading: false,
               gunungError: null,
               onRetryGunung: () {},

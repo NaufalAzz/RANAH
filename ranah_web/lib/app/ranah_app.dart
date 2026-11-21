@@ -407,6 +407,7 @@ class _RanahShellState extends State<RanahShell> {
     gunungError: _gunungError,
     onRetryGunung: _loadGunung,
     volcanoLoader: _gunungRepository.loadGunung,
+    reportLoader: _gunungRepository.loadDetail,
     onOpenReport: (volcano) => _openVolcanoReport(volcano, _Page.map),
     onOpenEvacuation: () => _navigate(_Page.evacuationRoute),
   );

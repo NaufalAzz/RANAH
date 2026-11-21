@@ -12,3 +12,6 @@ export 'src/volcano_artwork.dart';
 
 export 'src/official_krb_reference.dart';
 export 'src/official_krb_map_button.dart';
+
+export 'src/siaga_guide.dart';
+export 'src/siaga_location_page.dart';
