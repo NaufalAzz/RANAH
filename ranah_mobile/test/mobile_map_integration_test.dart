@@ -12,6 +12,44 @@ import 'package:ranah_mobile/services/mobile_map_repository.dart';
 
 void main() {
   testWidgets(
+    'Siaga preview resolves the selected server ID and displays the recommendation',
+    (tester) async {
+      final repository = _SiagaRepository();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MapPage(
+            repository: _FakeMapRepository(),
+            locationProvider: const _FakeLocationProvider(),
+            gunungRepository: repository,
+            tilesEnabled: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('open-siaga-preview')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('open-siaga-preview')));
+      await tester.pumpAndSettle();
+      tester
+          .widget<DropdownButtonFormField<String>>(
+            find.byType(DropdownButtonFormField<String>),
+          )
+          .onChanged!('Marapi');
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Tampilkan Panduan'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tampilkan Panduan'));
+      await tester.pumpAndSettle();
+      expect(repository.requestedId, 1);
+      expect(find.text('Arahan resmi untuk uji mobile.'), findsOneWidget);
+      expect(find.text('Sumber: MAGMA Indonesia'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'overview tap opens the matching server record with no device location',
     (tester) async {
       Map<String, dynamic>? opened;
@@ -306,4 +344,30 @@ class _FakeGunungRepository extends GunungRepository {
     lastCheckedAt: null,
     isFromCache: false,
   );
+}
+
+class _SiagaRepository extends _FakeGunungRepository {
+  int? requestedId;
+  @override
+  Future<GunungDetailSnapshot> syncDetail(int id) async {
+    requestedId = id;
+    return const GunungDetailSnapshot(
+      data: {
+        'gunung': {
+          'id': 1,
+          'nama': 'Marapi',
+          'status_aktivitas': 'Level II (Waspada)',
+        },
+        'laporan': [
+          {
+            'rekomendasi': 'Arahan resmi untuk uji mobile.',
+            'sumber': 'MAGMA Indonesia',
+            'periode_waktu': '00:00-24:00 WIB',
+          },
+        ],
+      },
+      lastCheckedAt: null,
+      isFromCache: false,
+    );
+  }
 }

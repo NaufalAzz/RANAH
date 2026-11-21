@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:ranah_accessibility/ranah_accessibility.dart';
 
 import '../models/gunung_data.dart';
+import '../data/emergency_contacts.dart';
 import '../services/administrative_area_lookup.dart';
 import '../services/browser_geolocation.dart';
 import '../services/hazard_analysis_repository.dart';
@@ -43,11 +44,13 @@ class MapPage extends StatefulWidget {
     this.osmLoader,
     this.routeSimulationRepository,
     this.volcanoLoader,
+    this.reportLoader,
     this.tilesEnabled = true,
     super.key,
   });
 
   final Future<List<GunungRecord>> Function()? volcanoLoader;
+  final Future<GunungDetailRecord> Function(int id)? reportLoader;
   final VoidCallback onActivityTap;
   final BrowserLocation? currentLocation;
   final BrowserAdministrativeArea? currentArea;
@@ -194,6 +197,85 @@ class _MapPageState extends State<MapPage> {
     } finally {
       _openingOverviewReport = false;
     }
+  }
+
+  Future<SiagaGuide> _loadSiagaGuide(String name) async {
+    final records = widget.gunung.isNotEmpty
+        ? widget.gunung
+        : _overviewRecords.isNotEmpty
+        ? _overviewRecords
+        : await widget.volcanoLoader?.call() ?? <GunungRecord>[];
+    final matches = records
+        .where(
+          (r) => normalizeVolcanoName(r.nama) == normalizeVolcanoName(name),
+        )
+        .toList();
+    if (matches.length != 1 || widget.reportLoader == null) {
+      throw StateError('Laporan tidak ditemukan.');
+    }
+    _overviewRecords = records;
+    final detail = await widget.reportLoader!(matches.single.id);
+    if (detail.gunung.id != matches.single.id ||
+        normalizeVolcanoName(detail.gunung.nama) !=
+            normalizeVolcanoName(name)) {
+      throw const FormatException('Identitas laporan tidak cocok.');
+    }
+    final report = detail.laporan.isEmpty ? null : detail.laporan.first;
+    return SiagaGuide(
+      id: detail.gunung.id,
+      name: volcanoReference(name)!.name,
+      status: detail.gunung.statusAktivitas ?? 'Belum tersedia',
+      recommendation: report?.rekomendasi,
+      period: [
+        report?.periodeMulai,
+        report?.periodeSelesai,
+        report?.periodeWaktu,
+      ].whereType<String>().where((s) => s.isNotEmpty).join(' · '),
+      retrievedAt: report?.waktuPengambilan ?? detail.gunung.waktuPengambilan,
+      source:
+          report?.sumber ?? detail.gunung.sumberData ?? 'Sumber belum tersedia',
+    );
+  }
+
+  void _openSiagaPreview() {
+    final location = widget.currentLocation;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SiagaLocationPage(
+          initialLocation: location == null
+              ? null
+              : SiagaLocation(
+                  location.latitude,
+                  location.longitude,
+                  location.accuracyMeters,
+                ),
+          readLocation: () async {
+            final fix = await widget.locationReader();
+            return SiagaLocation(
+              fix.latitude,
+              fix.longitude,
+              fix.accuracyMeters,
+            );
+          },
+          loadGuide: _loadSiagaGuide,
+          onOpenReport: (guide) {
+            Navigator.of(context).pop();
+            widget.onOpenReport(GunungRecord(id: guide.id, nama: guide.name));
+          },
+          contacts: [
+            for (final contact in emergencyContacts.take(3))
+              QuickEmergencyContact(
+                name: contact.organization,
+                numbers: contact.dialNumbers,
+                verified: contact.numberVerified,
+                icon: contact.icon,
+                source:
+                    '${contact.sourceTitle} (${contact.sourceOrganization}), ${contact.sourceAccessedAt}.\n${contact.sourceUrl}',
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -769,6 +851,15 @@ class _MapPageState extends State<MapPage> {
               child: Text(
                 'Data peta: © OpenStreetMap contributors · ODbL. Fitur lokal berstatus belum diverifikasi.',
                 style: TextStyle(fontSize: 10, color: Color(0xFFD1DCE9)),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
+              child: FilledButton.icon(
+                key: const ValueKey('open-siaga-preview'),
+                onPressed: _openSiagaPreview,
+                icon: const Icon(Icons.health_and_safety_outlined),
+                label: const Text('Siaga di Lokasi Saya'),
               ),
             ),
             if (location == null)

@@ -7,6 +7,7 @@ import 'package:ranah_accessibility/ranah_accessibility.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/mobile_map_data.dart';
+import '../data/sample_emergency_contacts.dart';
 import '../services/mobile_location_provider.dart';
 import '../services/mobile_map_repository.dart';
 import '../services/gunung_repository.dart';
@@ -139,6 +140,114 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
+  Future<SiagaGuide> _loadSiagaGuide(String name) async {
+    List<Map<String, dynamic>> records;
+    try {
+      records = (await _gunungRepository.syncGunung()).items;
+    } catch (_) {
+      records = (await _gunungRepository.readGunungCache()).items;
+    }
+    final matches = records
+        .where(
+          (r) =>
+              normalizeVolcanoName(r['nama']?.toString() ?? '') ==
+              normalizeVolcanoName(name),
+        )
+        .toList();
+    if (matches.length != 1) throw StateError('Laporan tidak ditemukan.');
+    final id = int.tryParse(matches.single['id']?.toString() ?? '');
+    if (id == null) throw StateError('ID tidak valid.');
+    Map<String, dynamic> data;
+    bool fromCache;
+    DateTime? fetchedAt;
+    try {
+      final detail = await _gunungRepository.syncDetail(id);
+      data = detail.data;
+      fromCache = detail.isFromCache;
+      fetchedAt = detail.lastCheckedAt;
+    } catch (_) {
+      final detail = await _gunungRepository.readDetailCache(id);
+      if (detail == null) rethrow;
+      data = detail.data;
+      fromCache = true;
+      fetchedAt = detail.lastCheckedAt;
+    }
+    final gunung = data['gunung'];
+    if (gunung is! Map ||
+        int.tryParse(gunung['id']?.toString() ?? '') != id ||
+        normalizeVolcanoName(gunung['nama']?.toString() ?? '') !=
+            normalizeVolcanoName(name)) {
+      throw const FormatException('Identitas laporan tidak cocok.');
+    }
+    final reports = data['laporan'];
+    final report = reports is List && reports.isNotEmpty && reports.first is Map
+        ? reports.first as Map
+        : <String, dynamic>{};
+    return SiagaGuide(
+      id: id,
+      name: volcanoReference(name)!.name,
+      status: gunung['status_aktivitas']?.toString() ?? 'Belum tersedia',
+      recommendation: report['rekomendasi']?.toString(),
+      period: [
+        report['periode_mulai'],
+        report['periode_selesai'],
+        report['periode_waktu'],
+      ].whereType<String>().where((s) => s.isNotEmpty).join(' · '),
+      retrievedAt:
+          DateTime.tryParse(
+            (report['waktu_pengambilan'] ?? gunung['waktu_pengambilan'])
+                    ?.toString() ??
+                '',
+          ) ??
+          fetchedAt,
+      source:
+          (report['sumber'] ?? gunung['sumber_data'])?.toString() ??
+          'Sumber belum tersedia',
+      fromCache: fromCache,
+    );
+  }
+
+  void _openSiagaPreview() {
+    final location = _location;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SiagaLocationPage(
+          initialLocation: location == null
+              ? null
+              : SiagaLocation(
+                  location.latitude,
+                  location.longitude,
+                  location.accuracyMeters,
+                ),
+          readLocation: () async {
+            final fix = await _locationProvider.currentFix();
+            return SiagaLocation(
+              fix.latitude,
+              fix.longitude,
+              fix.accuracyMeters,
+            );
+          },
+          loadGuide: _loadSiagaGuide,
+          onOpenReport: (guide) {
+            Navigator.of(context).pop();
+            widget.onOpenReport?.call({'id': guide.id, 'nama': guide.name});
+          },
+          contacts: [
+            for (final contact in sampleEmergencyContacts.take(3))
+              QuickEmergencyContact(
+                name: contact.organization,
+                numbers: contact.dialNumbers,
+                verified: contact.numberVerified,
+                icon: contact.icon,
+                source:
+                    '${contact.sourceTitle} (${contact.sourceOrganization}), ${contact.sourceAccessedAt}.\n${contact.sourceUrl}',
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     if (widget.repository == null) _repository.close();
@@ -176,6 +285,15 @@ class _MapPageState extends State<MapPage> {
                   onSelectDestination: _selectDestination,
                   tilesEnabled: widget.tilesEnabled,
                   onVolcanoTap: _openOverviewReport,
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+                  child: FilledButton.icon(
+                    key: const ValueKey('open-siaga-preview'),
+                    onPressed: _openSiagaPreview,
+                    icon: const Icon(Icons.health_and_safety_outlined),
+                    label: const Text('Siaga di Lokasi Saya'),
+                  ),
                 ),
                 if (!_locationRequested) ...[
                   const SizedBox(height: 14),

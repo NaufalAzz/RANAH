@@ -73,7 +73,7 @@ List<web.File> _selectedFiles(web.FileList? fileList) {
   if (fileList == null) return const [];
   return List<web.File?>.generate(
     fileList.length,
-    fileList.item,
+    (index) => fileList.item(index),
   ).whereType<web.File>().toList(growable: false);
 }
 
