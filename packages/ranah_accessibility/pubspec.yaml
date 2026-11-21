@@ -17,3 +17,8 @@ dev_dependencies:
 flutter:
   assets:
     - assets/volcano-atlas.webp
+    - assets/volcano-atlas-1.webp
+    - assets/volcano-atlas-2.webp
+    - assets/volcano-atlas-3.webp
+    - assets/volcano-atlas-4.webp
+    - assets/volcano-atlas-5.webp
