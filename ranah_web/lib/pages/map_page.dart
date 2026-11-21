@@ -20,8 +20,6 @@ import '../widgets/ranah_header.dart';
 typedef BrowserLocationReader = Future<BrowserLocation> Function();
 typedef MapOsmReferenceLoader = Future<OsmAssemblyPointDataset> Function();
 
-enum _LocationUseChoice { locationAndRoute, locationOnly, cancel }
-
 const _maximumAutomaticRouteDistanceKm = 10.0;
 
 class MapPage extends StatefulWidget {
@@ -76,7 +74,6 @@ class MapPage extends StatefulWidget {
 
 class _MapPageState extends State<MapPage> {
   bool _locationLoading = false;
-  bool _locationConsentGranted = false;
   bool _routingConsentGranted = false;
   bool _areaLoading = false;
   String? _areaError;
@@ -544,52 +541,8 @@ class _MapPageState extends State<MapPage> {
 
   Future<void> _findLocation() async {
     if (_locationLoading) return;
-    var routeAfterLocation = _routingConsentGranted;
-    if (!_locationConsentGranted) {
-      final choice = await showDialog<_LocationUseChoice>(
-        context: context,
-        builder: (dialogContext) => _RanahConsentDialog(
-          title: const Text('Pilih penggunaan lokasi'),
-          content: const Text(
-            'Lokasi perangkat diproses oleh server RANAH untuk alamat, gunung '
-            'sekitar, dan analisis bahaya. Jika memilih simulasi jalur, koordinat '
-            'juga diteruskan ke Valhalla demo. Pilihan lokasi saja tidak '
-            'mengirim koordinat ke penyedia routing.',
-          ),
-          actions: [
-            OutlinedButton(
-              style: _consentSecondaryButtonStyle,
-              key: const ValueKey('cancel-location-use'),
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(_LocationUseChoice.cancel),
-              child: const Text('Batalkan'),
-            ),
-            OutlinedButton(
-              style: _consentSecondaryButtonStyle,
-              key: const ValueKey('accept-location-only'),
-              onPressed: () =>
-                  Navigator.of(dialogContext)
-                      .pop(_LocationUseChoice.locationOnly),
-              child: const Text('Gunakan lokasi saja'),
-            ),
-            FilledButton(
-              style: _consentPrimaryButtonStyle,
-              key: const ValueKey('accept-location-and-route'),
-              onPressed: () =>
-                  Navigator.of(dialogContext)
-                      .pop(_LocationUseChoice.locationAndRoute),
-              child: const Text('Lokasi + simulasi jalur'),
-            ),
-          ],
-        ),
-      );
-      if (!mounted || choice == null || choice == _LocationUseChoice.cancel) {
-        return;
-      }
-      _locationConsentGranted = true;
-      routeAfterLocation = choice == _LocationUseChoice.locationAndRoute;
-      _routingConsentGranted = routeAfterLocation;
-    }
+    _routingConsentGranted = true;
+    const routeAfterLocation = true;
     setState(() => _locationLoading = true);
     try {
       final location = await widget.locationReader().timeout(

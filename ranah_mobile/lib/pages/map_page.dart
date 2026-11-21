@@ -16,8 +16,6 @@ import '../widgets/app_background.dart';
 import '../widgets/app_card_surface.dart';
 import '../widgets/app_page_banner.dart';
 
-enum _LocationConsent { locationAndRoute, locationOnly, cancel }
-
 class MapPage extends StatefulWidget {
   const MapPage({
     this.initialLocation,
@@ -50,7 +48,6 @@ class _MapPageState extends State<MapPage> {
   late final GunungRepository _gunungRepository;
   bool _locationLoading = false;
   bool _locationRequested = false;
-  bool _locationConsentGiven = false;
   bool _routeConsentGiven = false;
   bool _addressLoading = false;
   bool _hazardLoading = false;
@@ -94,7 +91,6 @@ class _MapPageState extends State<MapPage> {
   }
 
   void _useSharedLocation() {
-    _locationConsentGiven = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _findLocation();
     });
@@ -373,43 +369,8 @@ class _MapPageState extends State<MapPage> {
 
   Future<void> _findLocation() async {
     if (_locationLoading) return;
-    var routeAfterLocation = _routeConsentGiven;
-    if (!_locationConsentGiven) {
-      final choice = await showDialog<_LocationConsent>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Pilih penggunaan lokasi'),
-          content: const Text(
-            'Lokasi dipakai untuk meminta alamat, gunung sekitar, analisis bahaya, dan referensi OSM melalui server RANAH. Jika memilih simulasi jalur, koordinat juga diteruskan server ke penyedia Valhalla untuk menghitung rute. Tujuan dan keamanan akses belum diverifikasi.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, _LocationConsent.cancel),
-              child: const Text('Batalkan'),
-            ),
-            OutlinedButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, _LocationConsent.locationOnly),
-              child: const Text('Gunakan lokasi saja'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(
-                dialogContext,
-                _LocationConsent.locationAndRoute,
-              ),
-              child: const Text('Lokasi + simulasi jalur'),
-            ),
-          ],
-        ),
-      );
-      if (!mounted || choice == null || choice == _LocationConsent.cancel) {
-        return;
-      }
-      _locationConsentGiven = true;
-      routeAfterLocation = choice == _LocationConsent.locationAndRoute;
-      _routeConsentGiven = routeAfterLocation;
-    }
+    _routeConsentGiven = true;
+    const routeAfterLocation = true;
     setState(() {
       _locationRequested = true;
       _locationLoading = true;
@@ -496,7 +457,6 @@ class _MapPageState extends State<MapPage> {
     );
     setState(() {
       _locationRequested = false;
-      _locationConsentGiven = false;
       _routeConsentGiven = false;
       _locationLoading = false;
       _addressLoading = false;

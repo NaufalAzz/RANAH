@@ -182,9 +182,6 @@ void main() {
     final locationButton = find.text('Temukan Lokasi Saya');
     await tester.tap(locationButton);
     await tester.pumpAndSettle();
-    expect(repository.routeCalls, 0);
-    await tester.tap(find.text('Lokasi + simulasi jalur'));
-    await tester.pumpAndSettle();
 
     expect(repository.addressCalls, 1);
     expect(repository.hazardCalls, 1);
@@ -192,38 +189,6 @@ void main() {
     expect(repository.routeCalls, 1);
     expect(find.textContaining('1.50 km'), findsOneWidget);
     expect(find.textContaining('bukan panduan evakuasi'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('location-only consent never sends coordinates to routing', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(390, 1600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final repository = _FakeMapRepository();
-    await tester.pumpWidget(
-      MaterialApp(
-        home: MapPage(
-          repository: repository,
-          locationProvider: const _FakeLocationProvider(),
-          gunungRepository: _FakeGunungRepository(),
-          tilesEnabled: false,
-        ),
-      ),
-    );
-    expect(find.byType(MapPage), findsOneWidget);
-    expect(find.byType(ListView), findsOneWidget);
-    final locationButton = find.text('Temukan Lokasi Saya');
-    await tester.tap(locationButton);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Gunakan lokasi saja'));
-    await tester.pumpAndSettle();
-    expect(repository.addressCalls, 1);
-    expect(repository.hazardCalls, 1);
-    expect(repository.osmCalls, 1);
-    expect(repository.routeCalls, 0);
     expect(tester.takeException(), isNull);
   });
 }

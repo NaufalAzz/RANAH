@@ -400,9 +400,6 @@ void main() {
       await tester.ensureVisible(locationButton);
       await tester.tap(locationButton);
       await tester.pumpAndSettle();
-      expect(requests, 0);
-      await tester.tap(find.byKey(const ValueKey('accept-location-and-route')));
-      await tester.pumpAndSettle();
 
       expect(requests, 1);
       expect(sentRequest!.url.path, '/api/peta/rute-simulasi');
@@ -567,7 +564,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('location consent is shown before geolocation is requested', (
+  testWidgets('map button requests location without an extra choice', (
     tester,
   ) async {
     var requests = 0;
@@ -578,22 +575,13 @@ void main() {
         return const BrowserLocation(latitude: -0.91, longitude: 100.46);
       },
     );
+    expect(requests, 0);
     final button = find.byKey(const ValueKey('find-device-location'));
     await tester.ensureVisible(button);
     await tester.tap(button);
     await tester.pumpAndSettle();
-
-    expect(find.text('Pilih penggunaan lokasi'), findsOneWidget);
-    expect(find.byKey(const ValueKey('accept-location-only')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('accept-location-and-route')),
-      findsOneWidget,
-    );
-    expect(requests, 0);
-    await tester.tap(find.text('Batalkan'));
-    await tester.pumpAndSettle();
-    expect(requests, 0);
-    expect(find.text('Lokasi Anda'), findsNothing);
+    expect(requests, 1);
+    expect(find.text('Pilih penggunaan lokasi'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
