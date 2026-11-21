@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/mobile_map_data.dart';
@@ -130,7 +131,6 @@ class _MapPageState extends State<MapPage> {
                   controller: _mapController,
                   location: _location,
                   features: _osm?.features ?? const [],
-                  volcanoes: _nearbyVolcanoes,
                   route: _route,
                   selectedDestinationId: _selectedDestination?.id,
                   onSelectDestination: _selectDestination,
@@ -320,7 +320,12 @@ class _MapPageState extends State<MapPage> {
   void _backToMapStart() {
     _locationGeneration++;
     _routeGeneration++;
-    _mapController.move(const LatLng(-0.9147, 100.4668), 5);
+    _mapController.fitCamera(
+      CameraFit.bounds(
+        bounds: LatLngBounds(const LatLng(-11, 94), const LatLng(6, 141)),
+        padding: const EdgeInsets.all(16),
+      ),
+    );
     setState(() {
       _locationRequested = false;
       _locationConsentGiven = false;
@@ -845,7 +850,6 @@ class _InteractiveMobileMap extends StatelessWidget {
     required this.controller,
     required this.location,
     required this.features,
-    required this.volcanoes,
     required this.route,
     required this.selectedDestinationId,
     required this.onSelectDestination,
@@ -855,7 +859,6 @@ class _InteractiveMobileMap extends StatelessWidget {
   final MapController controller;
   final DeviceLocationFix? location;
   final List<MapOsmFeature> features;
-  final List<Map<String, dynamic>> volcanoes;
   final WalkingRoute? route;
   final String? selectedDestinationId;
   final ValueChanged<MapOsmFeature> onSelectDestination;
@@ -864,7 +867,7 @@ class _InteractiveMobileMap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final center = location == null
-        ? const LatLng(-0.9147, 100.4668)
+        ? const LatLng(-2.5, 118)
         : LatLng(location!.latitude, location!.longitude);
     final polygons = features
         .where(
@@ -877,30 +880,6 @@ class _InteractiveMobileMap extends StatelessWidget {
           (feature) => feature.geometryType == 'Point' && feature.point != null,
         )
         .toList();
-    final volcanoMarkers = volcanoes
-        .map((record) {
-          final latitude = double.tryParse(
-            record['latitude']?.toString() ?? '',
-          );
-          final longitude = double.tryParse(
-            record['longitude']?.toString() ?? '',
-          );
-          if (record['status_validasi_koordinat']?.toString().toLowerCase() !=
-                  'terverifikasi' ||
-              latitude == null ||
-              longitude == null ||
-              !latitude.isFinite ||
-              !longitude.isFinite ||
-              latitude < -90 ||
-              latitude > 90 ||
-              longitude < -180 ||
-              longitude > 180) {
-            return null;
-          }
-          return (record: record, point: LatLng(latitude, longitude));
-        })
-        .whereType<({Map<String, dynamic> record, LatLng point})>()
-        .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -911,8 +890,17 @@ class _InteractiveMobileMap extends StatelessWidget {
               mapController: controller,
               options: MapOptions(
                 initialCenter: center,
-                initialZoom: location == null ? 5 : 10,
-                minZoom: 3,
+                initialCameraFit: location == null
+                    ? CameraFit.bounds(
+                        bounds: LatLngBounds(
+                          const LatLng(-11, 94),
+                          const LatLng(6, 141),
+                        ),
+                        padding: const EdgeInsets.all(16),
+                      )
+                    : null,
+                initialZoom: location == null ? 4.2 : 10,
+                minZoom: 2,
                 maxZoom: 18,
               ),
               children: [
@@ -950,6 +938,32 @@ class _InteractiveMobileMap extends StatelessWidget {
                   ),
                 MarkerLayer(
                   markers: [
+                    // Location references only: no activity level or KRB overlay.
+                    for (final volcano in volcanoReferences.values)
+                      Marker(
+                        point: LatLng(volcano.latitude, volcano.longitude),
+                        width: 32,
+                        height: 32,
+                        child: Tooltip(
+                          key: ValueKey(
+                            'overview-volcano-${normalizeVolcanoName(volcano.name)}',
+                          ),
+                          message: 'Gunung ${volcano.name}',
+                          triggerMode: TooltipTriggerMode.tap,
+                          child: Semantics(
+                            label: 'Gunung ${volcano.name}',
+                            image: true,
+                            child: const Icon(
+                              Icons.terrain,
+                              color: Color(0xFF173D5B),
+                              size: 18,
+                              shadows: [
+                                Shadow(color: Colors.white, blurRadius: 3),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     for (final feature in points)
                       Marker(
                         point: feature.point!,
@@ -968,23 +982,6 @@ class _InteractiveMobileMap extends StatelessWidget {
                                   : const Color(0xFF59D1D4),
                               size: 42,
                             ),
-                          ),
-                        ),
-                      ),
-                    for (final volcano in volcanoMarkers)
-                      Marker(
-                        point: volcano.point,
-                        width: 42,
-                        height: 48,
-                        child: Tooltip(
-                          message:
-                              '${volcano.record['nama'] ?? 'Gunung api'} · ${volcano.record['status_aktivitas'] ?? 'Status belum diketahui'}',
-                          child: Icon(
-                            Icons.terrain,
-                            color: _volcanoColor(
-                              volcano.record['status_aktivitas']?.toString(),
-                            ),
-                            size: 32,
                           ),
                         ),
                       ),
