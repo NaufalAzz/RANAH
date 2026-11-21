@@ -13,13 +13,18 @@ use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
 
-#[Signature('ranah:sync-magma {--gunung= : Simpan satu laporan terbaru untuk nama gunung yang dipilih}')]
+#[Signature('ranah:sync-magma {--gunung= : Simpan satu laporan terbaru untuk nama gunung yang dipilih} {--semua-laporan : Lengkapi laporan seluruh gunung secara bertahap}')]
 #[Description('Sinkronisasi manual berfrekuensi rendah dari halaman publik MAGMA Indonesia.')]
 class SyncMagmaInformation extends Command
 {
     public function handle(MagmaInformationService $service): int
     {
-        $lock = Cache::lock('ranah:magma-sync-lock', 90);
+        if ($this->option('semua-laporan') && trim((string) $this->option('gunung')) !== '') {
+            $this->error('Pilih --gunung atau --semua-laporan, bukan keduanya.');
+
+            return self::INVALID;
+        }
+        $lock = Cache::lock('ranah:magma-sync-lock', $this->option('semua-laporan') ? 1800 : 90);
         if (! $lock->get()) {
             $this->warn('Sinkronisasi MAGMA lain sedang berjalan. Tidak ada permintaan baru yang dikirim.');
 
@@ -27,11 +32,32 @@ class SyncMagmaInformation extends Command
         }
 
         try {
-            $nextAllowedAt = Cache::get('ranah:magma-next-allowed-at');
+            $cooldownKey = $this->option('semua-laporan') ? 'ranah:magma-all-reports-next-allowed-at' : 'ranah:magma-next-allowed-at';
+            $nextAllowedAt = Cache::get($cooldownKey);
+            $sourceBackoff = Cache::get('ranah:magma-source-backoff-until');
+            if ($sourceBackoff instanceof \DateTimeInterface && ($nextAllowedAt === null || $sourceBackoff > $nextAllowedAt)) {
+                $nextAllowedAt = $sourceBackoff;
+            }
             if ($nextAllowedAt instanceof \DateTimeInterface && $nextAllowedAt > now()) {
                 $this->warn('Sinkronisasi MAGMA dibatasi frekuensinya; coba lagi setelah '.$nextAllowedAt->format('d/m/Y H:i T').'.');
 
                 return self::FAILURE;
+            }
+
+            if ($this->option('semua-laporan')) {
+                $this->info('Melengkapi laporan satu per satu. Laporan lengkap dilewati; jeda antarunduhan 3 detik.');
+                $summary = $service->synchronizeAllReports(fn (string $name, string $status) => $this->line($name.' — '.$status));
+                $this->info('Total: '.$summary['total'].' | Terisi: '.$summary['updated'].' | Sudah terisi: '.$summary['skipped']
+                    .' | Sumber belum menyediakan rekomendasi: '.$summary['missing'].' | Gagal: '.$summary['failed'].' | Belum diproses: '.$summary['remaining']);
+                $retryAt = $summary['halted_status'] === 429 ? now()->addSeconds($summary['retry_after_seconds'])
+                    : ($summary['failed'] > 0 || $summary['missing'] > 0 ? now()->addMinutes(15) : now()->addHours(6));
+                Cache::put($cooldownKey, $retryAt, $retryAt);
+                if ($summary['halted_status'] !== null) {
+                    Cache::put('ranah:magma-source-backoff-until', $retryAt, $retryAt);
+                    $this->warn('Proses dihentikan karena sumber menolak atau membatasi akses. Data yang berhasil tetap tersimpan.');
+                }
+
+                return $summary['failed'] + $summary['missing'] + $summary['remaining'] === 0 ? self::SUCCESS : self::FAILURE;
             }
 
             $name = trim((string) $this->option('gunung'));
@@ -47,13 +73,19 @@ class SyncMagmaInformation extends Command
 
             return self::SUCCESS;
         } catch (Throwable $exception) {
-            Cache::put('ranah:magma-next-allowed-at', now()->addMinutes(15), now()->addMinutes(15));
+            $failureUntil = now()->addMinutes(15);
+            Cache::put($cooldownKey, $failureUntil, $failureUntil);
+            Cache::put('ranah:magma-source-backoff-until', $failureUntil, $failureUntil);
             $context = ['exception_class' => $exception::class];
             if ($exception instanceof RequestException) {
                 $context['http_status'] = $exception->response->status();
                 $context['failure_category'] = $exception->response->status() === 429 ? 'rate_limited' : 'http_status_failure';
                 if ($exception->response->status() === 429) {
-                    Cache::put('ranah:magma-next-allowed-at', now()->addHour(), now()->addHour());
+                    $retryAfter = $exception->response->header('Retry-After');
+                    $retrySeconds = is_string($retryAfter) && ctype_digit($retryAfter) ? max(3600, (int) $retryAfter) : 3600;
+                    $failureUntil = now()->addSeconds($retrySeconds);
+                    Cache::put($cooldownKey, $failureUntil, $failureUntil);
+                    Cache::put('ranah:magma-source-backoff-until', $failureUntil, $failureUntil);
                 }
             } elseif ($exception instanceof ConnectionException) {
                 $context['failure_category'] = preg_match('/timed?\s*out|timeout/i', $exception->getMessage()) === 1

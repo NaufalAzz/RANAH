@@ -54,6 +54,33 @@ class SiagaGuide {
   final DateTime? retrievedAt;
   final bool fromCache;
 
+  String get displayPeriod => formatSiagaPeriod(period);
+  String get displayRetrievedAt => formatSiagaTimestamp(retrievedAt);
+
+  List<String> get recommendationParagraphs {
+    final text = recommendation?.trim() ?? '';
+    if (text.isEmpty) return const [];
+    final markers = RegExp(
+      r'(?:^|\s)(\d{1,2})[.)]\s+',
+    ).allMatches(text).toList();
+    if (markers.length < 2) return [text];
+    final paragraphs = <String>[];
+    final intro = text.substring(0, markers.first.start).trim();
+    if (intro.isNotEmpty && intro.toLowerCase() != 'rekomendasi')
+      paragraphs.add(intro);
+    for (var i = 0; i < markers.length; i++) {
+      paragraphs.add(
+        text
+            .substring(
+              markers[i].start,
+              i + 1 < markers.length ? markers[i + 1].start : text.length,
+            )
+            .trim(),
+      );
+    }
+    return paragraphs;
+  }
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
@@ -112,4 +139,48 @@ class SiagaGuideStore {
       return null;
     }
   }
+}
+
+const _siagaMonths = [
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
+];
+
+String _siagaDate(DateTime date) =>
+    '${date.day} ${_siagaMonths[date.month - 1]} ${date.year}';
+
+String formatSiagaPeriod(String value) {
+  final parts = <String>{};
+  for (final raw in value.split('·')) {
+    final part = raw.trim();
+    if (part.isEmpty) continue;
+    final date = DateTime.tryParse(part);
+    parts.add(date == null ? part : _siagaDate(date));
+  }
+  return parts.isEmpty ? 'Periode belum tersedia' : parts.join(' · ');
+}
+
+String formatSiagaTimestamp(DateTime? value) {
+  if (value == null) return 'Waktu belum tersedia';
+  final local = value.toLocal();
+  final minutes = local.timeZoneOffset.inMinutes;
+  final zone = switch (minutes) {
+    420 => 'WIB',
+    480 => 'WITA',
+    540 => 'WIT',
+    0 => 'UTC',
+    _ =>
+      'UTC${minutes < 0 ? '-' : '+'}${(minutes.abs() ~/ 60).toString().padLeft(2, '0')}:${(minutes.abs() % 60).toString().padLeft(2, '0')}',
+  };
+  return '${_siagaDate(local)}, ${local.hour.toString().padLeft(2, '0')}.${local.minute.toString().padLeft(2, '0')} $zone';
 }

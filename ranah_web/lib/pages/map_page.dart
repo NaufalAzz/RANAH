@@ -220,7 +220,12 @@ class _MapPageState extends State<MapPage> {
             normalizeVolcanoName(name)) {
       throw const FormatException('Identitas laporan tidak cocok.');
     }
-    final report = detail.laporan.isEmpty ? null : detail.laporan.first;
+    final officialReports = detail.laporan.where(
+      (report) =>
+          (report.gunungId == null || report.gunungId == detail.gunung.id) &&
+          report.sumber?.trim().toLowerCase() == 'magma indonesia',
+    );
+    final report = officialReports.isEmpty ? null : officialReports.first;
     return SiagaGuide(
       id: detail.gunung.id,
       name: volcanoReference(name)!.name,

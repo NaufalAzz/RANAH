@@ -44,7 +44,7 @@ class MagmaHtmlParser
                     $cells = $xpath->query('./td', $tableRow);
                     $label = trim(preg_replace('/\s+/u', ' ', $cells?->item(0)?->textContent ?? '') ?? '');
                     $label = trim(preg_replace('/\s*Lihat laporan\s*$/iu', '', $label) ?? $label);
-                    if ($status === null || ! preg_match('/^(.+?)\s*[-–]\s*(.+)$/u', $label, $locationMatch)) {
+                    if ($status === null || ! preg_match('/^(.+?)\s+[-–]\s+(.+)$/u', $label, $locationMatch)) {
                         continue;
                     }
 
