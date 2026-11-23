@@ -24,8 +24,32 @@ void main() {
       int? requestedId;
       await _pumpMap(
         tester,
-        locationReader: () async =>
-            const BrowserLocation(latitude: -0.381, longitude: 100.473),
+        locationReader: () async => const BrowserLocation(
+          latitude: -0.381,
+          longitude: 100.473,
+          accuracyMeters: 20,
+        ),
+        hazardAnalysisRepository: _FakeHazardAnalysisRepository(
+          () async => const HazardAnalysisResult(
+            analyzedAt: null,
+            volcano: VolcanoHazardResult(
+              status: 'hasil_tersedia',
+              explanation: '',
+              method: '',
+              source: '',
+              sourceUrl: '',
+              limitations: '',
+              features: [
+                KrbFeatureMatch(
+                  volcanoName: 'Marapi',
+                  zone: 'KRB II',
+                  sourceFeatureId: 1,
+                  mapYear: 2010,
+                ),
+              ],
+            ),
+          ),
+        ),
         records: const [GunungRecord(id: 731, nama: 'Marapi')],
         reportLoader: (id) async {
           requestedId = id;
@@ -59,7 +83,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('find-device-location')));
       await tester.pumpAndSettle();
-      expect(find.text('Siaga Erupsi · Marapi'), findsOneWidget);
+      expect(find.text('Perhatikan rekomendasi Gunung Marapi'), findsOneWidget);
       expect(requestedId, 731);
       expect(
         find.textContaining('Arahan resmi untuk uji pratinjau.'),
@@ -103,6 +127,33 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('overview marker uses its reported activity level color', (
+    tester,
+  ) async {
+    await _pumpMap(
+      tester,
+      records: const [
+        GunungRecord(
+          id: 1,
+          nama: 'Marapi',
+          statusAktivitas: 'Level III (Siaga)',
+        ),
+      ],
+    );
+    final marker = tester
+        .widget<MarkerLayer>(find.byType(MarkerLayer))
+        .markers
+        .singleWhere(
+          (marker) =>
+              marker.child is Tooltip &&
+              (marker.child as Tooltip).key ==
+                  const ValueKey('overview-volcano-marapi'),
+        );
+    final icon =
+        ((marker.child as Tooltip).child as Semantics).child as GestureDetector;
+    expect((icon.child as Icon).color, eruptionActivityColor('Level III'));
+  });
 
   testWidgets(
     'overview icons resolve exact API IDs and aliases without guessing',
