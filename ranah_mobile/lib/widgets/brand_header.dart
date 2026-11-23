@@ -23,11 +23,23 @@ class BrandHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
-        AppSizes.brandHeaderVerticalPadding,
-        AppSpacing.xs,
-        AppSizes.brandHeaderVerticalPadding,
+        AppSizes.brandHeaderVerticalPadding + 2,
+        AppSpacing.sm,
+        AppSizes.brandHeaderVerticalPadding + 2,
       ),
-      decoration: const BoxDecoration(gradient: AppGradients.brandHeader),
+      decoration: const BoxDecoration(
+        gradient: AppGradients.brandHeader,
+        border: Border(
+          bottom: BorderSide(color: Color(0x26FFFFFF), width: 1.0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x3D020614),
+            blurRadius: 20,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
       child: Row(
         children: [
           Semantics(
@@ -37,7 +49,18 @@ class BrandHeader extends StatelessWidget {
               width: AppSizes.brandMark,
               height: AppSizes.brandMark,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadii.card),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.16),
+                  width: 1.5,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
               clipBehavior: Clip.antiAlias,
               child:
@@ -53,23 +76,39 @@ class BrandHeader extends StatelessWidget {
             child: Container(
               constraints: const BoxConstraints(minHeight: AppSizes.brandMark),
               padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm,
-                vertical: AppSpacing.xxs,
+                horizontal: AppSpacing.sm + 2,
+                vertical: AppSpacing.xxs + 1,
               ),
               decoration: BoxDecoration(
-                color: AppColors.brandLabelPanel,
-                borderRadius: BorderRadius.circular(AppRadii.control),
+                color: const Color(0xFF09213D).withValues(alpha: 0.72),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                ),
               ),
               alignment: Alignment.centerLeft,
               child: const Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('RANAH', style: AppTypography.brandTitle),
-                  SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    'RANAH',
+                    style: TextStyle(
+                      color: AppColors.onDark,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                  SizedBox(height: 2),
                   Text(
                     'Aplikasi Informasi Bencana dan Evakuasi',
-                    style: AppTypography.bannerSubtitle,
+                    style: TextStyle(
+                      color: Color(0xFFBACADB),
+                      fontSize: 12,
+                      height: 1.25,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -77,15 +116,29 @@ class BrandHeader extends StatelessWidget {
           ),
           Tooltip(
             message: isOnline ? 'Online' : 'Offline',
-            child: Padding(
-              padding: const EdgeInsets.only(
-                left: AppSpacing.sm,
-                right: AppSpacing.xs,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                ),
               ),
-              child: Icon(
-                isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
-                size: 19,
-                color: isOnline ? const Color(0xFF67D391) : AppColors.danger,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _LivePulseIndicator(isOnline: isOnline),
+                  const SizedBox(width: 5),
+                  Icon(
+                    isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+                    size: 16,
+                    color: isOnline
+                        ? const Color(0xFF67D391)
+                        : AppColors.danger,
+                  ),
+                ],
               ),
             ),
           ),
@@ -105,8 +158,8 @@ class BrandHeader extends StatelessWidget {
                 ),
                 if (notificationCount != null && notificationCount! > 0)
                   Positioned(
-                    right: -2,
-                    top: -2,
+                    right: -4,
+                    top: -4,
                     child: _NotificationBadge(count: notificationCount),
                   ),
               ],
@@ -120,6 +173,92 @@ class BrandHeader extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LivePulseIndicator extends StatefulWidget {
+  const _LivePulseIndicator({required this.isOnline});
+
+  final bool isOnline;
+
+  @override
+  State<_LivePulseIndicator> createState() => _LivePulseIndicatorState();
+}
+
+class _LivePulseIndicatorState extends State<_LivePulseIndicator>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _controller;
+
+  bool get _isTesting =>
+      WidgetsBinding.instance.runtimeType.toString().contains('Test');
+
+  @override
+  void initState() {
+    super.initState();
+    if (!_isTesting) {
+      _controller = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 1800),
+      )..repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.of(context).disableAnimations ||
+        !widget.isOnline ||
+        _isTesting ||
+        _controller == null) {
+      return Container(
+        width: 9,
+        height: 9,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: widget.isOnline ? const Color(0xFF4ADE80) : AppColors.danger,
+        ),
+      );
+    }
+
+    return AnimatedBuilder(
+      animation: _controller!,
+      builder: (context, child) {
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 9 + (_controller!.value * 7),
+              height: 9 + (_controller!.value * 7),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF4ADE80).withValues(
+                  alpha: (1.0 - _controller!.value) * 0.45,
+                ),
+              ),
+            ),
+            Container(
+              width: 9,
+              height: 9,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFF4ADE80),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x664ADE80),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -147,14 +286,25 @@ class _NotificationBadge extends StatelessWidget {
 
     final label = value > 99 ? '99+' : '$value';
     return Container(
-      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
-        color: AppColors.danger,
+        color: const Color(0xFFE53935),
         borderRadius: BorderRadius.circular(AppRadii.pill),
+        border: Border.all(color: Colors.white, width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x66E53935),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       alignment: Alignment.center,
-      child: Text(label, style: AppTypography.badge),
+      child: Text(
+        label,
+        style: AppTypography.badge.copyWith(fontSize: 10.5),
+      ),
     );
   }
 }

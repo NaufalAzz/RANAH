@@ -175,8 +175,7 @@ class _GunungReportPageState extends State<GunungReportPage> {
             onOpenDetail: _openMapDetail,
             tilesEnabled: widget.showMapTiles,
           ),
-          if (officialKrbReference(gunung['nama']?.toString() ?? '') != null)
-            OfficialKrbMapButton(name: gunung['nama'].toString()),
+          OfficialKrbMapButton(name: gunung['nama']?.toString() ?? 'Gunung api'),
           const SizedBox(height: 10),
           _StatusBadge(
             status: _text(gunung['status_aktivitas'], 'Belum diverifikasi'),

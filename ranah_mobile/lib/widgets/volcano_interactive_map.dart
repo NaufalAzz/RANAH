@@ -38,6 +38,7 @@ class VolcanoSimulationPolygon {
     required this.zone,
     required this.polygon,
     this.official = false,
+    this.locationVerified = false,
     this.sourceYear,
   });
 
@@ -45,6 +46,7 @@ class VolcanoSimulationPolygon {
   final String zone;
   final Polygon polygon;
   final bool official;
+  final bool locationVerified;
   final int? sourceYear;
 }
 
@@ -69,7 +71,7 @@ List<VolcanoSimulationPolygon> parseSimulatedKrbGeoJson(String source) {
   return _parseKrbGeoJson(source, official: false);
 }
 
-/// Parses only verified polygons exported from the official BIG KRB area layer.
+/// Parses verified and exact-name matched polygons from the BIG KRB area layer.
 List<VolcanoSimulationPolygon> parseOfficialKrbGeoJson(String source) {
   return _parseKrbGeoJson(source, official: true);
 }
@@ -88,8 +90,12 @@ List<VolcanoSimulationPolygon> _parseKrbGeoJson(
   if (metadata is! Map<String, dynamic>) {
     throw const FormatException('GeoJSON metadata is missing.');
   }
+  final nameMatchedOnly =
+      official &&
+      metadata['status'] == 'OFFICIAL_BIG_LAYER_GEOMETRY_NAME_MATCH_ONLY';
   if (official) {
-    if (metadata['status'] != 'OFFICIAL_BIG_LAYER_GEOMETRY' ||
+    if ((metadata['status'] != 'OFFICIAL_BIG_LAYER_GEOMETRY' &&
+            !nameMatchedOnly) ||
         metadata['source_url'] != _bigKrbLayerUrl ||
         metadata['spatial_reference'] != 'EPSG:4326') {
       throw const FormatException('GeoJSON is not a verified BIG KRB export.');
@@ -121,6 +127,9 @@ List<VolcanoSimulationPolygon> _parseKrbGeoJson(
     final isVerifiedOfficial =
         official &&
         properties['verification_status'] == 'VERIFIED_NAME_AND_LOCATION';
+    final isNameMatchedOfficial =
+        nameMatchedOnly &&
+        properties['verification_status'] == 'NAME_MATCHED_ONLY';
     final isSimulation =
         !official &&
         properties['data_status'] == 'SYNTHETIC_DEMO_ONLY' &&
@@ -133,7 +142,7 @@ List<VolcanoSimulationPolygon> _parseKrbGeoJson(
         ? _officialZone(properties['indga']?.toString())
         : _simulationZone(properties['zone_class']?.toString());
     final coordinates = geometry['coordinates'];
-    if ((!isVerifiedOfficial && !isSimulation) ||
+    if ((!isVerifiedOfficial && !isNameMatchedOfficial && !isSimulation) ||
         volcano is! String ||
         volcano.trim().isEmpty ||
         zone == null ||
@@ -156,6 +165,7 @@ List<VolcanoSimulationPolygon> _parseKrbGeoJson(
           volcano: volcano.trim(),
           zone: zone,
           official: official,
+          locationVerified: isVerifiedOfficial,
           sourceYear: official
               ? int.tryParse(properties['thterbit']?.toString() ?? '')
               : null,
@@ -370,10 +380,18 @@ class _VolcanoInteractiveMapState extends State<VolcanoInteractiveMap> {
   }
 
   Future<List<VolcanoSimulationPolygon>> _loadOfficialPolygons() async {
-    final source = await rootBundle.loadString(
-      'assets/geojson/ranah_krb_big_terverifikasi.geojson',
-    );
-    return parseOfficialKrbGeoJson(source);
+    final sources = await Future.wait([
+      rootBundle.loadString(
+        'assets/geojson/ranah_krb_big_terverifikasi.geojson',
+      ),
+      rootBundle.loadString(
+        'assets/geojson/ranah_krb_big_name_matched.geojson',
+      ),
+    ]);
+    return [
+      ...parseOfficialKrbGeoJson(sources[0]),
+      ...parseOfficialKrbGeoJson(sources[1]),
+    ];
   }
 
   Future<List<VolcanoSimulationPolygon>> _loadSimulationPolygons() async {
@@ -579,7 +597,8 @@ class _VolcanoInteractiveMapState extends State<VolcanoInteractiveMap> {
                       return Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
-                          'Geometri KRB terverifikasi belum tersedia untuk $selectedVolcano.',
+                          'Data zona BIG belum tersedia untuk $selectedVolcano. '
+                          'Buka katalog KRB resmi dari detail gunung.',
                           style: const TextStyle(
                             color: Color(0xFFD5E2ED),
                             fontSize: 11,
@@ -620,7 +639,9 @@ class _VolcanoInteractiveMapState extends State<VolcanoInteractiveMap> {
                             Padding(
                               padding: const EdgeInsets.only(top: 6),
                               child: Text(
-                                'Sumber BIG MapServer 11 · tahun data: ${_sourceYears(official)}. Generalisasi untuk tampilan peta.',
+                                official.every((entry) => entry.locationVerified)
+                                    ? 'Sumber BIG MapServer 11 · tahun data: ${_sourceYears(official)}. Generalisasi untuk tampilan peta.'
+                                    : 'Sumber resmi BIG, nama gunung cocok. Titik gunung pada data aplikasi belum seluruhnya terverifikasi. Tahun data: ${_sourceYears(official)}. Referensi tampilan saja, bukan untuk keputusan evakuasi.',
                                 style: const TextStyle(
                                   color: Color(0xFFB8C7D4),
                                   fontSize: 10,

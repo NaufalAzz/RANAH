@@ -89,24 +89,42 @@ class _MenuHub extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           _MenuHubCard(
-            icon: Icons.landscape_outlined,
+            icon: Icons.landscape_rounded,
             title: 'Aktivitas Gunung Api',
             description:
                 'Lihat daftar gunung dan laporan aktivitas yang tersedia.',
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFF5E3A), Color(0xFFD02B2B)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            shadowColor: const Color(0x55D02B2B),
             onTap: () => onOpen(_MenuSection.volcanicActivity),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           _MenuHubCard(
-            icon: Icons.health_and_safety_outlined,
+            icon: Icons.health_and_safety_rounded,
             title: 'Panduan Mitigasi',
             description: 'Langkah sebelum, saat, dan setelah erupsi.',
+            gradient: const LinearGradient(
+              colors: [Color(0xFF00B4D8), Color(0xFF0077B6)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            shadowColor: const Color(0x440077B6),
             onTap: () => onOpen(_MenuSection.mitigation),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           _MenuHubCard(
             icon: Icons.phone_in_talk_rounded,
             title: 'Kontak Darurat & Pengaduan',
             description: 'Daftar kontak dan formulir laporan kejadian.',
+            gradient: const LinearGradient(
+              colors: [Color(0xFFE91E63), Color(0xFFC2185B)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            shadowColor: const Color(0x44C2185B),
             onTap: () => onOpen(_MenuSection.contacts),
           ),
         ],
@@ -120,12 +138,16 @@ class _MenuHubCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.description,
+    required this.gradient,
+    required this.shadowColor,
     required this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String description;
+  final LinearGradient gradient;
+  final Color shadowColor;
   final VoidCallback onTap;
 
   @override
@@ -133,19 +155,26 @@ class _MenuHubCard extends StatelessWidget {
     return AppCardSurface(
       variant: AppCardVariant.menu,
       onTap: onTap,
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Row(
         children: [
           Container(
-            width: AppSizes.minimumTapTarget,
-            height: AppSizes.minimumTapTarget,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: AppColors.primarySoft,
-              borderRadius: BorderRadius.circular(AppRadii.control),
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: shadowColor,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            child: Icon(icon, color: AppColors.primary, size: 25),
+            child: Icon(icon, color: Colors.white, size: 24),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,20 +183,35 @@ class _MenuHubCard extends StatelessWidget {
                   title,
                   style: AppTypography.bodyLarge.copyWith(
                     fontWeight: FontWeight.w800,
+                    fontSize: 16,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.xxs),
+                const SizedBox(height: 3),
                 Text(
                   description,
                   style: AppTypography.bodyCompact.copyWith(
                     color: AppColors.muted,
-                    height: 1.3,
+                    height: 1.35,
+                    fontSize: 13,
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+          const SizedBox(width: 8),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: const BoxDecoration(
+              color: Color(0xFFF1F5F9),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.arrow_forward_rounded,
+              color: AppColors.primary,
+              size: 16,
+            ),
+          ),
         ],
       ),
     );

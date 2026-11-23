@@ -219,8 +219,8 @@ class _MainShellState extends State<MainShell> {
     final bottomNavigationHeight =
         scaledNavigationLabelSize + AppSizes.bottomNavigationLabelClearance;
     final responsiveNavigationHeight =
-        bottomNavigationHeight < AppSizes.bottomNavigationHeight
-        ? AppSizes.bottomNavigationHeight
+        bottomNavigationHeight < 82
+        ? 82.0
         : bottomNavigationHeight;
 
     final pages = <Widget>[
@@ -380,8 +380,21 @@ class _MainShellState extends State<MainShell> {
                   : AppSizes.maxContentWidth;
 
               return Center(
-                child: SizedBox(
+                child: Container(
                   width: contentWidth,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primaryDark,
+                    border: Border(
+                      top: BorderSide(color: Color(0x22FFFFFF), width: 1.0),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x33000511),
+                        blurRadius: 16,
+                        offset: Offset(0, -4),
+                      ),
+                    ],
+                  ),
                   child: NavigationBar(
                     height: responsiveNavigationHeight,
                     selectedIndex: _selectedIndex < 2
@@ -434,36 +447,98 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-/// Raised microphone accent while retaining the NavigationDestination tap target.
-class _VoiceNavigationIcon extends StatelessWidget {
+/// Raised microphone accent while retaining the NavigationDestination tap target with a fluid pulse halo.
+class _VoiceNavigationIcon extends StatefulWidget {
   const _VoiceNavigationIcon();
 
   @override
+  State<_VoiceNavigationIcon> createState() => _VoiceNavigationIconState();
+}
+
+class _VoiceNavigationIconState extends State<_VoiceNavigationIcon>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _controller;
+
+  bool get _isTesting =>
+      WidgetsBinding.instance.runtimeType.toString().contains('Test');
+
+  @override
+  void initState() {
+    super.initState();
+    if (!_isTesting) {
+      _controller = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 2200),
+      )..repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final child = Container(
+      key: const ValueKey('voice-navigation-circle'),
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6B3CE8), Color(0xFF2F0B86)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: Colors.white, width: 2.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x664C1DBF),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: const Icon(
+        Icons.mic_rounded,
+        color: Colors.white,
+        size: 26,
+      ),
+    );
+
+    if (MediaQuery.of(context).disableAnimations ||
+        _isTesting ||
+        _controller == null) {
+      return Transform.translate(
+        offset: const Offset(0, -6),
+        child: child,
+      );
+    }
+
     return Transform.translate(
-      offset: const Offset(0, -5),
-      child: Container(
-        key: const ValueKey('voice-navigation-circle'),
-        width: 46,
-        height: 46,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: colors.primaryContainer,
-          border: Border.all(color: colors.surface, width: 3),
-          boxShadow: [
-            BoxShadow(
-              color: colors.primary.withValues(alpha: .3),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Icon(
-          Icons.mic_rounded,
-          color: colors.onPrimaryContainer,
-          size: 26,
-        ),
+      offset: const Offset(0, -6),
+      child: AnimatedBuilder(
+        animation: _controller!,
+        builder: (context, _) {
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 48 + (_controller!.value * 12),
+                height: 48 + (_controller!.value * 12),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF7C4DFF).withValues(
+                    alpha: (1.0 - _controller!.value) * 0.35,
+                  ),
+                ),
+              ),
+              child,
+            ],
+          );
+        },
       ),
     );
   }

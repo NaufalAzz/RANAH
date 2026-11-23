@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'official_krb_reference.dart';
 
 class OfficialKrbMapButton extends StatelessWidget {
@@ -8,21 +9,36 @@ class OfficialKrbMapButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reference = officialKrbReference(name);
-    if (reference == null) return const SizedBox.shrink();
     return OutlinedButton.icon(
-      key: ValueKey('official-krb-${reference.name}'),
+      key: ValueKey('official-krb-${reference?.name ?? 'catalog'}'),
       style: OutlinedButton.styleFrom(
         foregroundColor: Colors.white,
         backgroundColor: const Color(0xFF164D79),
         side: const BorderSide(color: Color(0xFF7AB2D2)),
       ),
       icon: const Icon(Icons.map_outlined, size: 20),
-      label: const Text('Lihat peta KRB resmi'),
-      onPressed: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => _OfficialKrbMapPage(reference: reference),
-        ),
+      label: Text(
+        reference == null ? 'Cari peta KRB resmi' : 'Lihat peta KRB resmi',
       ),
+      onPressed: () async {
+        if (reference != null) {
+          await Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => _OfficialKrbMapPage(reference: reference),
+            ),
+          );
+          return;
+        }
+        final opened = await launchUrl(
+          Uri.parse(OfficialKrbReference.catalogUrl),
+          mode: LaunchMode.externalApplication,
+        );
+        if (!opened && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Katalog peta KRB resmi belum dapat dibuka.')),
+          );
+        }
+      },
     );
   }
 }

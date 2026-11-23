@@ -13,6 +13,7 @@ abstract final class AppColors {
   static const brandTile = Color(0xFF0A2C4A);
   static const brandLabelPanel = Color(0xFF061B3B);
   static const teal = Color(0xFF087F83);
+  static const tealGlow = Color(0xFF70D2D7);
   static const canvas = Color(0xFFF3F6FA);
   static const border = Color(0xFFE3E9F0);
   static const eruption = Color(0xFFC93D3D);
@@ -34,7 +35,7 @@ abstract final class AppColors {
 
 abstract final class AppGradients {
   static const brandHeader = LinearGradient(
-    colors: [AppColors.headerStart, AppColors.primaryDark],
+    colors: [Color(0xFF13063A), Color(0xFF250D69), Color(0xFF110433)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -50,6 +51,24 @@ abstract final class AppGradients {
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
   );
+
+  static const emergencyCard = LinearGradient(
+    colors: [Color(0xFF5D1E2D), Color(0xFF3E1730)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const volcanicAccent = LinearGradient(
+    colors: [Color(0xFFFF5238), Color(0xFFC92828)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const mitigationAccent = LinearGradient(
+    colors: [Color(0xFF0BA39C), Color(0xFF066164)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 }
 
 /// Spacing values follow a 4 dp base unit.
@@ -64,11 +83,11 @@ abstract final class AppSpacing {
 }
 
 abstract final class AppRadii {
-  static const control = 6.0;
-  static const compact = 8.0;
-  static const card = 12.0;
-  static const image = 11.0;
-  static const pill = 24.0;
+  static const control = 10.0;
+  static const compact = 14.0;
+  static const card = 20.0;
+  static const image = 16.0;
+  static const pill = 32.0;
 }
 
 abstract final class AppSizes {
@@ -191,7 +210,8 @@ abstract final class AppTheme {
         titleTextStyle: TextStyle(
           color: AppColors.onDark,
           fontSize: 18,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.2,
         ),
       ),
       cardTheme: CardThemeData(
@@ -200,22 +220,26 @@ abstract final class AppTheme {
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadii.card),
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: Color(0xFFE5EBF2), width: 1.2),
         ),
       ),
-      navigationBarTheme: const NavigationBarThemeData(
+      navigationBarTheme: NavigationBarThemeData(
         height: AppSizes.bottomNavigationHeight,
         backgroundColor: AppColors.primaryDark,
         indicatorColor: AppColors.navigationIndicator,
-        labelTextStyle: WidgetStatePropertyAll(
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.compact),
+        ),
+        labelTextStyle: const WidgetStatePropertyAll(
           TextStyle(
             color: AppColors.onDark,
-            fontSize: 13,
+            fontSize: 12.5,
             fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
           ),
         ),
-        iconTheme: WidgetStatePropertyAll(
-          IconThemeData(size: 22, color: AppColors.onDark),
+        iconTheme: const WidgetStatePropertyAll(
+          IconThemeData(size: 23, color: AppColors.onDark),
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
@@ -233,6 +257,8 @@ abstract final class AppTheme {
             AppSizes.minimumTapTarget,
             AppSizes.minimumTapTarget,
           ),
+          elevation: 2,
+          shadowColor: AppColors.cardShadow,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadii.compact),
           ),

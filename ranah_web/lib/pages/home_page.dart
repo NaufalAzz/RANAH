@@ -114,13 +114,32 @@ class _HomePageState extends State<HomePage> {
                           ),
                   ),
                   const SizedBox(height: RanahSpacing.xl),
-                  const Text(
-                    'Berita Terbaru',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00C6FF),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x6600C6FF),
+                              blurRadius: 6,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Berita Terbaru',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: RanahSpacing.sm),
                   if (widget.isLoading && widget.stories.isEmpty)
@@ -205,7 +224,7 @@ class _HeroCard extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final height = width < 560 ? 205.0 : (width < 900 ? 185.0 : 300.0);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(RanahRadii.md),
+      borderRadius: BorderRadius.circular(18),
       child: SizedBox(
         height: height,
         width: double.infinity,
@@ -256,15 +275,27 @@ class _HeroCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: RanahColors.eruption,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFE53935), Color(0xFFC62828)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       borderRadius: BorderRadius.circular(RanahRadii.pill),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x44E53935),
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: const Text(
                       'Berita Utama',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
                       ),
                     ),
                   ),
@@ -367,30 +398,57 @@ class _HeroCard extends StatelessWidget {
   }
 }
 
-class _HeroArrow extends StatelessWidget {
+class _HeroArrow extends StatefulWidget {
   const _HeroArrow({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
 
   @override
+  State<_HeroArrow> createState() => _HeroArrowState();
+}
+
+class _HeroArrowState extends State<_HeroArrow> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) => Align(
-    child: InkWell(
-      onTap: onTap,
-      customBorder: const CircleBorder(),
-      child: SizedBox(
-        width: 48,
-        height: 48,
-        child: Center(
-          child: Container(
+    child: MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedScale(
+        scale: _hovered ? 1.08 : 1.0,
+        duration: const Duration(milliseconds: 140),
+        child: InkWell(
+          onTap: widget.onTap,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
             width: 48,
             height: 48,
-            decoration: const BoxDecoration(
-              color: Color(0xE6102639),
-              shape: BoxShape.circle,
+            child: Center(
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: _hovered
+                      ? const Color(0xF0183F66)
+                      : const Color(0xD9102639),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x33000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: Icon(widget.icon, size: 24, color: Colors.white),
+              ),
             ),
-            alignment: Alignment.center,
-            child: Icon(icon, size: 26, color: Colors.white),
           ),
         ),
       ),
@@ -398,7 +456,7 @@ class _HeroArrow extends StatelessWidget {
   );
 }
 
-class _NewsCard extends StatelessWidget {
+class _NewsCard extends StatefulWidget {
   const _NewsCard({
     required this.story,
     required this.compact,
@@ -410,75 +468,108 @@ class _NewsCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  State<_NewsCard> createState() => _NewsCardState();
+}
+
+class _NewsCardState extends State<_NewsCard> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    final imageSize = compact ? 66.0 : 78.0;
-    return Material(
+    final imageSize = widget.compact ? 68.0 : 80.0;
+    final borderRadius = BorderRadius.circular(14);
+    final animationsDisabled = MediaQuery.of(context).disableAnimations;
+
+    final card = Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(RanahRadii.sm),
+      borderRadius: borderRadius,
+      elevation: _isHovered ? 4 : 2,
+      shadowColor: const Color(0x24000A18),
       child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(RanahRadii.sm),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: compact ? 94 : 108),
-          child: Padding(
-            padding: EdgeInsets.all(compact ? 10 : 12),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(RanahRadii.sm),
-                  child: HomeStoryImage(
-                    story: story,
-                    fit: BoxFit.cover,
-                    width: imageSize,
-                    height: imageSize,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        story.isApiRecord
-                            ? story.category.toUpperCase()
-                            : 'CONTOH \u00B7 ${story.category.toUpperCase()}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Color(story.color),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: .35,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        story.title,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: RanahColors.ink,
-                          fontSize: 16,
-                          height: 1.12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        story.date,
-                        style: const TextStyle(
-                          color: RanahColors.ink,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+        onTap: widget.onTap,
+        borderRadius: borderRadius,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: borderRadius,
+            border: Border.all(
+              color: _isHovered
+                  ? const Color(0xFFB5D4EA)
+                  : const Color(0xFFE3E9F0),
+              width: 1.2,
             ),
           ),
+          constraints: BoxConstraints(minHeight: widget.compact ? 96 : 110),
+          padding: EdgeInsets.all(widget.compact ? 10 : 12),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: HomeStoryImage(
+                  story: widget.story,
+                  fit: BoxFit.cover,
+                  width: imageSize,
+                  height: imageSize,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      widget.story.isApiRecord
+                          ? widget.story.category.toUpperCase()
+                          : 'CONTOH \u00B7 ${widget.story.category.toUpperCase()}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Color(widget.story.color),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: .35,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      widget.story.title,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: RanahColors.ink,
+                        fontSize: 16,
+                        height: 1.15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      widget.story.date,
+                      style: const TextStyle(
+                        color: RanahColors.ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+
+    if (animationsDisabled) return card;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedScale(
+        scale: _isHovered ? 1.015 : 1.0,
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+        child: card,
       ),
     );
   }
