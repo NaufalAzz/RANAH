@@ -22,10 +22,19 @@ class SiagaMapCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final points = guide?.recommendationParagraphs ?? const <String>[];
-    return Card(
-      color: const Color(0xFFF7F9FD),
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF174476),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF456A91)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x55000000),
+            blurRadius: 5,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -34,7 +43,7 @@ class SiagaMapCard extends StatelessWidget {
             Row(
               children: [
                 const CircleAvatar(
-                  backgroundColor: Color(0xFF21005E),
+                  backgroundColor: Color(0xFF105675),
                   foregroundColor: Colors.white,
                   child: Icon(Icons.landscape_rounded),
                 ),
@@ -47,12 +56,14 @@ class SiagaMapCard extends StatelessWidget {
                         'Siaga Erupsi · $volcanoName',
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1B2A45),
+                          color: Colors.white,
                         ),
                       ),
                       Text(
                         guide?.status ?? 'Status sedang dimuat',
-                        style: theme.textTheme.bodyMedium,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFFD9E8F5),
+                        ),
                       ),
                     ],
                   ),
@@ -60,27 +71,35 @@ class SiagaMapCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
-            if (loading) const LinearProgressIndicator(),
+            if (loading)
+              const LinearProgressIndicator(color: Color(0xFF62D2E0)),
             if (error != null)
-              Text(error!, style: const TextStyle(color: Color(0xFF9B3A12))),
+              Text(error!, style: const TextStyle(color: Color(0xFFFFD166))),
             if (guide != null) ...[
               Text(
                 'Sumber: ${guide!.source} · ${guide!.displayPeriod}',
-                style: theme.textTheme.bodySmall,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: const Color(0xFFD9E8F5),
+                ),
               ),
               const SizedBox(height: 8),
               for (final point in points.take(2))
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
-                    '• $point',
+                    RegExp(r'^\d+[.)]\s').hasMatch(point) ? point : '• $point',
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               if (points.isEmpty)
-                const Text('Rekomendasi belum tersedia pada laporan ini.'),
+                const Text(
+                  'Rekomendasi belum tersedia pada laporan ini.',
+                  style: TextStyle(color: Color(0xFFD9E8F5)),
+                ),
             ],
             const SizedBox(height: 10),
             FilledButton.icon(
