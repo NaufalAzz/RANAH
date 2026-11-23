@@ -15,3 +15,4 @@ export 'src/official_krb_map_button.dart';
 
 export 'src/siaga_guide.dart';
 export 'src/siaga_location_page.dart';
+export 'src/siaga_map_card.dart';

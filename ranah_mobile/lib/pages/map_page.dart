@@ -47,15 +47,22 @@ class _MapPageState extends State<MapPage> {
   late final MobileLocationProvider _locationProvider;
   late final GunungRepository _gunungRepository;
   bool _locationLoading = false;
+  bool _mapGuideLoading = false;
+  SiagaGuide? _mapGuide;
+  String? _mapGuideError;
   bool _locationRequested = false;
   bool _routeConsentGiven = false;
   bool _addressLoading = false;
+  // ignore: unused_field
   bool _hazardLoading = false;
+  // ignore: unused_field
   bool _osmLoading = false;
   bool _gunungLoading = false;
+  // ignore: unused_field
   bool _routeLoading = false;
   DeviceLocationFix? _location;
   MapAddress? _address;
+  // ignore: unused_field
   MapHazardResult? _hazards;
   MapOsmDataset? _osm;
   WalkingRoute? _route;
@@ -63,9 +70,12 @@ class _MapPageState extends State<MapPage> {
   List<Map<String, dynamic>> _nearbyVolcanoes = const [];
   String? _locationError;
   String? _addressError;
+  // ignore: unused_field
   String? _hazardError;
+  // ignore: unused_field
   String? _osmError;
   String? _gunungError;
+  // ignore: unused_field
   String? _routeError;
   int _locationGeneration = 0;
   int _routeGeneration = 0;
@@ -295,16 +305,33 @@ class _MapPageState extends State<MapPage> {
                 if (!_locationRequested) ...[
                   const SizedBox(height: 14),
                   _LocationAction(
-                    onTap: _openSiagaPreview,
+                    onTap: _findLocation,
                     loading: _locationLoading,
                   ),
+                ],
+                if (_locationRequested) ...[
+                  if (_location != null) ...[
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: SiagaMapCard(
+                        volcanoName: SiagaLocation(
+                          _location!.latitude,
+                          _location!.longitude,
+                          _location!.accuracyMeters,
+                        ).nearest.name,
+                        guide: _mapGuide,
+                        loading: _mapGuideLoading,
+                        error: _mapGuideError,
+                        onOpenGuide: _openSiagaPreview,
+                      ),
+                    ),
+                  ],
                 ],
                 const SizedBox(height: 10),
                 _ActivityReportHeading(onTap: widget.onOpenActivity),
                 if (_locationRequested) ...[
                   const SizedBox(height: 12),
-                  const _MapLevelLegend(),
-                  const SizedBox(height: 14),
                   _LocationSummary(
                     location: _location,
                     address: _address,
@@ -317,22 +344,6 @@ class _MapPageState extends State<MapPage> {
                     locationError: _locationError,
                   ),
                   const SizedBox(height: 12),
-                  _RoutePanel(
-                    route: _route,
-                    destination: _selectedDestination,
-                    loading: _routeLoading,
-                    error: _routeError,
-                    onRetry: _retryRoute,
-                    onStart: _requestRouteForSelected,
-                  ),
-                  const SizedBox(height: 6),
-                  _MapSourceNote(
-                    osm: _osm,
-                    osmLoading: _osmLoading,
-                    osmError: _osmError,
-                    onRetry: _retryOsm,
-                  ),
-                  const SizedBox(height: 12),
                   _NearbyVolcanoPanel(
                     items: _nearbyVolcanoes,
                     province: _address?.province,
@@ -342,13 +353,6 @@ class _MapPageState extends State<MapPage> {
                     onRetry: _retryVolcanoes,
                     onOpenReport: widget.onOpenReport,
                     onOpenActivity: widget.onOpenActivity,
-                  ),
-                  const SizedBox(height: 12),
-                  _HazardPanel(
-                    result: _hazards,
-                    loading: _hazardLoading,
-                    error: _hazardError,
-                    onRetry: _retryHazards,
                   ),
                 ],
               ],
@@ -362,7 +366,7 @@ class _MapPageState extends State<MapPage> {
   Future<void> _findLocation() async {
     if (_locationLoading) return;
     _routeConsentGiven = true;
-    const routeAfterLocation = true;
+
     setState(() {
       _locationRequested = true;
       _locationLoading = true;
@@ -370,10 +374,12 @@ class _MapPageState extends State<MapPage> {
       _locationGeneration++;
       _routeGeneration++;
       _route = null;
+      // ignore: unused_field
       _routeError = null;
       _routeLoading = false;
       _location = null;
       _address = null;
+      // ignore: unused_field
       _hazards = null;
       _osm = null;
       _nearbyVolcanoes = const [];
@@ -399,7 +405,9 @@ class _MapPageState extends State<MapPage> {
         _gunungLoading = true;
         _routeLoading = false;
         _addressError = null;
+        // ignore: unused_field
         _hazardError = null;
+        // ignore: unused_field
         _osmError = null;
         _gunungError = null;
         _routeError = null;
@@ -410,25 +418,34 @@ class _MapPageState extends State<MapPage> {
         longitude: fix.longitude,
       );
       final addressFuture = _loadAddress(coordinates, generation);
-      final hazardFuture = _loadHazards(coordinates, generation);
-      final osmFuture = _loadOsm(generation);
       final volcanoFuture = _loadVolcanoes(generation, addressFuture);
-      if (routeAfterLocation) {
-        unawaited(
-          _routeToNearestPoint(
-            coordinates,
-            generation,
-            addressFuture,
-            osmFuture,
-          ),
-        );
+      setState(() {
+        _mapGuide = null;
+        _mapGuideError = null;
+        _mapGuideLoading = true;
+      });
+      try {
+        final nearest = SiagaLocation(
+          fix.latitude,
+          fix.longitude,
+          fix.accuracyMeters,
+        ).nearest;
+        final guide = await _loadSiagaGuide(nearest.name);
+        if (mounted && generation == _locationGeneration) {
+          setState(() => _mapGuide = guide);
+        }
+      } catch (_) {
+        if (mounted && generation == _locationGeneration) {
+          setState(
+            () => _mapGuideError = 'Rekomendasi belum dapat dimuat. Buka panduan untuk mencoba lagi.',
+          );
+        }
+      } finally {
+        if (mounted && generation == _locationGeneration) {
+          setState(() => _mapGuideLoading = false);
+        }
       }
-      await Future.wait<void>([
-        addressFuture,
-        hazardFuture,
-        osmFuture,
-        volcanoFuture,
-      ]);
+      await Future.wait<void>([addressFuture, volcanoFuture]);
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -678,6 +695,7 @@ class _MapPageState extends State<MapPage> {
     });
   }
 
+  // ignore: unused_element
   Future<void> _requestRouteForSelected() async {
     final location = _location;
     final destination = _selectedDestination;
@@ -736,6 +754,7 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
+  // ignore: unused_element
   Future<void> _retryHazards() async {
     final fix = _location;
     if (fix == null) return;
@@ -749,6 +768,7 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
+  // ignore: unused_element
   Future<void> _retryOsm() async {
     if (_location == null) return;
     setState(() {
@@ -778,6 +798,7 @@ class _MapPageState extends State<MapPage> {
     await _loadVolcanoes(_locationGeneration, Future.value(_address));
   }
 
+  // ignore: unused_element
   Future<void> _retryRoute() async {
     final location = _location;
     final destination = _selectedDestination;
@@ -1220,6 +1241,7 @@ String _hazardStatusLabel(String status) => switch (status) {
   _ => 'Status belum dapat ditafsirkan.',
 };
 
+// ignore: unused_element
 class _MapLevelLegend extends StatelessWidget {
   const _MapLevelLegend();
 
@@ -1447,6 +1469,7 @@ class _MapSectionHeading extends StatelessWidget {
   );
 }
 
+// ignore: unused_element
 class _RoutePanel extends StatelessWidget {
   const _RoutePanel({
     required this.route,
@@ -1714,6 +1737,7 @@ class _NearbyVolcanoCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _HazardPanel extends StatelessWidget {
   const _HazardPanel({
     required this.result,
@@ -1932,6 +1956,7 @@ Widget _retryButton(VoidCallback onRetry) => TextButton.icon(
   ),
 );
 
+// ignore: unused_element
 class _MapSourceNote extends StatelessWidget {
   const _MapSourceNote({
     required this.osm,
