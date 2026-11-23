@@ -15,6 +15,7 @@ import '../pages/evacuation_route_page.dart';
 import '../pages/news_detail_page.dart';
 import '../pages/news_page.dart';
 import '../pages/notifications_page.dart';
+import '../services/notifications_repository.dart';
 import '../pages/home_page.dart';
 import '../pages/emergency_contacts_page.dart';
 import '../pages/admin_login_page.dart';
@@ -77,6 +78,9 @@ class _RanahShellState extends State<RanahShell> {
   _Page _contactsReturnPage = _Page.home;
   final _Page _routeReturnPage = _Page.map;
   Timer? _newsTimer;
+  Timer? _notificationTimer;
+  int _earthquakeCount = 0;
+  late final BmkgNotificationRepository _notificationRepository;
   BrowserLocation? _mapLocation;
   BrowserAdministrativeArea? _mapArea;
   bool _mapEverOpened = false;
@@ -98,14 +102,32 @@ class _RanahShellState extends State<RanahShell> {
     super.initState();
     _newsRepository = widget.newsRepository ?? NewsRepository();
     _gunungRepository = widget.gunungRepository ?? GunungRepository();
+    _notificationRepository = NotificationsRepository();
     _page = Uri.base.path == '/admin' || Uri.base.path.startsWith('/admin/')
         ? _Page.adminLogin
         : _Page.home;
     _loadNews();
+    _loadEarthquakeCount();
+    _notificationTimer = Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => _loadEarthquakeCount(),
+    );
     _newsTimer = Timer.periodic(
       const Duration(minutes: 15),
       (_) => _loadNews(),
     );
+  }
+
+  Future<void> _loadEarthquakeCount() async {
+    try {
+      final feed = await _notificationRepository.load(
+        page: 1,
+        kind: 'kejadian',
+      );
+      if (mounted) setState(() => _earthquakeCount = feed.total);
+    } catch (_) {
+      if (mounted) setState(() => _earthquakeCount = 0);
+    }
   }
 
   Future<void> _loadNews() async {
@@ -159,6 +181,7 @@ class _RanahShellState extends State<RanahShell> {
   @override
   void dispose() {
     _newsTimer?.cancel();
+    _notificationTimer?.cancel();
     _newsRepository.close();
     if (_gunungRepository case final GunungRepository repository) {
       repository.close();
@@ -201,6 +224,7 @@ class _RanahShellState extends State<RanahShell> {
   }
 
   void _openNotifications() {
+    _loadEarthquakeCount();
     setState(() {
       if (_page != _Page.notifications) {
         _notificationsReturnPage = _page;
@@ -318,6 +342,7 @@ class _RanahShellState extends State<RanahShell> {
                     selected: selected,
                     onSelect: _onDestination,
                     onNotifications: _openNotifications,
+                    notificationCount: _earthquakeCount,
                   ),
                   Expanded(
                     child: RanahBackground(

@@ -9,6 +9,7 @@ class MapAddress {
     this.displayName,
     this.street,
     this.locality,
+    this.village,
     this.district,
     this.regency,
     this.province,
@@ -19,6 +20,7 @@ class MapAddress {
   final String? displayName;
   final String? street;
   final String? locality;
+  final String? village;
   final String? district;
   final String? regency;
   final String? province;
@@ -52,6 +54,7 @@ class MapAddress {
         'neighbourhood',
         'hamlet',
       ]),
+      village: _first(address, const ['village']),
       district: _first(address, const ['district', 'city_district']),
       regency: _first(address, const [
         'city',

@@ -14,7 +14,7 @@ class BrandHeader extends StatelessWidget {
   final VoidCallback? onOpenNotifications;
   final Widget? logo;
 
-  /// Null keeps the current small indicator; a value enables a count badge.
+  /// Number of current earthquake items; zero hides the badge.
   final int? notificationCount;
   final bool isOnline;
 
@@ -40,7 +40,8 @@ class BrandHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadii.card),
               ),
               clipBehavior: Clip.antiAlias,
-              child: logo ??
+              child:
+                  logo ??
                   Image.asset(
                     'assets/images/brand_mark.png',
                     fit: BoxFit.cover,
@@ -102,7 +103,7 @@ class BrandHeader extends StatelessWidget {
                   Icons.notifications_none_rounded,
                   size: AppSizes.iconMedium,
                 ),
-                if (notificationCount == null || notificationCount! > 0)
+                if (notificationCount != null && notificationCount! > 0)
                   Positioned(
                     right: -2,
                     top: -2,

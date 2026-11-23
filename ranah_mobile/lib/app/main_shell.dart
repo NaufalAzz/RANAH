@@ -10,6 +10,7 @@ import '../pages/contact_complaint_page.dart';
 import 'package:flutter/material.dart';
 
 import '../models/news_item.dart';
+import '../models/notification_item.dart';
 import '../pages/home_page.dart';
 import '../pages/gunung_report_page.dart';
 import '../pages/map_page.dart';
@@ -56,6 +57,9 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   DeviceLocationFix? _sharedLocation;
   Timer? _newsTimer;
+  Timer? _notificationTimer;
+  int _earthquakeCount = 0;
+  late final NotificationsRepository _notificationsRepository;
   int _selectedIndex = 0;
   bool _showingNotifications = false;
   String? _notificationNewsId;
@@ -72,13 +76,34 @@ class _MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     _newsRepository = widget.newsRepository ?? NewsRepository();
+    _notificationsRepository =
+        widget.notificationsRepository ?? NotificationsRepository();
     _internetStatusMonitor =
         widget.internetStatusMonitor ?? InternetStatusMonitor();
     _internetStatusMonitor.start();
     _loadNews();
+    _loadEarthquakeCount();
+    _notificationTimer = Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => _loadEarthquakeCount(),
+    );
     _newsTimer = Timer.periodic(
       const Duration(minutes: 15),
       (_) => _loadNews(),
+    );
+  }
+
+  Future<void> _loadEarthquakeCount() async {
+    final feed = await _notificationsRepository.load();
+    if (!mounted) return;
+    if (feed.error != null) {
+      setState(() => _earthquakeCount = 0);
+      return;
+    }
+    setState(
+      () => _earthquakeCount = feed.items
+          .where((item) => item.kind == NotificationKind.earthquake)
+          .length,
     );
   }
 
@@ -106,6 +131,7 @@ class _MainShellState extends State<MainShell> {
   @override
   void dispose() {
     _newsTimer?.cancel();
+    _notificationTimer?.cancel();
     _internetStatusMonitor.dispose();
     super.dispose();
   }
@@ -169,6 +195,7 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _toggleNotifications() {
+    if (!_showingNotifications) _loadEarthquakeCount();
     setState(() => _showingNotifications = !_showingNotifications);
   }
 
@@ -272,6 +299,7 @@ class _MainShellState extends State<MainShell> {
                         builder: (context, isOnline, child) => BrandHeader(
                           isOnline: isOnline,
                           onOpenNotifications: _toggleNotifications,
+                          notificationCount: _earthquakeCount,
                         ),
                       ),
                       Expanded(
@@ -324,8 +352,7 @@ class _MainShellState extends State<MainShell> {
                                         duration: transitionDuration,
                                         curve: Curves.easeOutCubic,
                                         child: NotificationsPage(
-                                          repository:
-                                              widget.notificationsRepository,
+                                          repository: _notificationsRepository,
                                         ),
                                       ),
                                     ),

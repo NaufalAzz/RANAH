@@ -4,6 +4,9 @@ import 'package:ranah_mobile/pages/notifications_page.dart';
 import 'package:ranah_mobile/services/notification_api.dart';
 import 'package:ranah_mobile/services/notification_cache_store.dart';
 import 'package:ranah_mobile/services/notifications_repository.dart';
+import 'package:ranah_mobile/services/mobile_location_provider.dart';
+import 'package:ranah_mobile/services/mobile_map_repository.dart';
+import 'package:ranah_mobile/models/mobile_map_data.dart';
 
 void main() {
   testWidgets('shows API notification provenance and separates timestamps', (
@@ -73,45 +76,37 @@ void main() {
     );
   });
 
-  testWidgets('weather forecast requires an explicit configured area choice', (
-    tester,
-  ) async {
-    final api = _FakeApi([]);
-    final weatherApi = _FakeWeatherApi();
-    final repository = NotificationsRepository(
-      api: api,
-      weatherApi: weatherApi,
-      store: _MemoryStore(),
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(body: NotificationsPage(repository: repository)),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Cuaca'));
-    await tester.pumpAndSettle();
-    expect(
-      find.textContaining(
-        'Pilih kelurahan dari daftar ADM4 Sumatera Barat yang dikonfigurasi.',
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.text('Prakiraan Cuaca — Desa Uji, Kecamatan Uji, Kota Padang'),
-      findsNothing,
-    );
-    expect(weatherApi.forecastRequests, 0);
-
-    await tester.tap(find.byType(DropdownButtonFormField<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Desa Uji · Kecamatan Uji, Kota Padang').last);
-    await tester.pumpAndSettle();
-    expect(weatherApi.forecastRequests, 1);
-    expect(find.text('Cuaca cerah'), findsOneWidget);
-    expect(find.textContaining('Prakiraan Cuaca — Desa Uji'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+  testWidgets(
+    'weather forecast opens the current verified area automatically',
+    (tester) async {
+      final api = _FakeApi([]);
+      final weatherApi = _FakeWeatherApi();
+      final repository = NotificationsRepository(
+        api: api,
+        weatherApi: weatherApi,
+        store: _MemoryStore(),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: NotificationsPage(
+              repository: repository,
+              locationProvider: const _WeatherLocation(),
+              mapRepository: _WeatherMapRepository(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cuaca'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+      expect(weatherApi.forecastRequests, 1);
+      expect(find.text('Cuaca cerah'), findsOneWidget);
+      expect(find.textContaining('Prakiraan Cuaca — Desa Uji'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('drops notifications without the verified Sumbar API scope', (
     tester,
@@ -342,6 +337,28 @@ class _FakeWeatherApi implements WeatherForecastApi {
       },
     };
   }
+}
+
+class _WeatherLocation implements MobileLocationProvider {
+  const _WeatherLocation();
+  @override
+  Future<DeviceLocationFix> currentFix() async => DeviceLocationFix(
+    latitude: -0.9,
+    longitude: 100.4,
+    accuracyMeters: 20,
+    measuredAt: DateTime(2026, 11, 23),
+  );
+}
+
+class _WeatherMapRepository extends LaravelMobileMapRepository {
+  @override
+  Future<MapAddress> lookupAddress(DeviceCoordinates location) async =>
+      const MapAddress(
+        village: 'Desa Uji',
+        district: 'Kecamatan Uji',
+        regency: 'Kota Padang',
+        province: 'Sumatera Barat',
+      );
 }
 
 class _FailingApi implements NotificationApi {

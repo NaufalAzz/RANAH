@@ -67,9 +67,10 @@ class AppCardSurface extends StatelessWidget {
           borderColor: AppColors.border,
         ),
         AppCardVariant.notification => const _AppCardStyle(
-          background: AppColors.white,
+          background: Color(0xFFF0F7FC),
           radius: AppRadii.card,
           elevation: 3,
+          borderColor: Color(0xFFA6C8DC),
         ),
         AppCardVariant.contact => _AppCardStyle(
           background: AppColors.emergencySurface.withValues(alpha: 0.88),

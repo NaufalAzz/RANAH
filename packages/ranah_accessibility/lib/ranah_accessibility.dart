@@ -18,3 +18,5 @@ export 'src/siaga_location_page.dart';
 export 'src/siaga_map_card.dart';
 
 export 'src/eruption_assessment.dart';
+export 'src/weather_area_match.dart';
+export 'src/notification_overview.dart';

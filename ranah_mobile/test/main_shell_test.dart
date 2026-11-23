@@ -37,7 +37,7 @@ void main() {
 
     await tester.tap(find.text('Peta'));
     await tester.pumpAndSettle();
-    expect(find.text('Peta dan Zona Bencana'), findsOneWidget);
+    expect(find.text('Peta dan Siaga Erupsi'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('Berita').last);
