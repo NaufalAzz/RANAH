@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import 'siaga_guide.dart';
+import 'eruption_assessment.dart';
 
 class SiagaMapCard extends StatelessWidget {
   const SiagaMapCard({
     required this.volcanoName,
     required this.onOpenGuide,
     this.guide,
+    this.assessment,
     this.loading = false,
     this.error,
     super.key,
@@ -14,14 +16,19 @@ class SiagaMapCard extends StatelessWidget {
 
   final String volcanoName;
   final SiagaGuide? guide;
+  final EruptionAssessment? assessment;
   final bool loading;
   final String? error;
-  final VoidCallback onOpenGuide;
+  final VoidCallback? onOpenGuide;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final points = guide?.recommendationParagraphs ?? const <String>[];
+    final selectedGuide = assessment == null ? guide : assessment!.guide;
+    final showRecommendation = assessment?.showRecommendation ?? true;
+    final points = showRecommendation
+        ? selectedGuide?.recommendationParagraphs ?? const <String>[]
+        : const <String>[];
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF174476),
@@ -53,14 +60,17 @@ class SiagaMapCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Siaga Erupsi · $volcanoName',
+                        assessment?.title ?? 'Siaga Erupsi · $volcanoName',
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
                       Text(
-                        guide?.status ?? 'Status sedang dimuat',
+                        selectedGuide?.status ??
+                            (assessment == null
+                                ? 'Status sedang dimuat'
+                                : 'Hasil pemeriksaan lokasi'),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFFD9E8F5),
                         ),
@@ -75,9 +85,18 @@ class SiagaMapCard extends StatelessWidget {
               const LinearProgressIndicator(color: Color(0xFF62D2E0)),
             if (error != null)
               Text(error!, style: const TextStyle(color: Color(0xFFFFD166))),
-            if (guide != null) ...[
+            if (assessment != null) ...[
               Text(
-                'Sumber: ${guide!.source} · ${guide!.displayPeriod}',
+                assessment!.reason,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            if (selectedGuide != null && showRecommendation) ...[
+              Text(
+                'Sumber: ${selectedGuide.source} · ${selectedGuide.displayPeriod}',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: const Color(0xFFD9E8F5),
                 ),
@@ -103,9 +122,13 @@ class SiagaMapCard extends StatelessWidget {
             ],
             const SizedBox(height: 10),
             FilledButton.icon(
-              onPressed: onOpenGuide,
+              onPressed: loading ? null : onOpenGuide,
               icon: const Icon(Icons.health_and_safety_outlined),
-              label: const Text('Buka Panduan Siaga Lengkap'),
+              label: Text(
+                showRecommendation
+                    ? 'Buka Panduan Siaga Lengkap'
+                    : 'Lihat Alasan dan Data',
+              ),
             ),
           ],
         ),

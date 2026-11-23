@@ -1,4 +1,5 @@
 import 'package:latlong2/latlong.dart';
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 
 const mobileRouteDisclaimer =
     'Simulasi Jalur Menuju Titik Kumpul — Bukan Jalur Evakuasi Resmi. Jalur mengikuti data jalan OpenStreetMap; keamanan jalur dan status tujuan belum diverifikasi.';
@@ -177,9 +178,16 @@ class MapOsmDataset {
 }
 
 class MapHazardResult {
-  const MapHazardResult({required this.items, this.analyzedAt});
+  const MapHazardResult({
+    required this.items,
+    this.analyzedAt,
+    this.volcanoStatus = 'analisis_tidak_dapat_ditentukan',
+    this.volcanoFeatures = const [],
+  });
   final List<MapHazardItem> items;
   final DateTime? analyzedAt;
+  final String volcanoStatus;
+  final List<EruptionKrbFeature> volcanoFeatures;
 
   factory MapHazardResult.fromEnvelope(Map<String, dynamic> envelope) {
     final data = envelope['data'];
@@ -219,6 +227,23 @@ class MapHazardResult {
     return MapHazardResult(
       items: List.unmodifiable(items),
       analyzedAt: DateTime.tryParse(data['waktu_analisis']?.toString() ?? ''),
+      volcanoStatus: hazards['letusan_gunung_api'] is Map
+          ? hazards['letusan_gunung_api']['status']?.toString() ??
+                'analisis_tidak_dapat_ditentukan'
+          : 'analisis_tidak_dapat_ditentukan',
+      volcanoFeatures: [
+        if (hazards['letusan_gunung_api'] is Map &&
+            hazards['letusan_gunung_api']['fitur'] is List)
+          for (final raw in hazards['letusan_gunung_api']['fitur'] as List)
+            if (raw is Map &&
+                raw['nama_gunung'] != null &&
+                raw['zona_krb'] != null)
+              EruptionKrbFeature(
+                volcanoName: raw['nama_gunung'].toString(),
+                zone: raw['zona_krb'].toString(),
+                mapYear: int.tryParse(raw['tahun_peta']?.toString() ?? ''),
+              ),
+      ],
     );
   }
 }

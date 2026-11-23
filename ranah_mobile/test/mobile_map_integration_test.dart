@@ -11,6 +11,32 @@ import 'package:ranah_mobile/services/mobile_location_provider.dart';
 import 'package:ranah_mobile/services/mobile_map_repository.dart';
 
 void main() {
+  test(
+    'mobile hazard parser keeps KRB identities for the Siaga assessment',
+    () {
+      final result = MapHazardResult.fromEnvelope({
+        'success': true,
+        'data': {
+          'bahaya': {
+            'letusan_gunung_api': {
+              'status': 'hasil_tersedia',
+              'fitur': [
+                {
+                  'nama_gunung': 'G. Marapi',
+                  'zona_krb': 'KRB II',
+                  'tahun_peta': 2010,
+                },
+              ],
+            },
+          },
+        },
+      });
+      expect(result.volcanoStatus, 'hasil_tersedia');
+      expect(result.volcanoFeatures.single.volcanoName, 'G. Marapi');
+      expect(result.volcanoFeatures.single.mapYear, 2010);
+    },
+  );
+
   testWidgets(
     'Siaga preview resolves the selected server ID and displays the recommendation',
     (tester) async {
@@ -31,11 +57,11 @@ void main() {
       await tester.tap(find.text('Temukan Lokasi Saya'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
-        find.text('Siaga Erupsi · Marapi'),
+        find.text('Perhatikan rekomendasi Gunung Marapi'),
         300,
         scrollable: find.byType(Scrollable).first,
       );
-      expect(find.text('Siaga Erupsi · Marapi'), findsOneWidget);
+      expect(find.text('Perhatikan rekomendasi Gunung Marapi'), findsOneWidget);
       expect(repository.requestedId, 1);
       expect(
         find.textContaining('Arahan resmi untuk uji mobile.'),
@@ -71,6 +97,22 @@ void main() {
       MapController.of(tester.element(find.byType(MarkerLayer)))
           .move(const LatLng(-0.381, 100.473), 10);
       await tester.pumpAndSettle();
+      final marapiMarker = tester
+          .widget<MarkerLayer>(find.byType(MarkerLayer))
+          .markers
+          .singleWhere(
+            (marker) =>
+                marker.child is Tooltip &&
+                (marker.child as Tooltip).key ==
+                    const ValueKey('overview-volcano-marapi'),
+          );
+      final marapiTap =
+          ((marapiMarker.child as Tooltip).child as Semantics).child
+              as GestureDetector;
+      expect(
+        (marapiTap.child as Icon).color,
+        eruptionActivityColor('Level II'),
+      );
       await tester.tap(find.byKey(const ValueKey('overview-volcano-marapi')));
       await tester.pumpAndSettle();
       expect(opened?['id'], 1);
@@ -238,6 +280,14 @@ class _FakeMapRepository implements MobileMapRepository {
   Future<MapHazardResult> analyze(DeviceCoordinates location) async {
     hazardCalls++;
     return const MapHazardResult(
+      volcanoStatus: 'hasil_tersedia',
+      volcanoFeatures: [
+        EruptionKrbFeature(
+          volcanoName: 'Marapi',
+          zone: 'KRB II',
+          mapYear: 2010,
+        ),
+      ],
       items: [
         MapHazardItem(
           name: 'Gempa bumi',

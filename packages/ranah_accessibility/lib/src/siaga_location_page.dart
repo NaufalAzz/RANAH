@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'emergency_contacts_card.dart';
 import 'official_krb_map_button.dart';
 import 'siaga_guide.dart';
+import 'eruption_assessment.dart';
+import 'mitigation_content.dart';
 import 'voice_engine.dart';
 import 'volcano_reference.dart';
 
@@ -13,6 +15,7 @@ class SiagaLocationPage extends StatefulWidget {
     required this.contacts,
     required this.onOpenReport,
     this.initialLocation,
+    this.initialAssessment,
     this.autoLocate = false,
     this.store,
     this.voiceEngine,
@@ -23,6 +26,7 @@ class SiagaLocationPage extends StatefulWidget {
   final List<QuickEmergencyContact> contacts;
   final ValueChanged<SiagaGuide> onOpenReport;
   final SiagaLocation? initialLocation;
+  final EruptionAssessment? initialAssessment;
   final bool autoLocate;
   final SiagaGuideStore? store;
   final VoiceEngine? voiceEngine;
@@ -53,14 +57,18 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
     _location = widget.initialLocation?.isValid == true
         ? widget.initialLocation
         : null;
-    _selected = _location?.nearest.name;
+    _selected =
+        widget.initialAssessment?.guide?.name ?? _location?.nearest.name;
+    _guide = widget.initialAssessment?.showRecommendation == true
+        ? widget.initialAssessment?.guide
+        : null;
     _restore();
     if (widget.autoLocate) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         if (_location == null) {
           _locate();
-        } else {
+        } else if (widget.initialAssessment == null) {
           _load();
         }
       });
@@ -73,7 +81,10 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
       if (!mounted) return;
       setState(() {
         _saved = saved;
-        if (_selected == null && _guide == null && !_loading) {
+        if (widget.initialAssessment == null &&
+            _selected == null &&
+            _guide == null &&
+            !_loading) {
           _selected = saved?.name;
           _guide = saved;
         }
@@ -272,7 +283,23 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
               controller: _scroll,
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
               children: [
-                if (guide != null)
+                if (widget.initialAssessment case final assessment?)
+                  _section(
+                    assessment.title,
+                    [
+                      Text(assessment.reason),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Hasil ini memakai data BIG dan laporan MAGMA yang tersedia. Ikuti arahan terbaru PVMBG/BPBD.',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ],
+                    icon: Icons.info_outline,
+                    subtitle:
+                        'Penilaian berdasarkan titik lokasi, bukan jaminan keselamatan',
+                  ),
+                if (guide != null &&
+                    (widget.initialAssessment?.showRecommendation ?? true))
                   _section(
                     'Rekomendasi · ${guide.name}',
                     [
@@ -284,9 +311,7 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
                             vertical: 7,
                           ),
                           decoration: BoxDecoration(
-                            color: _statusColor(
-                              guide.status,
-                            ).withValues(alpha: .13),
+                            color: const Color(0xFFEAF0F8),
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
                               color: _statusColor(guide.status),
@@ -348,11 +373,19 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
                             ),
                           ),
                           OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF172742),
+                              backgroundColor: const Color(0xFFEAF0F8),
+                            ),
                             onPressed: _save,
                             icon: const Icon(Icons.save_alt),
                             label: const Text('Simpan Panduan Offline'),
                           ),
                           OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF172742),
+                              backgroundColor: const Color(0xFFEAF0F8),
+                            ),
                             onPressed: () => widget.onOpenReport(guide),
                             child: const Text('Buka Laporan Gunung'),
                           ),
@@ -367,6 +400,31 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
                         for (final paragraph in guide.recommendationParagraphs)
                           _recommendationItem(paragraph),
                       OfficialKrbMapButton(name: guide.name),
+                      const SizedBox(height: 12),
+                      Material(
+                        color: Colors.transparent,
+                        child: ExpansionTile(
+                          title: const Text('Langkah umum saat erupsi'),
+                          subtitle: const Text(
+                            'Materi BNPB dan Kementerian Kesehatan',
+                          ),
+                          children: [
+                            for (final step
+                                in mitigationLessons
+                                    .firstWhere(
+                                      (lesson) =>
+                                          lesson.id == 'during-eruption',
+                                    )
+                                    .steps)
+                              ListTile(
+                                title: Text(step.title),
+                                subtitle: Text(
+                                  '${step.action}\nSumber: ${step.source.organization}',
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                       const Text(
                         'Penyimpanan offline berisi teks laporan. Peta KRB resmi memerlukan internet.',
                         style: TextStyle(fontSize: 12),
@@ -375,102 +433,103 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
                     icon: Icons.landscape_rounded,
                     subtitle: 'Rekomendasi dari laporan gunung pilihan',
                   ),
-                _section('Panduan erupsi untuk gunung pilihan', [
-                  const Text(
-                    'Gunakan lokasi untuk memilih gunung terdekat atau pilih manual. '
-                    'Jarak tidak menyatakan wilayah terdampak, aman, atau perintah evakuasi.',
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: _locating || _loading ? null : _locate,
-                    icon: const Icon(Icons.my_location),
-                    label: Text(
-                      _locating ? 'Membaca lokasi…' : 'Gunakan Lokasi Saya',
+                if (widget.initialAssessment == null)
+                  _section('Panduan erupsi untuk gunung pilihan', [
+                    const Text(
+                      'Gunakan lokasi untuk memilih gunung terdekat atau pilih manual. '
+                      'Jarak tidak menyatakan wilayah terdampak, aman, atau perintah evakuasi.',
                     ),
-                  ),
-                  const Text(
-                    'Lokasi dipakai di perangkat untuk menghitung jarak ke gunung.',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  if (_location case final location?) ...[
-                    const SizedBox(height: 8),
-                    SelectableText(
-                      '${location.latitude.toStringAsFixed(5)}, ${location.longitude.toStringAsFixed(5)} · ${location.accuracyLabel}',
-                    ),
-                    TextButton.icon(
-                      onPressed: () async {
-                        await Clipboard.setData(
-                          ClipboardData(
-                            text:
-                                '${location.latitude}, ${location.longitude}; ${location.accuracyLabel}',
-                          ),
-                        );
-                        if (mounted)
-                          _message(
-                            'Koordinat disalin. Bagikan lewat aplikasi komunikasi pilihan Anda.',
-                          );
-                      },
-                      icon: const Icon(Icons.copy),
-                      label: const Text('Salin Lokasi untuk Bantuan'),
-                    ),
-                    if (reference != null)
-                      Text(
-                        'Jarak ke ${reference.name}: sekitar ${location.distanceKm(reference).toStringAsFixed(1)} km.',
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: _locating || _loading ? null : _locate,
+                      icon: const Icon(Icons.my_location),
+                      label: Text(
+                        _locating ? 'Membaca lokasi…' : 'Gunakan Lokasi Saya',
                       ),
-                  ],
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selected,
-                    key: ValueKey(_selected),
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Gunung yang dipantau',
-                      border: OutlineInputBorder(),
                     ),
-                    items: [
-                      for (final name in names)
-                        DropdownMenuItem(
-                          value: name,
-                          child: Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                    const Text(
+                      'Lokasi dipakai di perangkat untuk menghitung jarak ke gunung.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    if (_location case final location?) ...[
+                      const SizedBox(height: 8),
+                      SelectableText(
+                        '${location.latitude.toStringAsFixed(5)}, ${location.longitude.toStringAsFixed(5)} · ${location.accuracyLabel}',
+                      ),
+                      TextButton.icon(
+                        onPressed: () async {
+                          await Clipboard.setData(
+                            ClipboardData(
+                              text:
+                                  '${location.latitude}, ${location.longitude}; ${location.accuracyLabel}',
+                            ),
+                          );
+                          if (mounted)
+                            _message(
+                              'Koordinat disalin. Bagikan lewat aplikasi komunikasi pilihan Anda.',
+                            );
+                        },
+                        icon: const Icon(Icons.copy),
+                        label: const Text('Salin Lokasi untuk Bantuan'),
+                      ),
+                      if (reference != null)
+                        Text(
+                          'Jarak ke ${reference.name}: sekitar ${location.distanceKm(reference).toStringAsFixed(1)} km.',
                         ),
                     ],
-                    onChanged: _locating || _loading
-                        ? null
-                        : (name) {
-                            _generation++;
-                            _speechGeneration++;
-                            if (_usedVoice) _stopSpeech();
-                            setState(() {
-                              _selected = name;
-                              _guide = null;
-                              _error = null;
-                              _speaking = false;
-                            });
-                          },
-                  ),
-                  const SizedBox(height: 8),
-                  FilledButton(
-                    onPressed: _selected == null || _loading || _locating
-                        ? null
-                        : _load,
-                    child: Text(
-                      _loading ? 'Memuat laporan…' : 'Tampilkan Panduan',
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: _selected,
+                      key: ValueKey(_selected),
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Gunung yang dipantau',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        for (final name in names)
+                          DropdownMenuItem(
+                            value: name,
+                            child: Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                      onChanged: _locating || _loading
+                          ? null
+                          : (name) {
+                              _generation++;
+                              _speechGeneration++;
+                              if (_usedVoice) _stopSpeech();
+                              setState(() {
+                                _selected = name;
+                                _guide = null;
+                                _error = null;
+                                _speaking = false;
+                              });
+                            },
                     ),
-                  ),
-                  if (_error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
+                    const SizedBox(height: 8),
+                    FilledButton(
+                      onPressed: _selected == null || _loading || _locating
+                          ? null
+                          : _load,
                       child: Text(
-                        _error!,
-                        style: const TextStyle(color: Colors.red),
+                        _loading ? 'Memuat laporan…' : 'Tampilkan Panduan',
                       ),
                     ),
-                ]),
-                if (_saved != null)
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                  ]),
+                if (_saved != null && widget.initialAssessment == null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: OutlinedButton.icon(
@@ -522,14 +581,14 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: const Color(0xFF59728A)),
+        Icon(icon, size: 18, color: const Color(0xFFBAD5E6)),
         const SizedBox(width: 9),
         Expanded(
           child: Text(
             text,
             style: const TextStyle(
               fontSize: 13,
-              color: Color(0xFF52677E),
+              color: Color(0xFFDFEAF4),
               height: 1.5,
             ),
           ),
@@ -546,9 +605,9 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF0F8),
+        color: const Color(0xFF214C6A),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFD8E3EF)),
+        border: Border.all(color: const Color(0xFF486F89)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -578,7 +637,7 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
               style: const TextStyle(
                 fontSize: 15,
                 height: 1.65,
-                color: Color(0xFF172742),
+                color: Colors.white,
               ),
             ),
           ),
@@ -594,7 +653,7 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
     String? subtitle,
   }) {
     final theme = Theme.of(context);
-    const ink = Color(0xFF172742);
+    const ink = Colors.white;
     return Theme(
       data: theme.copyWith(
         textTheme: theme.textTheme.apply(bodyColor: ink, displayColor: ink),
@@ -608,9 +667,9 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
         child: Container(
           margin: const EdgeInsets.only(bottom: 18),
           decoration: BoxDecoration(
-            color: const Color(0xFFF7F9FD),
+            color: const Color(0xFF153D5B),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFC6D8E8)),
+            border: Border.all(color: const Color(0xFF476D88)),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x16000000),
@@ -655,7 +714,7 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
                               subtitle,
                               style: const TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF60758B),
+                                color: Color(0xFFD2E1ED),
                               ),
                             ),
                         ],

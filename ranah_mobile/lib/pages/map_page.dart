@@ -49,6 +49,8 @@ class _MapPageState extends State<MapPage> {
   bool _locationLoading = false;
   bool _mapGuideLoading = false;
   SiagaGuide? _mapGuide;
+  EruptionAssessment? _mapAssessment;
+  Map<String, String?> _volcanoStatuses = const {};
   String? _mapGuideError;
   bool _locationRequested = false;
   bool _routeConsentGiven = false;
@@ -88,6 +90,7 @@ class _MapPageState extends State<MapPage> {
         widget.locationProvider ?? const GeolocatorLocationProvider();
     _gunungRepository = widget.gunungRepository ?? GunungRepository();
     if (widget.initialLocation != null) _useSharedLocation();
+    unawaited(_loadOverviewStatuses());
   }
 
   @override
@@ -104,6 +107,27 @@ class _MapPageState extends State<MapPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _findLocation();
     });
+  }
+
+  Future<void> _loadOverviewStatuses() async {
+    try {
+      List<Map<String, dynamic>> records;
+      try {
+        records = (await _gunungRepository.syncGunung()).items;
+      } catch (_) {
+        records = (await _gunungRepository.readGunungCache()).items;
+      }
+      if (!mounted) return;
+      setState(
+        () => _volcanoStatuses = {
+          for (final record in records)
+            normalizeVolcanoName(record['nama']?.toString() ?? ''):
+                record['status_aktivitas']?.toString(),
+        },
+      );
+    } catch (_) {
+      /* Markers remain unknown. */
+    }
   }
 
   bool _openingOverviewReport = false;
@@ -228,6 +252,7 @@ class _MapPageState extends State<MapPage> {
       MaterialPageRoute<void>(
         builder: (_) => SiagaLocationPage(
           autoLocate: true,
+          initialAssessment: _mapAssessment,
           initialLocation: location == null
               ? null
               : SiagaLocation(
@@ -294,6 +319,7 @@ class _MapPageState extends State<MapPage> {
                 SizedBox(height: 14),
                 _InteractiveMobileMap(
                   controller: _mapController,
+                  statuses: _volcanoStatuses,
                   location: _location,
                   features: _osm?.features ?? const [],
                   route: _route,
@@ -301,6 +327,10 @@ class _MapPageState extends State<MapPage> {
                   onSelectDestination: _selectDestination,
                   tilesEnabled: widget.tilesEnabled,
                   onVolcanoTap: _openOverviewReport,
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(14, 8, 14, 0),
+                  child: EruptionLevelLegend(),
                 ),
                 if (!_locationRequested) ...[
                   const SizedBox(height: 14),
@@ -321,9 +351,12 @@ class _MapPageState extends State<MapPage> {
                           _location!.accuracyMeters,
                         ).nearest.name,
                         guide: _mapGuide,
+                        assessment: _mapAssessment,
                         loading: _mapGuideLoading,
                         error: _mapGuideError,
-                        onOpenGuide: _openSiagaPreview,
+                        onOpenGuide: _mapAssessment == null
+                            ? null
+                            : _openSiagaPreview,
                       ),
                     ),
                   ],
@@ -378,6 +411,8 @@ class _MapPageState extends State<MapPage> {
       _routeError = null;
       _routeLoading = false;
       _location = null;
+      _mapAssessment = null;
+      _mapGuide = null;
       _address = null;
       // ignore: unused_field
       _hazards = null;
@@ -421,24 +456,45 @@ class _MapPageState extends State<MapPage> {
       final volcanoFuture = _loadVolcanoes(generation, addressFuture);
       setState(() {
         _mapGuide = null;
+        _mapAssessment = null;
         _mapGuideError = null;
         _mapGuideLoading = true;
       });
       try {
-        final nearest = SiagaLocation(
-          fix.latitude,
-          fix.longitude,
-          fix.accuracyMeters,
-        ).nearest;
-        final guide = await _loadSiagaGuide(nearest.name);
+        final spatial = await _repository.analyze(coordinates);
+        final reports = <SiagaGuide>[];
+        for (final name
+            in spatial.volcanoFeatures.map((f) => f.volcanoName).toSet()) {
+          try {
+            reports.add(await _loadSiagaGuide(name));
+          } catch (_) {
+            /* Unknown status remains unknown. */
+          }
+        }
+        final assessment = assessEruptionLocation(
+          spatialStatus: spatial.volcanoStatus,
+          features: spatial.volcanoFeatures,
+          reports: reports,
+          accuracyMeters: fix.accuracyMeters,
+        );
         if (mounted && generation == _locationGeneration) {
-          setState(() => _mapGuide = guide);
+          setState(() {
+            _mapAssessment = assessment;
+            _mapGuide = assessment.guide;
+            _hazards = spatial;
+            _hazardLoading = false;
+          });
         }
       } catch (_) {
         if (mounted && generation == _locationGeneration) {
-          setState(
-            () => _mapGuideError = 'Rekomendasi belum dapat dimuat. Buka panduan untuk mencoba lagi.',
-          );
+          setState(() {
+            _mapAssessment = const EruptionAssessment(
+              kind: EruptionAssessmentKind.unknown,
+              title: 'Paparan erupsi belum dapat ditentukan',
+              reason: 'Layanan KRB atau laporan gunung tidak dapat dihubungi. Periksa informasi terbaru PVMBG/BPBD.',
+            );
+            _mapGuideError = null;
+          });
         }
       } finally {
         if (mounted && generation == _locationGeneration) {
@@ -989,6 +1045,7 @@ class _MapTitlePanel extends StatelessWidget {
 class _InteractiveMobileMap extends StatelessWidget {
   const _InteractiveMobileMap({
     required this.controller,
+    required this.statuses,
     required this.location,
     required this.features,
     required this.route,
@@ -999,6 +1056,7 @@ class _InteractiveMobileMap extends StatelessWidget {
   });
 
   final MapController controller;
+  final Map<String, String?> statuses;
   final DeviceLocationFix? location;
   final List<MapOsmFeature> features;
   final WalkingRoute? route;
@@ -1081,7 +1139,7 @@ class _InteractiveMobileMap extends StatelessWidget {
                   ),
                 MarkerLayer(
                   markers: [
-                    // Location references only: no activity level or KRB overlay.
+                    // Reported level only; no KRB overlay.
                     for (final volcano in volcanoReferences.values)
                       Marker(
                         point: LatLng(volcano.latitude, volcano.longitude),
@@ -1091,7 +1149,8 @@ class _InteractiveMobileMap extends StatelessWidget {
                           key: ValueKey(
                             'overview-volcano-${normalizeVolcanoName(volcano.name)}',
                           ),
-                          message: 'Gunung ${volcano.name}',
+                          message:
+                              'Gunung ${volcano.name} · ${statuses[normalizeVolcanoName(volcano.name)] ?? 'Status belum tersedia'}',
                           triggerMode: TooltipTriggerMode.manual,
                           child: Semantics(
                             label: 'Gunung ${volcano.name}',
@@ -1100,11 +1159,13 @@ class _InteractiveMobileMap extends StatelessWidget {
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onTap: () => onVolcanoTap(volcano),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.terrain,
-                                color: Color(0xFF173D5B),
+                                color: eruptionActivityColor(
+                                  statuses[normalizeVolcanoName(volcano.name)],
+                                ),
                                 size: 18,
-                                shadows: [
+                                shadows: const [
                                   Shadow(color: Colors.white, blurRadius: 3),
                                 ],
                               ),
