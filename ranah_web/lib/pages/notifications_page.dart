@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 
 import '../models/bmkg_notification.dart';
 import '../services/notifications_repository.dart';
+import '../services/browser_geolocation.dart';
+import '../services/administrative_area_lookup.dart';
 import '../theme/ranah_theme.dart';
 import '../widgets/ranah_full_width_title_background.dart';
 import '../widgets/ranah_header.dart';
@@ -11,12 +14,16 @@ class NotificationsPage extends StatefulWidget {
     required this.onBack,
     this.repository,
     this.forecastRepository,
+    this.locationReader = readBrowserLocation,
+    this.areaLookup = lookupBrowserAdministrativeArea,
     super.key,
   });
 
   final VoidCallback onBack;
   final BmkgNotificationRepository? repository;
   final BmkgForecastRepository? forecastRepository;
+  final Future<BrowserLocation> Function() locationReader;
+  final AdministrativeAreaLookup areaLookup;
 
   @override
   State<NotificationsPage> createState() => _NotificationsPageState();
@@ -36,6 +43,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   BmkgWeatherForecast? _forecast;
   Object? _forecastError;
   bool _forecastLoading = false;
+  bool _weatherLocationLoading = false;
+  String? _weatherLocationError;
   int _feedRequestId = 0;
   int _forecastRequestId = 0;
 
@@ -81,7 +90,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
   void _selectCategory(String category) {
     if (_category == category) return;
     setState(() => _category = category);
-    if (category != 'Cuaca') _load(page: 1);
+    if (category != 'Cuaca') {
+      _load(page: 1);
+    } else if (!_weatherAreasLoading && _weatherAreas.isNotEmpty) {
+      _resolveCurrentWeather();
+    }
   }
 
   Future<void> _loadWeatherAreas() async {
@@ -101,10 +114,59 @@ class _NotificationsPageState extends State<NotificationsPage> {
         _weatherAreas = areas;
         _selectedWeatherArea = selected.isEmpty ? null : selected.first;
       });
+      if (_category == 'Cuaca' && areas.isNotEmpty) _resolveCurrentWeather();
     } catch (error) {
       if (mounted) setState(() => _weatherAreaError = error);
     } finally {
       if (mounted) setState(() => _weatherAreasLoading = false);
+    }
+  }
+
+  Future<void> _resolveCurrentWeather() async {
+    if (_weatherLocationLoading) return;
+    setState(() {
+      _weatherLocationLoading = true;
+      _weatherLocationError = null;
+      _selectedWeatherArea = null;
+      _forecast = null;
+    });
+    try {
+      final fix = await widget.locationReader();
+      if (!fix.isValid) {
+        throw const FormatException('Koordinat lokasi tidak valid.');
+      }
+      final address = await widget.areaLookup(fix);
+      if (!mounted) return;
+      final matches = _weatherAreas
+          .where(
+            (area) => matchesWeatherArea(
+              areaVillage: area.village,
+              areaDistrict: area.district,
+              areaCity: area.city,
+              areaProvince: area.province,
+              locationVillage: address?.village ?? address?.locality,
+              locationDistrict: address?.district,
+              locationCity: address?.regency,
+              locationProvince: address?.province,
+            ),
+          )
+          .toList();
+      if (matches.length != 1) {
+        setState(
+          () => _weatherLocationError = 'Prakiraan untuk lokasi saat ini belum tersedia pada wilayah BMKG yang terverifikasi.',
+        );
+      } else {
+        await _selectWeatherArea(matches.single);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _weatherLocationError =
+              'Lokasi belum dapat dibaca. Izinkan lokasi lalu coba lagi.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _weatherLocationLoading = false);
     }
   }
 
@@ -184,9 +246,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
         maxContentWidth: width,
         title: _NotificationsBanner(
           maxContentWidth: width,
-          onRefresh: _loading
-              ? null
-              : () => _load(page: feed?.currentPage ?? 1),
+          onRefresh: _category == 'Cuaca'
+              ? (_weatherLocationLoading ? null : _resolveCurrentWeather)
+              : (_loading ? null : () => _load(page: feed?.currentPage ?? 1)),
         ),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -219,6 +281,22 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ),
               ),
             ),
+            if (feed != null)
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontal,
+                  RanahSpacing.md,
+                  horizontal,
+                  0,
+                ),
+                child: NotificationOverview(
+                  earthquakes: feed.items
+                      .where((item) => item.kind == 'kejadian')
+                      .length,
+                  warnings: feed.items.where((item) => item.isWarning).length,
+                  updatedLabel: 'Data BMKG yang tampil pada halaman ini',
+                ),
+              ),
             Padding(
               padding: EdgeInsets.fromLTRB(
                 horizontal,
@@ -241,6 +319,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       ChoiceChip(
                         label: Text(category),
                         selected: _category == category,
+                        selectedColor: const Color(0xFF2A7398),
+                        backgroundColor: const Color(0xFF174664),
+                        labelStyle: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        checkmarkColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF5E91AA)),
                         onSelected: (_) => _selectCategory(category),
                       ),
                   ],
@@ -310,7 +396,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     forecast: _forecast,
                     forecastLoading: _forecastLoading,
                     forecastError: _forecastError,
-                    onAreaChanged: _selectWeatherArea,
+                    locationLoading: _weatherLocationLoading,
+                    locationError: _weatherLocationError,
+                    onRetryLocation: _resolveCurrentWeather,
                     onRetryAreas: _loadWeatherAreas,
                     onRetryForecast: _selectedWeatherArea == null
                         ? null
@@ -389,29 +477,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     ),
                   ),
               ],
-              if (_category == 'Semua')
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    horizontal,
-                    RanahSpacing.xl,
-                    horizontal,
-                    0,
-                  ),
-                  child: _WeatherForecastPanel(
-                    areas: _weatherAreas,
-                    selectedArea: _selectedWeatherArea,
-                    areaLoading: _weatherAreasLoading,
-                    areaError: _weatherAreaError,
-                    forecast: _forecast,
-                    forecastLoading: _forecastLoading,
-                    forecastError: _forecastError,
-                    onAreaChanged: _selectWeatherArea,
-                    onRetryAreas: _loadWeatherAreas,
-                    onRetryForecast: _selectedWeatherArea == null
-                        ? null
-                        : () => _loadWeatherForecast(_selectedWeatherArea!),
-                  ),
-                ),
             ],
           ],
         ),
@@ -494,7 +559,7 @@ class _NotificationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final danger = notification.isWarning;
-    final accent = danger ? RanahColors.eruption : const Color(0xFF74839A);
+    final accent = danger ? RanahColors.eruption : const Color(0xFF176D9A);
     final itemTime = notification.eventAt ?? notification.publishedAt;
 
     return Material(
@@ -502,11 +567,12 @@ class _NotificationCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(RanahRadii.sm),
       child: Container(
         key: ValueKey('notification-card-$index'),
-        constraints: const BoxConstraints(minHeight: 68),
-        padding: const EdgeInsets.all(9),
+        constraints: const BoxConstraints(minHeight: 84),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(RanahRadii.sm),
+          color: const Color(0xFFF0F7FC),
+          borderRadius: BorderRadius.circular(RanahRadii.md),
+          border: Border.all(color: const Color(0xFFA6C8DC)),
           boxShadow: const [
             BoxShadow(
               color: Color(0x22000000),
@@ -519,12 +585,14 @@ class _NotificationCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 58,
-              height: 58,
+              width: 52,
+              height: 52,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF9F8),
-                border: Border.all(color: accent, width: .8),
+                color: danger
+                    ? const Color(0xFFFFECEC)
+                    : const Color(0xFFDDEFFA),
+                borderRadius: BorderRadius.circular(13),
               ),
               child: Icon(
                 danger
@@ -551,7 +619,7 @@ class _NotificationCard extends StatelessWidget {
                             ? 'PERINGATAN AKTIF'
                             : notification.category.toUpperCase(),
                         style: TextStyle(
-                          color: RanahColors.ink,
+                          color: accent,
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                         ),
@@ -715,7 +783,9 @@ class _WeatherForecastPanel extends StatelessWidget {
     required this.forecast,
     required this.forecastLoading,
     required this.forecastError,
-    required this.onAreaChanged,
+    required this.locationLoading,
+    required this.locationError,
+    required this.onRetryLocation,
     required this.onRetryAreas,
     required this.onRetryForecast,
   });
@@ -727,7 +797,9 @@ class _WeatherForecastPanel extends StatelessWidget {
   final BmkgWeatherForecast? forecast;
   final bool forecastLoading;
   final Object? forecastError;
-  final ValueChanged<BmkgWeatherArea?> onAreaChanged;
+  final bool locationLoading;
+  final String? locationError;
+  final VoidCallback onRetryLocation;
   final VoidCallback onRetryAreas;
   final VoidCallback? onRetryForecast;
 
@@ -758,46 +830,31 @@ class _WeatherForecastPanel extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Prakiraan wilayah, bukan pengamatan cuaca langsung.',
+              'Prakiraan BMKG untuk lokasi Anda, bukan pengamatan cuaca langsung.',
               style: TextStyle(color: Color(0xFFD7E0EA), fontSize: 12),
             ),
             const SizedBox(height: 12),
-            if (areas.isNotEmpty)
-              DropdownButtonFormField<String>(
-                initialValue: selectedArea?.adm4,
-                isExpanded: true,
-                style: const TextStyle(color: RanahColors.ink),
-                iconEnabledColor: RanahColors.ink,
-                iconDisabledColor: RanahColors.muted,
-                dropdownColor: Colors.white,
-                decoration: const InputDecoration(
-                  labelText: 'Pilih wilayah prakiraan',
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                items: [
-                  for (final area in areas)
-                    DropdownMenuItem(
-                      value: area.adm4,
-                      child: Text(area.label, overflow: TextOverflow.ellipsis),
-                    ),
-                ],
-                onChanged: (value) {
-                  final index = areas.indexWhere((area) => area.adm4 == value);
-                  onAreaChanged(index < 0 ? null : areas[index]);
-                },
+            if (areaLoading || locationLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: LinearProgressIndicator(),
               )
-            else if (areaLoading)
-              const LinearProgressIndicator()
             else if (areaError != null)
               _InlineRetry(
                 message: 'Daftar wilayah prakiraan belum dapat dimuat.',
                 onPressed: onRetryAreas,
               )
-            else
+            else if (areas.isEmpty)
               const _FeedMessage(
-                text: 'Prakiraan wilayah belum tersedia. Server belum memiliki daftar kode ADM4 Sumatera Barat yang terverifikasi; kode lokasi tidak ditebak.',
+                text: 'Prakiraan belum tersedia. Server belum memiliki wilayah BMKG terverifikasi.',
                 color: Color(0xFFFFE0A6),
+              )
+            else if (locationError != null)
+              _InlineRetry(message: locationError!, onPressed: onRetryLocation)
+            else if (selectedArea == null)
+              const _FeedMessage(
+                text: 'Mencari prakiraan untuk lokasi Anda…',
+                color: Color(0xFFD7E0EA),
               ),
             if (selectedArea != null) ...[
               const SizedBox(height: 12),

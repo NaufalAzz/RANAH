@@ -59,12 +59,14 @@ class RanahHeader extends StatelessWidget {
     required this.selected,
     required this.onSelect,
     required this.onNotifications,
+    this.notificationCount = 0,
     super.key,
   });
 
   final RanahDestination selected;
   final ValueChanged<RanahDestination> onSelect;
   final VoidCallback onNotifications;
+  final int notificationCount;
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +114,10 @@ class RanahHeader extends StatelessWidget {
               ),
             SizedBox(
               width: 48,
-              child: _NotificationButton(onPressed: onNotifications),
+              child: _NotificationButton(
+                onPressed: onNotifications,
+                count: notificationCount,
+              ),
             ),
           ],
         ),
@@ -151,6 +156,7 @@ class RanahHeader extends StatelessWidget {
                   width: notificationWidth,
                   child: _NotificationButton(
                     onPressed: onNotifications,
+                    count: notificationCount,
                     compact: true,
                   ),
                 ),
@@ -368,39 +374,51 @@ class _NavigationButton extends StatelessWidget {
 }
 
 class _NotificationButton extends StatelessWidget {
-  const _NotificationButton({required this.onPressed, this.compact = false});
+  const _NotificationButton({
+    required this.onPressed,
+    required this.count,
+    this.compact = false,
+  });
 
   final VoidCallback onPressed;
+  final int count;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return IconButton(
       onPressed: onPressed,
-      tooltip: 'Notifikasi',
+      tooltip: count == 0
+          ? 'Notifikasi gempa'
+          : '$count informasi gempa terbaru',
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints.tightFor(width: 48, height: 48),
       icon: Stack(
         clipBehavior: Clip.none,
         children: [
           Icon(Icons.notifications_none_rounded, size: compact ? 21 : 24),
-          Positioned(
-            right: -3,
-            top: -3,
-            child: Container(
-              width: 12,
-              height: 12,
-              alignment: Alignment.center,
-              decoration: const BoxDecoration(
-                color: RanahColors.eruption,
-                shape: BoxShape.circle,
-              ),
-              child: const Text(
-                '3',
-                style: TextStyle(color: Colors.white, fontSize: 12, height: 1),
+          if (count > 0)
+            Positioned(
+              right: -3,
+              top: -3,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: RanahColors.eruption,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  count > 99 ? '99+' : '$count',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    height: 1,
+                  ),
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

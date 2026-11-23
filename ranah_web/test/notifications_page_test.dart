@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ranah_web/models/bmkg_notification.dart';
 import 'package:ranah_web/pages/notifications_page.dart';
 import 'package:ranah_web/services/notifications_repository.dart';
+import 'package:ranah_web/services/browser_geolocation.dart';
 
 void main() {
   testWidgets(
@@ -121,7 +122,9 @@ void main() {
     expect(repository.requestedKinds.last, 'peringatan');
   });
 
-  testWidgets('weather pilot requires explicit area selection', (tester) async {
+  testWidgets('weather uses the current verified area without a dropdown', (
+    tester,
+  ) async {
     final forecasts = _FakeForecastRepository();
     await tester.pumpWidget(
       MaterialApp(
@@ -129,6 +132,17 @@ void main() {
           onBack: () {},
           repository: _FakeRepository((_) async => _feed(items: const [])),
           forecastRepository: forecasts,
+          locationReader: () async => const BrowserLocation(
+            latitude: -0.9,
+            longitude: 100.4,
+            accuracyMeters: 20,
+          ),
+          areaLookup: (_) async => const BrowserAdministrativeArea(
+            village: 'Pasar Ambacang',
+            district: 'Kuranji',
+            regency: 'Kota Padang',
+            province: 'Sumatera Barat',
+          ),
         ),
       ),
     );
@@ -136,23 +150,16 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, 'Cuaca'));
     await tester.pumpAndSettle();
 
-    expect(forecasts.forecastRequests, isEmpty);
-    final areaDropdown = find.byType(DropdownButtonFormField<String>);
-    await tester.ensureVisible(areaDropdown);
-    await tester.tap(areaDropdown);
-    await tester.pumpAndSettle();
-    final pilotArea = find.text('Pasar Ambacang · Kuranji, Kota Padang').last;
-    await tester.ensureVisible(pilotArea);
-    await tester.tap(pilotArea);
-    await tester.pumpAndSettle();
-
+    expect(find.byType(DropdownButtonFormField<String>), findsNothing);
     expect(forecasts.forecastRequests, ['13.71.09.1001']);
     expect(
       find.text('Prakiraan Cuaca — Pasar Ambacang, Kuranji, Kota Padang'),
       findsOneWidget,
     );
     expect(
-      find.text('Prakiraan wilayah, bukan pengamatan cuaca langsung.'),
+      find.text(
+        'Prakiraan BMKG untuk lokasi Anda, bukan pengamatan cuaca langsung.',
+      ),
       findsOneWidget,
     );
     expect(find.text('Hujan Ringan'), findsOneWidget);

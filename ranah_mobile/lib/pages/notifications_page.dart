@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 
 import '../models/notification_item.dart';
 import '../models/weather_forecast.dart';
 import '../services/notifications_repository.dart';
+import '../services/mobile_location_provider.dart';
+import '../services/mobile_map_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/app_card_surface.dart';
 import '../widgets/app_page_banner.dart';
 
 class NotificationsPage extends StatefulWidget {
-  const NotificationsPage({this.repository, super.key});
+  const NotificationsPage({
+    this.repository,
+    this.locationProvider,
+    this.mapRepository,
+    super.key,
+  });
 
   final NotificationsRepository? repository;
+  final MobileLocationProvider? locationProvider;
+  final MobileMapRepository? mapRepository;
 
   @override
   State<NotificationsPage> createState() => _NotificationsPageState();
@@ -29,6 +39,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Object? _forecastError;
   bool _forecastLoading = false;
   int _forecastRequest = 0;
+  bool _weatherLocationLoading = false;
+  String? _weatherLocationError;
 
   @override
   void initState() {
@@ -41,8 +53,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<void> _reload() async {
     setState(() => _feed = _repository.load());
     await _feed;
-    if (_category == 'Cuaca' && _selectedWeatherArea != null) {
-      await _loadForecast(_selectedWeatherArea!);
+    if (_category == 'Cuaca') {
+      await _resolveCurrentWeather();
     }
   }
 
@@ -75,7 +87,70 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   void _selectCategory(String category) {
     setState(() => _category = category);
-    if (category != 'Cuaca') _reloadNotificationsOnly();
+    if (category != 'Cuaca') {
+      _reloadNotificationsOnly();
+    } else {
+      _resolveCurrentWeather();
+    }
+  }
+
+  Future<void> _resolveCurrentWeather() async {
+    if (_weatherLocationLoading) return;
+    setState(() {
+      _weatherLocationLoading = true;
+      _weatherLocationError = null;
+      _selectedWeatherArea = null;
+      _forecast = null;
+    });
+    try {
+      final areas = await _weatherAreas;
+      if (areas.isEmpty) return;
+      final fix =
+          await (widget.locationProvider ?? const GeolocatorLocationProvider())
+              .currentFix();
+      if (!fix.isValid) {
+        throw const FormatException('Koordinat lokasi tidak valid.');
+      }
+      final address =
+          await (widget.mapRepository ?? LaravelMobileMapRepository())
+              .lookupAddress(
+                DeviceCoordinates(
+                  latitude: fix.latitude,
+                  longitude: fix.longitude,
+                ),
+              );
+      if (!mounted) return;
+      final matches = areas
+          .where(
+            (area) => matchesWeatherArea(
+              areaVillage: area.village,
+              areaDistrict: area.district,
+              areaCity: area.city,
+              areaProvince: area.province,
+              locationVillage: address.village ?? address.locality,
+              locationDistrict: address.district,
+              locationCity: address.regency,
+              locationProvince: address.province,
+            ),
+          )
+          .toList();
+      if (matches.length != 1) {
+        setState(
+          () => _weatherLocationError = 'Prakiraan untuk lokasi saat ini belum tersedia pada wilayah BMKG yang terverifikasi.',
+        );
+      } else {
+        await _selectWeatherArea(matches.single);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _weatherLocationError =
+              'Lokasi belum dapat dibaca. Izinkan lokasi lalu coba lagi.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _weatherLocationLoading = false);
+    }
   }
 
   void _reloadNotificationsOnly() {
@@ -187,6 +262,27 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                 : 'Sinkronisasi sumber BMKG terakhir ${_formatDateTime(result.sourceUpdatedAt!)}.',
                             warning: result.sourceUpdatedAt == null,
                           ),
+                        if (result != null) ...[
+                          const SizedBox(height: 8),
+                          NotificationOverview(
+                            earthquakes: allItems
+                                .where(
+                                  (item) =>
+                                      item.kind == NotificationKind.earthquake,
+                                )
+                                .length,
+                            warnings: allItems
+                                .where(
+                                  (item) =>
+                                      item.status == 'aktif' &&
+                                      item.kind == NotificationKind.latestNews,
+                                )
+                                .length,
+                            updatedLabel: result.isFromCache
+                                ? 'Data tersimpan di perangkat'
+                                : 'Data BMKG yang tersedia saat ini',
+                          ),
+                        ],
                         if (snapshot.connectionState ==
                                 ConnectionState.waiting &&
                             result == null)
@@ -209,6 +305,16 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                 ChoiceChip(
                                   label: Text(category),
                                   selected: _category == category,
+                                  selectedColor: const Color(0xFF2A7398),
+                                  backgroundColor: const Color(0xFF174664),
+                                  labelStyle: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  checkmarkColor: Colors.white,
+                                  side: const BorderSide(
+                                    color: Color(0xFF5E91AA),
+                                  ),
                                   onSelected: (_) => _selectCategory(category),
                                 ),
                             ],
@@ -225,6 +331,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
                             loading: _forecastLoading,
                             error: _forecastError,
                             onAreaChanged: _selectWeatherArea,
+                            locationLoading: _weatherLocationLoading,
+                            locationError: _weatherLocationError,
+                            onRetryLocation: _resolveCurrentWeather,
                             onRetryAreas: _retryWeatherAreas,
                             onRetryForecast: _selectedWeatherArea == null
                                 ? null
@@ -369,6 +478,9 @@ class _WeatherForecastSection extends StatelessWidget {
     required this.loading,
     required this.error,
     required this.onAreaChanged,
+    required this.locationLoading,
+    required this.locationError,
+    required this.onRetryLocation,
     required this.onRetryAreas,
     required this.onRetryForecast,
   });
@@ -380,6 +492,9 @@ class _WeatherForecastSection extends StatelessWidget {
   final bool loading;
   final Object? error;
   final ValueChanged<WeatherArea?> onAreaChanged;
+  final bool locationLoading;
+  final String? locationError;
+  final VoidCallback onRetryLocation;
   final VoidCallback onRetryAreas;
   final VoidCallback? onRetryForecast;
 
@@ -400,39 +515,29 @@ class _WeatherForecastSection extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Pilih kelurahan dari daftar ADM4 Sumatera Barat yang dikonfigurasi. Prakiraan bukan pengamatan cuaca aktual.',
+              'Prakiraan BMKG untuk lokasi Anda, bukan pengamatan cuaca langsung.',
               style: TextStyle(color: Color(0xFF68717E), fontSize: 12),
             ),
             const SizedBox(height: 12),
-            if (snapshot.connectionState == ConnectionState.waiting)
-              const Center(child: CircularProgressIndicator())
+            if (snapshot.connectionState == ConnectionState.waiting ||
+                locationLoading)
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: Center(child: CircularProgressIndicator()),
+              )
             else if (areasError != null)
               _WeatherError(
-                message: 'Daftar wilayah belum dapat dimuat: $areasError',
+                message: 'Daftar wilayah prakiraan belum dapat dimuat.',
                 onRetry: onRetryAreas,
               )
             else if (available.isEmpty)
               const Text(
-                'Belum ada wilayah prakiraan Sumatera Barat yang dikonfigurasi di server.',
+                'Prakiraan belum tersedia. Server belum memiliki wilayah BMKG terverifikasi.',
               )
-            else
-              DropdownButtonFormField<String>(
-                initialValue: selectedArea?.adm4,
-                decoration: const InputDecoration(
-                  labelText: 'Wilayah prakiraan',
-                ),
-                items: [
-                  for (final area in available)
-                    DropdownMenuItem(
-                      value: area.adm4,
-                      child: Text(area.label, overflow: TextOverflow.ellipsis),
-                    ),
-                ],
-                onChanged: (value) {
-                  final matches = available.where((area) => area.adm4 == value);
-                  onAreaChanged(matches.isEmpty ? null : matches.first);
-                },
-              ),
+            else if (locationError != null)
+              _WeatherError(message: locationError!, onRetry: onRetryLocation)
+            else if (selectedArea == null)
+              const Text('Mencari prakiraan untuk lokasi Anda…'),
             if (selectedArea != null) ...[
               const SizedBox(height: 12),
               Text(
@@ -460,11 +565,42 @@ class _WeatherForecastSection extends StatelessWidget {
                     'Prakiraan belum tersedia dari sinkronisasi server.',
                   ),
                 for (final interval in forecast!.intervals.take(8))
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(interval.condition),
-                    subtitle: Text(
-                      '${_formatDateTime(interval.localTime)}${interval.temperature == null ? '' : ' · ${interval.temperature!.round()}°C'}${interval.humidity == null ? '' : ' · RH ${interval.humidity}%'}${interval.windSpeed == null ? '' : ' · Angin ${interval.windSpeed!.toStringAsFixed(1)} km/jam'}',
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDDEFFA),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.cloud_outlined,
+                          color: Color(0xFF176D9A),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                interval.condition,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF153D5B),
+                                ),
+                              ),
+                              Text(
+                                '${_formatDateTime(interval.localTime)}${interval.temperature == null ? '' : ' · ${interval.temperature!.round()}°C'}${interval.humidity == null ? '' : ' · RH ${interval.humidity}%'}${interval.windSpeed == null ? '' : ' · Angin ${interval.windSpeed!.toStringAsFixed(1)} km/jam'}',
+                                style: const TextStyle(
+                                  color: Color(0xFF34556D),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 if (forecast!.intervals.isEmpty &&
