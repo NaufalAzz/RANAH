@@ -41,7 +41,12 @@ class _HomePageState extends State<HomePage> {
   int _featuredIndex = 0;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
+    valueListenable: padangContactRegion,
+    builder: (context, _, _) => _contactContent(context),
+  );
+
+  Widget _contactContent(BuildContext context) {
     final featuredIndex = _featuredIndex < widget.items.length
         ? _featuredIndex
         : 0;

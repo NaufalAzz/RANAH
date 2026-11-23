@@ -426,6 +426,7 @@ class _MapPageState extends State<MapPage> {
       if (!mounted) return;
       if (generation != _locationGeneration) return;
       setState(() {
+        updateContactRegion(null, null);
         _location = fix;
         _address = null;
         _hazards = null;
@@ -553,6 +554,7 @@ class _MapPageState extends State<MapPage> {
       final result = await _repository.lookupAddress(location);
       if (!mounted || generation != _locationGeneration) return null;
       setState(() {
+        updateContactRegion(result.regency, result.province);
         _address = result;
         _addressLoading = false;
       });

@@ -537,6 +537,7 @@ class _MapPageState extends State<MapPage> {
           .areaLookup(location)
           .timeout(const Duration(seconds: 18));
       if (!_isCurrentRequest(location, generation)) return null;
+      updateContactRegion(area?.regency, area?.province);
       widget.onAreaChanged(area);
       setState(() {
         _areaLoading = false;
@@ -594,6 +595,7 @@ class _MapPageState extends State<MapPage> {
       _routeError = null;
       _routeLoading = false;
       _selectedOsmFeature = null;
+      updateContactRegion(null, null);
       unawaited(_identifyArea(location, generation));
       setState(() {
         _mapGuide = null;

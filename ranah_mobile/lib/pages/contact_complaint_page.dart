@@ -424,7 +424,12 @@ class _EmergencyContactList extends StatelessWidget {
   final ValueChanged<EmergencyContact> onContactTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
+    valueListenable: padangContactRegion,
+    builder: (context, _, _) => _contactContent(context),
+  );
+
+  Widget _contactContent(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
       children: [

@@ -68,7 +68,12 @@ class _EmergencyContactsPageState extends State<EmergencyContactsPage> {
   }
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
+  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
+    valueListenable: padangContactRegion,
+    builder: (context, _, _) => _contactContent(context),
+  );
+
+  Widget _contactContent(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final width = constraints.maxWidth > RanahLayout.maxContentWidth
           ? RanahLayout.maxContentWidth
@@ -638,10 +643,7 @@ class _ComplaintForm extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _label('Nama Pelapor'),
-                      _textField(
-                        nameController,
-                        hint: 'Masukkan nama pelapor',
-                      ),
+                      _textField(nameController, hint: 'Masukkan nama pelapor'),
                     ],
                   ),
                 ),
@@ -697,9 +699,8 @@ class _ComplaintForm extends StatelessWidget {
                             ),
                         ],
                         onChanged: onCategoryChanged,
-                        validator: (value) => value == null
-                            ? 'Kategori wajib dipilih'
-                            : null,
+                        validator: (value) =>
+                            value == null ? 'Kategori wajib dipilih' : null,
                       ),
                     ],
                   ),

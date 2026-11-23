@@ -54,7 +54,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
+    valueListenable: padangContactRegion,
+    builder: (context, _, _) => _contactContent(context),
+  );
+
+  Widget _contactContent(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final mobile = constraints.maxWidth < 560;

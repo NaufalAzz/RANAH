@@ -31,7 +31,7 @@ class EmergencyContactSample {
 }
 
 /// Contact numbers and verification sources mirror the local mobile data.
-const emergencyContacts = <EmergencyContactSample>[
+const _nationalContacts = <EmergencyContactSample>[
   EmergencyContactSample(
     id: 'bnpb',
     name: 'BNPB (Badan Nasional Penanggulangan Bencana)',
@@ -104,5 +104,58 @@ const emergencyContacts = <EmergencyContactSample>[
     sourceUrl: 'https://layanan112.komdigi.go.id/tentang',
     sourceAccessedAt: '23 Oktober 2026',
     note: 'Ketersediaan layanan 112 bergantung pada wilayah.',
+  ),
+];
+
+final padangContactRegion = ValueNotifier<bool>(false);
+
+void updateContactRegion(String? city, String? province) {
+  final name = city?.trim().toLowerCase();
+  padangContactRegion.value =
+      (name == 'padang' || name == 'kota padang') &&
+      province?.trim().toLowerCase() == 'sumatera barat';
+}
+
+List<EmergencyContactSample> get emergencyContacts =>
+    padangContactRegion.value ? _padangContacts : _nationalContacts;
+const _padangContacts = <EmergencyContactSample>[
+  EmergencyContactSample(
+    id: 'padang-bpbd',
+    name: 'Laporan bencana Kota Padang',
+    organization: 'Pusdalops BPBD Kota Padang',
+    displayNumber: '0751778775',
+    dialNumbers: ['0751778775'],
+    icon: Icons.phone_in_talk,
+    numberVerified: true,
+    sourceTitle: 'Pusdalops BPBD Kota Padang',
+    sourceOrganization: 'BPBD Kota Padang',
+    sourceUrl: 'https://bpbd.padang.go.id/kontak',
+    sourceAccessedAt: '23 November 2026',
+  ),
+  EmergencyContactSample(
+    id: 'padang-pcc',
+    name: 'Panggilan darurat terpadu',
+    organization: 'Padang Command Center',
+    displayNumber: '112',
+    dialNumbers: ['112'],
+    icon: Icons.phone_in_talk,
+    numberVerified: true,
+    sourceTitle: 'Padang Command Center',
+    sourceOrganization: 'Pemerintah Kota Padang',
+    sourceUrl: 'https://sigap.padang.go.id/',
+    sourceAccessedAt: '23 November 2026',
+  ),
+  EmergencyContactSample(
+    id: 'padang-psc',
+    name: 'Bantuan medis darurat',
+    organization: 'PSC 119 Kota Padang',
+    displayNumber: '119',
+    dialNumbers: ['119'],
+    icon: Icons.phone_in_talk,
+    numberVerified: true,
+    sourceTitle: 'PSC 119 Kota Padang',
+    sourceOrganization: 'Dinas Kesehatan Kota Padang',
+    sourceUrl: 'https://dinkes.padang.go.id/profil/layanan-pengaduan-warga',
+    sourceAccessedAt: '23 November 2026',
   ),
 ];
