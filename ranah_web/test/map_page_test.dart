@@ -59,10 +59,17 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('find-device-location')));
       await tester.pumpAndSettle();
-      expect(find.text('Siaga di Lokasi Saya'), findsOneWidget);
+      expect(find.text('Siaga Erupsi · Marapi'), findsOneWidget);
       expect(requestedId, 731);
-      expect(find.text('Arahan resmi untuk uji pratinjau.'), findsOneWidget);
-      expect(find.text('Sumber: MAGMA Indonesia'), findsOneWidget);
+      expect(
+        find.textContaining('Arahan resmi untuk uji pratinjau.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Sumber: MAGMA Indonesia'), findsOneWidget);
+      await tester.ensureVisible(find.text('Buka Panduan Siaga Lengkap'));
+      await tester.tap(find.text('Buka Panduan Siaga Lengkap'));
+      await tester.pumpAndSettle();
+      expect(find.text('Siaga di Lokasi Saya'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -202,39 +209,33 @@ void main() {
     },
   );
 
-  testWidgets('main map renders OSM Point and Polygon without recentering', (
-    tester,
-  ) async {
-    await _pumpMap(
-      tester,
-      location: const BrowserLocation(
-        latitude: -0.91,
-        longitude: 100.46,
-        accuracyMeters: 20,
-      ),
-      osmLoader: () async => _osmTestDataset,
-    );
+  testWidgets(
+    'map keeps the device pin and volcano icons without generic evacuation points',
+    (tester) async {
+      await _pumpMap(
+        tester,
+        location: const BrowserLocation(
+          latitude: -0.91,
+          longitude: 100.46,
+          accuracyMeters: 20,
+        ),
+        osmLoader: () async => _osmTestDataset,
+      );
 
-    final map = tester.widget<FlutterMap>(find.byType(FlutterMap));
-    expect(map.options.initialCenter, const LatLng(-0.91, 100.46));
-    final polygons = map.children.whereType<PolygonLayer>().single;
-    final markers = map.children.whereType<MarkerLayer>().single.markers;
-    expect(polygons.polygons, hasLength(1));
-    expect(markers, hasLength(72));
-    expect(
-      markers.map((marker) => marker.point),
-      contains(const LatLng(-0.8771866, 100.3833966)),
-    );
-    expect(
-      markers.any(
-        (marker) =>
-            (marker.point.latitude - (-0.877667)).abs() < 0.00001 &&
-            (marker.point.longitude - 100.383667).abs() < 0.00001,
-      ),
-      isTrue,
-    );
-    expect(tester.takeException(), isNull);
-  });
+      final map = tester.widget<FlutterMap>(find.byType(FlutterMap));
+      expect(map.options.initialCenter, const LatLng(-0.91, 100.46));
+      final polygons = map.children.whereType<PolygonLayer>().single;
+      final markers = map.children.whereType<MarkerLayer>().single.markers;
+      expect(polygons.polygons, isEmpty);
+      expect(markers, hasLength(70));
+      expect(
+        markers.map((marker) => marker.point),
+        contains(const LatLng(-0.91, 100.46)),
+      );
+      expect(find.byKey(const ValueKey('map-osm-feature-1')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'route is requested only after explicit selection and leaves location unchanged',

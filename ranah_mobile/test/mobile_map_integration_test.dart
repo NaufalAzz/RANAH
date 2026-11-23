@@ -30,10 +30,24 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Temukan Lokasi Saya'));
       await tester.pumpAndSettle();
-      expect(find.text('Siaga di Lokasi Saya'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Siaga Erupsi · Marapi'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Siaga Erupsi · Marapi'), findsOneWidget);
       expect(repository.requestedId, 1);
-      expect(find.text('Arahan resmi untuk uji mobile.'), findsOneWidget);
-      expect(find.text('Sumber: MAGMA Indonesia'), findsOneWidget);
+      expect(
+        find.textContaining('Arahan resmi untuk uji mobile.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Sumber: MAGMA Indonesia'), findsOneWidget);
+      await tester.drag(find.byType(ListView), const Offset(0, -260));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Buka Panduan Siaga Lengkap'));
+      await tester.tap(find.text('Buka Panduan Siaga Lengkap'));
+      await tester.pumpAndSettle();
+      expect(find.text('Siaga di Lokasi Saya'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

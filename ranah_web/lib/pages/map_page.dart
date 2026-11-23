@@ -74,6 +74,9 @@ class MapPage extends StatefulWidget {
 
 class _MapPageState extends State<MapPage> {
   bool _locationLoading = false;
+  bool _mapGuideLoading = false;
+  SiagaGuide? _mapGuide;
+  String? _mapGuideError;
   bool _routingConsentGranted = false;
   bool _areaLoading = false;
   String? _areaError;
@@ -84,15 +87,20 @@ class _MapPageState extends State<MapPage> {
   late final bool _ownsHazardRepository;
   OsmAssemblyPointRepository? _ownedOsmRepository;
   bool _ownsOsmRepository = false;
+  // ignore: unused_field
   bool _osmLoading = false;
+  // ignore: unused_field
   String? _osmError;
   OsmAssemblyPointDataset? _osmDataset;
   Future<OsmAssemblyPointDataset?>? _osmLoadFuture;
   OsmAssemblyPoint? _selectedOsmFeature;
   late final RouteSimulationRepository _routeRepository;
   late final bool _ownsRouteRepository;
+  // ignore: unused_field
   RouteSimulationResult? _routeResult;
+  // ignore: unused_field
   String? _routeError;
+  // ignore: unused_field
   bool _routeLoading = false;
   int _routeRequestGeneration = 0;
   int _requestGeneration = 0;
@@ -133,7 +141,9 @@ class _MapPageState extends State<MapPage> {
         _pendingLocationUpdate = null;
       } else {
         _routeRequestGeneration++;
+        // ignore: unused_field
         _routeResult = null;
+        // ignore: unused_field
         _routeError = null;
         _routeLoading = false;
         _pendingLocationUpdate = null;
@@ -299,6 +309,7 @@ class _MapPageState extends State<MapPage> {
     });
   }
 
+  // ignore: unused_element
   Future<void> _showOsmFeatureDetail(OsmAssemblyPoint feature) async {
     _selectOsmFeature(feature);
     await showModalBottomSheet<void>(
@@ -410,6 +421,7 @@ class _MapPageState extends State<MapPage> {
     return 'Rute sementara tidak dapat dimuat. Tidak ada garis rute yang ditampilkan.';
   }
 
+  // ignore: unused_element
   void _closeRoute() {
     _routeRequestGeneration++;
     setState(() {
@@ -444,6 +456,7 @@ class _MapPageState extends State<MapPage> {
   Future<OsmAssemblyPointDataset?> _fetchOsmReferences() async {
     setState(() {
       _osmLoading = true;
+      // ignore: unused_field
       _osmError = null;
     });
     try {
@@ -543,7 +556,7 @@ class _MapPageState extends State<MapPage> {
   Future<void> _findLocation() async {
     if (_locationLoading) return;
     _routingConsentGranted = true;
-    const routeAfterLocation = true;
+
     setState(() => _locationLoading = true);
     try {
       final location = await widget.locationReader().timeout(
@@ -579,20 +592,32 @@ class _MapPageState extends State<MapPage> {
       _routeError = null;
       _routeLoading = false;
       _selectedOsmFeature = null;
-      final osmFuture = _loadOsmReferences();
-      final areaFuture = _identifyArea(location, generation);
-      unawaited(osmFuture);
-      unawaited(areaFuture);
-      unawaited(_analyzeHazards(location, generation));
-      if (routeAfterLocation) {
-        unawaited(
-          _calculateAutomaticNearbyRoute(
-            location,
-            generation,
-            osmFuture,
-            areaFuture,
-          ),
-        );
+      unawaited(_identifyArea(location, generation));
+      setState(() {
+        _mapGuide = null;
+        _mapGuideError = null;
+        _mapGuideLoading = true;
+      });
+      try {
+        final nearest = SiagaLocation(
+          location.latitude,
+          location.longitude,
+          location.accuracyMeters,
+        ).nearest;
+        final guide = await _loadSiagaGuide(nearest.name);
+        if (mounted && generation == _requestGeneration) {
+          setState(() => _mapGuide = guide);
+        }
+      } catch (_) {
+        if (mounted && generation == _requestGeneration) {
+          setState(
+            () => _mapGuideError = 'Rekomendasi belum dapat dimuat. Buka panduan untuk mencoba lagi.',
+          );
+        }
+      } finally {
+        if (mounted && generation == _requestGeneration) {
+          setState(() => _mapGuideLoading = false);
+        }
       }
       if ((location.accuracyMeters ?? 0) > 1000) {
         _showMessage(
@@ -631,8 +656,10 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
+  // ignore: unused_element
   void _retryOsm() => unawaited(_loadOsmReferences());
 
+  // ignore: unused_element
   Future<void> _calculateAutomaticNearbyRoute(
     BrowserLocation location,
     int generation,
@@ -773,42 +800,17 @@ class _MapPageState extends State<MapPage> {
                 ),
                 location: location,
                 tilesEnabled: widget.tilesEnabled,
-                osmFeatures: location == null
-                    ? const []
-                    : _osmDataset?.features ?? const [],
-                selectedFeatureId: _selectedOsmFeature?.id,
-                route: _routeResult,
-                onFeatureTap: _showOsmFeatureDetail,
+                osmFeatures: const [],
+                selectedFeatureId: null,
+                route: null,
+                onFeatureTap: (_) {},
                 onVolcanoTap: _openOverviewReport,
               ),
             ),
-            if (location != null)
-              _OsmMapStatus(
-                loading: _osmLoading,
-                error: _osmError,
-                featureCount: _osmDataset?.features.length ?? 0,
-                onRetry: _retryOsm,
-              ),
-            if (location != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: _RouteSimulationPanel(
-                  selectedFeature: _selectedOsmFeature,
-                  features: _osmDataset?.features ?? const [],
-                  loading: _routeLoading,
-                  error: _routeError,
-                  route: _routeResult,
-                  onSelectFeature: _selectOsmFeature,
-                  onShowRoute: _selectedOsmFeature?.geometryType == 'Point'
-                      ? () => _calculateRoute(_selectedOsmFeature!)
-                      : null,
-                  onClose: _closeRoute,
-                ),
-              ),
             const Padding(
               padding: EdgeInsets.only(top: 5),
               child: Text(
-                'Data peta: © OpenStreetMap contributors · ODbL. Fitur lokal berstatus belum diverifikasi.',
+                'Data peta: © OpenStreetMap contributors · ODbL. Ikon gunung menampilkan lokasi laporan.',
                 style: TextStyle(fontSize: 10, color: Color(0xFFD1DCE9)),
               ),
             ),
@@ -858,7 +860,7 @@ class _MapPageState extends State<MapPage> {
                   ? 'Mencari Lokasi...'
                   : 'Temukan Lokasi Saya',
               description: 'Lihat gunung terdekat dan rekomendasi erupsi.',
-              onTap: _openSiagaPreview,
+              onTap: _locationLoading ? null : _findLocation,
               loading: _locationLoading,
             ),
             _MapAction(
@@ -874,7 +876,58 @@ class _MapPageState extends State<MapPage> {
     ),
   );
 
-  Widget _buildLocationDetails(
+  Widget _buildLocationDetails(bool mobile, BrowserLocation location) {
+    final nearest = SiagaLocation(
+      location.latitude,
+      location.longitude,
+      location.accuracyMeters,
+    ).nearest;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        mobile ? RanahSpacing.xs : 0,
+        RanahSpacing.md,
+        mobile ? RanahSpacing.xs : 0,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _CurrentLocationCard(
+            location: location,
+            area: widget.currentArea,
+            loading: _areaLoading,
+            error: _areaError,
+            onRetryArea: _retryArea,
+            locationLoading: _locationLoading,
+            onRefreshLocation: _findLocation,
+          ),
+          const SizedBox(height: RanahSpacing.md),
+          SiagaMapCard(
+            volcanoName: nearest.name,
+            guide: _mapGuide,
+            loading: _mapGuideLoading,
+            error: _mapGuideError,
+            onOpenGuide: _openSiagaPreview,
+          ),
+          const SizedBox(height: RanahSpacing.md),
+          _NearbyVolcanoList(
+            area: widget.currentArea,
+            areaLoading: _areaLoading,
+            areaError: _areaError,
+            location: location,
+            records: widget.gunung,
+            isLoading: widget.gunungLoading,
+            error: widget.gunungError,
+            onRetry: widget.onRetryGunung,
+            onOpenReport: widget.onOpenReport,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ignore: unused_element
+  Widget _legacyLocationDetails(
     bool mobile,
     BrowserLocation location,
   ) => Padding(
@@ -1333,6 +1386,7 @@ class _OsmFeatureQuickDetail extends StatelessWidget {
   );
 }
 
+// ignore: unused_element
 class _RouteSimulationPanel extends StatelessWidget {
   const _RouteSimulationPanel({
     required this.selectedFeature,
@@ -2182,6 +2236,7 @@ String _formatDate(DateTime value) {
   return '${local.day.toString().padLeft(2, '0')}/${local.month.toString().padLeft(2, '0')}/${local.year} ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
 }
 
+// ignore: unused_element
 class _OsmMapStatus extends StatelessWidget {
   const _OsmMapStatus({
     required this.loading,
