@@ -344,12 +344,12 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
                           margin: const EdgeInsets.only(top: 8),
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFF0D4),
+                            color: const Color(0xFF403719),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Text(
                             'Salinan tersimpan; belum memastikan kondisi terbaru.',
-                            style: TextStyle(color: Color(0xFF855000)),
+                            style: TextStyle(color: Color(0xFFFFE4A3)),
                           ),
                         ),
                       const Divider(),
