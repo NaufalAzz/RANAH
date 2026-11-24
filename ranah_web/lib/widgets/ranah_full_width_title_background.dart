@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'package:ranah_accessibility/ranah_accessibility.dart';
+
 import '../theme/ranah_theme.dart';
 
 /// Extends a page title's background to the viewport while keeping the title
@@ -29,12 +31,15 @@ class RanahFullWidthTitleBackground extends StatelessWidget {
         color: color,
         border: bottomBorder == null ? null : Border(bottom: bottomBorder!),
       ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: maxContentWidth ?? viewportWidth,
+      child: CustomPaint(
+        foregroundPainter: const RanahContours(),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: maxContentWidth ?? viewportWidth,
+            ),
+            child: child,
           ),
-          child: child,
         ),
       ),
     );

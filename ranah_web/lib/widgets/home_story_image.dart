@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ranah_accessibility/ranah_accessibility.dart'
+    show RanahNewsCover;
 
 import '../data/home_stories.dart';
 
@@ -42,11 +44,9 @@ class HomeStoryImage extends StatelessWidget {
     return _placeholder();
   }
 
-  Widget _placeholder() => Container(
+  Widget _placeholder() => SizedBox(
     width: width,
     height: height,
-    color: const Color(0xFF26384A),
-    alignment: Alignment.center,
-    child: const Icon(Icons.photo_outlined, color: Color(0xFFB8C3CF), size: 32),
+    child: RanahNewsCover(category: story.category),
   );
 }

@@ -1,6 +1,19 @@
 import 'package:flutter/material.dart';
 
-enum GuideScene { radio, bag, mask, route, shelter, river, help, clean }
+enum GuideScene {
+  radio,
+  bag,
+  mask,
+  route,
+  shelter,
+  river,
+  help,
+  clean,
+  window,
+  water,
+  meeting,
+  vehicle,
+}
 
 class GuideSource {
   const GuideSource(
@@ -11,7 +24,7 @@ class GuideSource {
     this.locator,
   );
   final String id, organization, title, url, locator;
-  static const checkedAt = '6 November 2026';
+  static const checkedAt = '24 November 2026';
 }
 
 const bnpbPreparation = GuideSource(
@@ -41,6 +54,28 @@ const bpbdRecovery = GuideSource(
   'Tips Bencana Letusan Gunung Api',
   'https://bpbd.jogjaprov.go.id/tips-bencana-letusan-gunung-api',
   'Bagian pascabencana; terbit 9 Mei 2019',
+);
+
+const healthTraining = GuideSource(
+  'kemkes-cikarang',
+  'Kementerian Kesehatan',
+  'Penanggulangan Bencana (Gunung Meletus) Berbasis Masyarakat',
+  'https://bapelkescikarang.kemkes.go.id/berita/AR101',
+  'Balai Pelatihan Kesehatan Cikarang, bagian sebelum, saat, dan setelah letusan',
+);
+const cdcPreparation = GuideSource(
+  'cdc-volcanoes',
+  'CDC',
+  'Preparing for a Volcanic Eruption',
+  'https://www.cdc.gov/volcanoes/safety/index.html',
+  'Bagian Prepare for an emergency evacuation dan Prepare to shelter where you are (bahasa Inggris)',
+);
+const usgsAsh = GuideSource(
+  'usgs-ash',
+  'USGS',
+  'What do you do when a volcano erupts?',
+  'https://www.usgs.gov/observatories/cvo/what-do-you-do-when-volcano-erupts-actions-take',
+  'Bagian If ash is falling (bahasa Inggris)',
 );
 
 class IllustratedGuideStep {
@@ -74,8 +109,7 @@ class MitigationLesson {
   final List<IllustratedGuideStep> steps;
 }
 
-/// Short editorial paraphrases of the linked official sources, checked on
-/// 6 November 2026. These explain general actions, not local evacuation orders.
+/// General preparedness actions paraphrased from the source on each step.
 const mitigationLessons = [
   MitigationLesson(
     'before-eruption',
@@ -120,6 +154,33 @@ const mitigationLessons = [
         GuideScene.mask,
         'Masker dan kacamata punya fungsi berbeda.',
         bnpbPreparation,
+      ),
+      IllustratedGuideStep(
+        'Latih rencana bersama keluarga',
+        'Ikuti simulasi evakuasi di lingkungan Anda. Latih kembali langkahnya bersama anggota keluarga.',
+        'Latihan membantu setiap orang mengenali petunjuk saat harus bergerak.',
+        'Baru membahas rencana ketika perintah evakuasi sudah keluar.',
+        GuideScene.meeting,
+        'Berlatihlah bersama sebelum keadaan mendesak.',
+        healthTraining,
+      ),
+      IllustratedGuideStep(
+        'Atur bantuan transportasi',
+        'Jika keluarga memerlukan kendaraan atau pendamping, hubungi orang yang bisa membantu dan cari tahu titik penjemputan dari petugas.',
+        'Pengaturan sejak awal mengurangi waktu tunggu saat diminta mengungsi.',
+        'Mengandalkan kendaraan yang belum disepakati.',
+        GuideScene.vehicle,
+        'Sepakati siapa yang membantu perjalanan.',
+        cdcPreparation,
+      ),
+      IllustratedGuideStep(
+        'Siapkan persediaan air bersih',
+        'Isi wadah air minum yang bersih dan simpan di tempat yang diketahui seluruh keluarga.',
+        'Persediaan air akan mudah dijangkau jika keluarga harus berlindung.',
+        'Membiarkan wadah air minum terbuka saat abu turun.',
+        GuideScene.water,
+        'Sediakan air di dalam wadah tertutup.',
+        cdcPreparation,
       ),
     ],
   ),
@@ -167,6 +228,33 @@ const mitigationLessons = [
         'Ilustrasi bahaya aliran, bukan peta lokasi.',
         healthGuide,
       ),
+      IllustratedGuideStep(
+        'Batasi abu yang masuk ke rumah',
+        'Jika petugas meminta Anda berlindung di rumah, tutup pintu dan jendela luar serta matikan kipas atau AC yang menarik udara dari luar.',
+        'Bukaan dan aliran udara dapat membawa abu masuk ke ruang berlindung.',
+        'Bertahan di rumah setelah ada perintah evakuasi.',
+        GuideScene.window,
+        'Tutup bukaan antara ruang berlindung dan udara luar.',
+        cdcPreparation,
+      ),
+      IllustratedGuideStep(
+        'Tunda perjalanan saat hujan abu',
+        'Tunda perjalanan yang bisa ditunda di jalan berabu. Jika harus mengungsi, ikuti petunjuk petugas mengenai transportasi.',
+        'Abu dapat mengganggu pandangan dan kerja kendaraan.',
+        'Berkendara untuk melihat letusan.',
+        GuideScene.vehicle,
+        'Batasi kendaraan di jalan yang tertutup abu.',
+        usgsAsh,
+      ),
+      IllustratedGuideStep(
+        'Lindungi kulit yang terpapar',
+        'Jika perlu berada di luar, kenakan pakaian lengan panjang dan celana panjang bersama pelindung mata dan pernapasan.',
+        'Pakaian membantu mengurangi kontak kulit dengan abu.',
+        'Membiarkan kulit terbuka saat melewati area berabu.',
+        GuideScene.mask,
+        'Tutup bagian tubuh yang terpapar abu.',
+        healthTraining,
+      ),
     ],
   ),
   MitigationLesson(
@@ -213,6 +301,33 @@ const mitigationLessons = [
         'Fokus pada kebutuhan penting dan arahan petugas.',
         bnpbMessages,
       ),
+      IllustratedGuideStep(
+        'Cari angkutan yang diarahkan petugas',
+        'Jika tidak punya kendaraan, gunakan pengaturan yang telah disepakati atau minta informasi angkutan evakuasi kepada petugas.',
+        'Petugas dapat mengarahkan Anda ke layanan yang tersedia saat itu.',
+        'Berangkat ke titik jemput berdasarkan kabar yang belum dikonfirmasi.',
+        GuideScene.vehicle,
+        'Pastikan tujuan dan titik penjemputan.',
+        cdcPreparation,
+      ),
+      IllustratedGuideStep(
+        'Gunakan rute yang sedang dibuka',
+        'Periksa arahan di persimpangan. Teruskan perjalanan melalui rute yang ditetapkan, termasuk bila petugas mengalihkan arus.',
+        'Kondisi jalan bisa berubah dan jalur lain dapat terputus.',
+        'Mengikuti jalan yang ditutup karena biasanya lebih cepat.',
+        GuideScene.route,
+        'Ikuti rambu menuju tempat pengungsian.',
+        cdcPreparation,
+      ),
+      IllustratedGuideStep(
+        'Pastikan obat pribadi ikut terbawa',
+        'Saat berangkat, pastikan obat rutin yang sudah disiapkan berada pada orang atau pendamping yang memerlukannya.',
+        'Kebutuhan pengobatan tetap ada selama perjalanan dan di pengungsian.',
+        'Menunda evakuasi atau kembali ke area berbahaya untuk mencari barang.',
+        GuideScene.bag,
+        'Simpan obat bersama perlengkapan yang dibawa.',
+        cdcPreparation,
+      ),
     ],
   ),
   MitigationLesson(
@@ -258,6 +373,33 @@ const mitigationLessons = [
         GuideScene.clean,
         'Ilustrasi pembersihan permukaan tanah, bukan pekerjaan atap.',
         bnpbMessages,
+      ),
+      IllustratedGuideStep(
+        'Dampingi anak di pengungsian',
+        'Temani anak dan remaja selama tinggal di pengungsian. Hubungi petugas pendamping bila keluarga memerlukan dukungan.',
+        'Kehadiran orang yang dikenal membantu anak menghadapi perubahan suasana.',
+        'Membiarkan anak menghadapi situasi pengungsian sendiri.',
+        GuideScene.meeting,
+        'Duduk bersama dan dengarkan kebutuhan anak.',
+        bpbdRecovery,
+      ),
+      IllustratedGuideStep(
+        'Periksa lingkungan saat diizinkan pulang',
+        'Setelah petugas menyatakan area boleh dimasuki, lihat kondisi rumah dan lingkungan dari tempat yang aman.',
+        'Kerusakan bangunan dan timbunan abu bisa tetap ada setelah letusan.',
+        'Langsung memasuki bangunan yang tampak rusak.',
+        GuideScene.shelter,
+        'Tunggu izin petugas sebelum memeriksa rumah.',
+        healthTraining,
+      ),
+      IllustratedGuideStep(
+        'Koordinasikan bantuan di posko',
+        'Jika ingin membantu pembagian logistik, tanyakan kebutuhan kepada petugas posko dan ikuti pembagian tugas.',
+        'Koordinasi membantu penyaluran bantuan sesuai kebutuhan warga.',
+        'Berangkat sendiri ke area yang masih ditutup untuk membagikan bantuan.',
+        GuideScene.help,
+        'Sampaikan kesiapan membantu kepada petugas.',
+        healthTraining,
       ),
     ],
   ),

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ranah_accessibility/ranah_accessibility.dart';
 import 'package:ranah_web/main.dart';
 import 'package:ranah_web/pages/emergency_contacts_page.dart';
 import 'package:ranah_web/pages/admin_login_page.dart';
@@ -43,7 +44,7 @@ void main() {
       expect(tester.takeException(), isNull);
 
       if (size.width == 390) {
-        final label = find.text('Awal').first;
+        final label = find.text('Home').first;
         final originalHeight = tester.getSize(label).height;
         await tester.tap(find.byKey(const ValueKey('text-size-control')));
         await tester.pumpAndSettle();
@@ -205,7 +206,7 @@ void main() {
       await _pumpReadyApp(tester);
       await tester.tap(find.text('Peta').first);
       await tester.pumpAndSettle();
-      expect(find.text('Peta dan Jalur Evakuasi'), findsOneWidget);
+      expect(find.text('Peta dan Siaga Erupsi'), findsOneWidget);
 
       final activityAction = find.text('Laporan Aktivitas Gunung');
       await tester.ensureVisible(activityAction);
@@ -264,7 +265,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await _pumpReadyApp(tester);
-    await tester.tap(find.byTooltip('Notifikasi'));
+    await tester.tap(find.byTooltip('Notifikasi gempa'));
     await tester.pumpAndSettle();
 
     expect(find.text('Notifikasi'), findsOneWidget);
@@ -275,6 +276,8 @@ void main() {
     expect(find.byKey(const ValueKey('notification-card-0')), findsNothing);
     expect(tester.takeException(), isNull);
 
+    await tester.ensureVisible(find.byTooltip('Kembali'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Kembali'));
     await tester.pumpAndSettle();
     expect(find.text('Berita Utama'), findsOneWidget);
@@ -282,7 +285,7 @@ void main() {
 
     await tester.tap(find.text('Berita').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Notifikasi'));
+    await tester.tap(find.byTooltip('Notifikasi gempa'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Kembali'));
     await tester.pumpAndSettle();
@@ -299,7 +302,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await _pumpReadyApp(tester);
-    await tester.tap(find.byTooltip('Notifikasi'));
+    await tester.tap(find.byTooltip('Notifikasi gempa'));
     await tester.pumpAndSettle();
     expect(find.text('Notifikasi BMKG belum dapat dimuat.'), findsOneWidget);
     expect(find.textContaining('DATA SIMULASI'), findsNothing);
@@ -315,7 +318,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await _pumpReadyApp(tester);
-    await tester.tap(find.byTooltip('Notifikasi'));
+    await tester.tap(find.byTooltip('Notifikasi gempa'));
     await tester.pumpAndSettle();
 
     expect(find.text('Notifikasi BMKG belum dapat dimuat.'), findsOneWidget);
@@ -334,7 +337,7 @@ void main() {
     await _pumpReadyApp(tester);
     await tester.tap(find.text('Menu').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('KONTAK DARURAT'));
+    await tester.tap(find.text('Kontak Darurat & Pengaduan'));
     await tester.pumpAndSettle();
 
     expect(find.text('Kontak & Pengaduan'), findsOneWidget);
@@ -373,6 +376,7 @@ void main() {
     );
     expect(tester.takeException(), isNull);
 
+    await tester.ensureVisible(find.byKey(const ValueKey('call-medical')));
     await tester.tap(find.byKey(const ValueKey('call-medical')));
     await tester.pumpAndSettle();
     expect(find.text('Pilih nomor layanan medis'), findsOneWidget);
@@ -382,6 +386,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
+    await tester.ensureVisible(find.byTooltip('Kembali'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Kembali'));
     await tester.pumpAndSettle();
     expect(find.text('Berita Utama'), findsOneWidget);
@@ -397,7 +403,7 @@ void main() {
     await _pumpReadyApp(tester);
     await tester.tap(find.text('Menu').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('KONTAK DARURAT'));
+    await tester.tap(find.text('Kontak Darurat & Pengaduan'));
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('emergency-contact-integrated')),
@@ -475,118 +481,46 @@ void main() {
     },
   );
 
-  testWidgets('mitigation stages switch content and back returns to Home', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await _pumpReadyApp(tester);
-    await tester.tap(find.text('Menu').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('PANDUAN MITIGASI'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Panduan Mitigasi'), findsOneWidget);
-    expect(find.textContaining('Kenali tanda peringatan'), findsOneWidget);
-    for (var step = 1; step <= 8; step++) {
-      expect(
-        find.byKey(ValueKey('mitigation-step-before-$step')),
-        findsOneWidget,
-      );
-    }
-    expect(
-      find.byKey(const ValueKey('mitigation-step-before-9')),
-      findsNothing,
+  for (final width in [390.0, 1280.0]) {
+    testWidgets(
+      'all guide stages open from the menu and return at width $width',
+      (tester) async {
+        tester.view.physicalSize = Size(width, 900);
+        tester.view.devicePixelRatio = 1;
+        tester.platformDispatcher.accessibilityFeaturesTestValue =
+            FakeAccessibilityFeatures(disableAnimations: true);
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(
+          tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+        );
+        await _pumpReadyApp(tester);
+        await tester.tap(find.byKey(const ValueKey('ranah-nav-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Panduan Mitigasi'));
+        await tester.pumpAndSettle();
+        for (final lesson in mitigationLessons) {
+          final category = find.byKey(ValueKey('guide-category-${lesson.id}'));
+          await tester.ensureVisible(category);
+          await tester.tap(category);
+          await tester.pumpAndSettle();
+          expect(find.text(lesson.steps.first.action), findsOneWidget);
+          expect(
+            find.text('Langkah 1 dari ${lesson.steps.length}'),
+            findsOneWidget,
+          );
+          final back = find.byKey(const ValueKey('guide-back'));
+          await tester.ensureVisible(back);
+          await tester.tap(back);
+          await tester.pumpAndSettle();
+        }
+        await tester.tap(find.byKey(const ValueKey('guide-back')));
+        await tester.pumpAndSettle();
+        expect(find.text('Berita Utama'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
     );
-    expect(tester.takeException(), isNull);
-
-    await tester.tap(find.text('Saat Erupsi'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Tetap tenang'), findsOneWidget);
-    for (var step = 1; step <= 8; step++) {
-      expect(
-        find.byKey(ValueKey('mitigation-step-during-$step')),
-        findsOneWidget,
-      );
-    }
-    expect(
-      find.byKey(const ValueKey('mitigation-step-during-9')),
-      findsNothing,
-    );
-
-    await tester.tap(find.text('Evakuasi'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Mulai evakuasi'), findsOneWidget);
-    for (var step = 1; step <= 8; step++) {
-      expect(
-        find.byKey(ValueKey('mitigation-step-evacuation-$step')),
-        findsOneWidget,
-      );
-    }
-    expect(
-      find.byKey(const ValueKey('mitigation-step-evacuation-9')),
-      findsNothing,
-    );
-    expect(tester.takeException(), isNull);
-
-    await tester.tap(find.text('Pasca\nErupsi'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Tetap berada di tempat aman'), findsOneWidget);
-    for (var step = 1; step <= 8; step++) {
-      expect(
-        find.byKey(ValueKey('mitigation-step-after-$step')),
-        findsOneWidget,
-      );
-    }
-    expect(find.byKey(const ValueKey('mitigation-step-after-9')), findsNothing);
-    expect(tester.takeException(), isNull);
-
-    await tester.tap(find.byTooltip('Kembali'));
-    await tester.pumpAndSettle();
-    expect(find.text('Berita Utama'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('mitigation layout fits a desktop viewport', (tester) async {
-    tester.view.physicalSize = const Size(1280, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await _pumpReadyApp(tester);
-    await tester.tap(find.text('Menu').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('PANDUAN MITIGASI'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Panduan Mitigasi'), findsOneWidget);
-    expect(find.byTooltip('Kembali'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-
-    await tester.tap(find.text('Evakuasi'));
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('mitigation-step-evacuation-8')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('mitigation-step-evacuation-9')),
-      findsNothing,
-    );
-    expect(tester.takeException(), isNull);
-
-    await tester.tap(find.text('Pasca\nErupsi'));
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('mitigation-step-after-8')),
-      findsOneWidget,
-    );
-    expect(find.byKey(const ValueKey('mitigation-step-after-9')), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
+  }
 }
 
 Future<void> _pumpReadyApp(WidgetTester tester) async {

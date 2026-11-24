@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 abstract final class RanahColors {
-  static const headerStart = Color(0xFF10042F);
-  static const headerEnd = Color(0xFF08021E);
-  static const banner = Color(0xFF17003E);
-  static const backgroundStart = Color(0xFF0C3151);
-  static const backgroundMiddle = Color(0xFF0C2B45);
-  static const backgroundEnd = Color(0xFF13536B);
+  static const headerStart = Color(0xFF101B37);
+  static const headerEnd = Color(0xFF10162B);
+  static const banner = Color(0xFF152744);
+  static const backgroundStart = Color(0xFF123753);
+  static const backgroundMiddle = Color(0xFF0E293F);
+  static const backgroundEnd = Color(0xFF154657);
   static const primary = Color(0xFF21005E);
   static const cardBlue = Color(0xFF183F70);
   static const white = Colors.white;
@@ -35,13 +35,14 @@ abstract final class RanahPageHeaderStyle {
   static const iconGap = 12.0;
 
   static const kicker = TextStyle(
-    color: Color(0xFF91A8D0),
+    color: Color(0xFF9BCDCB),
     fontSize: 11,
     height: 1.3,
     fontWeight: FontWeight.w600,
   );
   static const title = TextStyle(
-    fontSize: 20,
+    fontSize: 23,
+    letterSpacing: -.3,
     height: 1.2,
     fontWeight: FontWeight.w700,
   );

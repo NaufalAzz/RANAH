@@ -1386,9 +1386,9 @@ class _LocationAction extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Material(
-        color: const Color(0xFF201064),
+        color: const Color(0xFF1F5168),
         borderRadius: BorderRadius.circular(15),
-        elevation: 4,
+        elevation: 2,
         child: InkWell(
           borderRadius: BorderRadius.circular(15),
           onTap: loading ? null : onTap,
@@ -1424,7 +1424,7 @@ class _LocationAction extends StatelessWidget {
                       Text(
                         'Lihat gunung terdekat dan rekomendasi erupsi sesuai lokasi.',
                         style: TextStyle(
-                          color: Color(0xFFD0C9E7),
+                          color: Color(0xFFCDE4EB),
                           fontSize: 13,
                           height: 1.25,
                         ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:ranah_accessibility/ranah_accessibility.dart';
+
 import '../theme/app_theme.dart';
 
 enum AppCardVariant {
@@ -68,7 +70,12 @@ class _AppCardSurfaceState extends State<AppCardSurface> {
             : Border.all(color: style.borderColor!, width: 1.2),
       ),
       padding: widget.padding,
-      child: widget.child,
+      child: widget.variant == AppCardVariant.notification
+          ? DefaultTextStyle.merge(
+              style: const TextStyle(color: RanahPalette.text),
+              child: widget.child,
+            )
+          : widget.child,
     );
 
     final card = Material(
@@ -83,9 +90,12 @@ class _AppCardSurfaceState extends State<AppCardSurface> {
         onTapUp: _handleTapUp,
         onTapCancel: _handleTapCancel,
         borderRadius: radius,
-        splashColor: (widget.accent ?? AppColors.primary).withValues(alpha: 0.08),
-        highlightColor:
-            (widget.accent ?? AppColors.primary).withValues(alpha: 0.04),
+        splashColor: (widget.accent ?? AppColors.primary).withValues(
+          alpha: 0.08,
+        ),
+        highlightColor: (widget.accent ?? AppColors.primary).withValues(
+          alpha: 0.04,
+        ),
         child: content,
       ),
     );
@@ -95,7 +105,7 @@ class _AppCardSurfaceState extends State<AppCardSurface> {
     }
 
     return AnimatedScale(
-      scale: _isPressed ? 0.98 : 1.0,
+      scale: _isPressed ? 0.988 : 1.0,
       duration: const Duration(milliseconds: 140),
       curve: Curves.easeOutCubic,
       child: card,
@@ -111,10 +121,10 @@ class _AppCardSurfaceState extends State<AppCardSurface> {
           borderColor: Color(0xFFE5EBF2),
         ),
         AppCardVariant.notification => const _AppCardStyle(
-          background: Color(0xFFF3F8FC),
+          background: RanahPalette.panel,
           radius: AppRadii.card,
           elevation: 3,
-          borderColor: Color(0xFFB5D4E6),
+          borderColor: RanahPalette.line,
         ),
         AppCardVariant.contact => _AppCardStyle(
           background: AppColors.emergencySurface.withValues(alpha: 0.92),

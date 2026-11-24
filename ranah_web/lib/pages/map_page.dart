@@ -1726,7 +1726,7 @@ class _MapAction extends StatelessWidget {
       children: [
         SizedBox(
           width: double.infinity,
-          height: 48,
+
           child: FilledButton.icon(
             key: buttonKey,
             onPressed: onTap,
@@ -1740,17 +1740,19 @@ class _MapAction extends StatelessWidget {
                     ),
                   )
                 : Icon(icon, size: 17),
-            label: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
+            label: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             style: FilledButton.styleFrom(
-              backgroundColor: RanahColors.primary,
+              backgroundColor: buttonKey == null
+                  ? RanahPalette.panel
+                  : const Color(0xFF225B70),
+              minimumSize: const Size(48, 52),
+              side: const BorderSide(color: RanahPalette.line),
               foregroundColor: Colors.white,
-              elevation: 3,
+              elevation: 1,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(RanahRadii.md),

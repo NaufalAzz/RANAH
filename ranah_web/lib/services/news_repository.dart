@@ -1,3 +1,6 @@
+import 'package:ranah_accessibility/ranah_accessibility.dart'
+    show bnpbBulletinDays, newsDayRangeLabel;
+
 import '../data/home_stories.dart';
 import 'ranah_api_client.dart';
 
@@ -64,11 +67,14 @@ class NewsRepository {
         : 0xFFB7791F;
     final summary = body.replaceAll(RegExp(r'\s+'), ' ').trim();
     final source = _text(json['sumber']);
+    final bulletinDays = bnpbBulletinDays(source, body);
     return HomeStory(
       id: id,
       category: category,
       title: title,
-      date: _formatDate(publishedAt),
+      date: bulletinDays == null
+          ? _formatDate(publishedAt)
+          : newsDayRangeLabel(bulletinDays),
       image: '',
       color: accent,
       summary: summary.length <= 180
@@ -84,6 +90,7 @@ class NewsRepository {
       sourceId: _text(json['sumber_id']),
       contentType: _text(json['jenis_konten']),
       publishedAt: publishedAt,
+      bulletinDays: bulletinDays,
       eventAt: DateTime.tryParse(_text(json['waktu_kejadian']) ?? ''),
       expiresAt: DateTime.tryParse(_text(json['waktu_berakhir']) ?? ''),
       retrievedAt: DateTime.tryParse(_text(json['waktu_pengambilan']) ?? ''),

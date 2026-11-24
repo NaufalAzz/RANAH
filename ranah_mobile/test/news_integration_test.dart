@@ -127,7 +127,9 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await store.saveNewsIfChanged([_newsItem()], checkedAt: DateTime.now());
+    await tester.runAsync(
+      () => store.saveNewsIfChanged([_newsItem()], checkedAt: DateTime.now()),
+    );
 
     await tester.pumpWidget(
       RanahApp(
@@ -153,11 +155,14 @@ void main() {
     await tester.drag(_newsScrollable().first, const Offset(0, -150));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.tap(find.text('Berita uji server'));
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
 
-    expect(find.textContaining('Sumber berita: BPBD uji'), findsOneWidget);
+    expect(find.textContaining('Sumber: BPBD uji'), findsOneWidget);
     expect(
-      find.text('Isi berita dari server untuk pengujian.'),
+      find.descendant(
+        of: _detailScrollable(),
+        matching: find.text('Isi berita dari server untuk pengujian.'),
+      ),
       findsOneWidget,
     );
     expect(
@@ -167,100 +172,87 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('BMKG detail shows metadata and opens only the HTTPS source', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    const sourceChannel = MethodChannel('plugins.flutter.io/url_launcher');
-    final launched = <MethodCall>[];
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(sourceChannel, (call) async {
-          launched.add(call);
-          return true;
-        });
-    addTearDown(
-      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(sourceChannel, null),
-    );
+  testWidgets(
+    'BMKG detail shows event times, region and source inside the app',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      const sourceChannel = MethodChannel('plugins.flutter.io/url_launcher');
+      final launched = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(sourceChannel, (call) async {
+            launched.add(call);
+            return true;
+          });
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(sourceChannel, null),
+      );
 
-    final eventAt = DateTime.now().toUtc().subtract(const Duration(hours: 1));
-    final expiresAt = DateTime.now().toUtc().add(const Duration(hours: 6));
-    final retrievedAt = DateTime.now().toUtc();
-    final bmkgFixture = _bmkgFixture(
-      eventAt: eventAt,
-      expiresAt: expiresAt,
-      retrievedAt: retrievedAt,
-    );
-    await store.saveNewsIfChanged([bmkgFixture], checkedAt: DateTime.now());
-    await tester.pumpWidget(
-      RanahApp(
-        mapTilesEnabled: false,
-        internetStatusMonitor: createTestInternetStatusMonitor(),
-        newsRepository: NewsRepository(
-          api: _ImmediateNewsApi([bmkgFixture]),
-          localStore: store,
+      final eventAt = DateTime.now().toUtc().subtract(const Duration(hours: 1));
+      final expiresAt = DateTime.now().toUtc().add(const Duration(hours: 6));
+      final retrievedAt = DateTime.now().toUtc();
+      final bmkgFixture = _bmkgFixture(
+        eventAt: eventAt,
+        expiresAt: expiresAt,
+        retrievedAt: retrievedAt,
+      );
+      await tester.runAsync(
+        () => store.saveNewsIfChanged([bmkgFixture], checkedAt: DateTime.now()),
+      );
+      await tester.pumpWidget(
+        RanahApp(
+          mapTilesEnabled: false,
+          internetStatusMonitor: createTestInternetStatusMonitor(),
+          newsRepository: NewsRepository(
+            api: _ImmediateNewsApi([bmkgFixture]),
+            localStore: store,
+          ),
         ),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 3500));
-    await tester.pump(const Duration(milliseconds: 300));
-    await _flushLocalDatabase(tester);
-    await tester.pump();
-    await tester.tap(find.text('Berita'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Peringatan fixture BMKG'),
-      160,
-      scrollable: _newsScrollable().first,
-    );
-    await tester.drag(_newsScrollable().first, const Offset(0, -150));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Peringatan fixture BMKG'));
-    await tester.pumpAndSettle();
+      );
+      await tester.pump(const Duration(milliseconds: 3500));
+      await tester.pump(const Duration(milliseconds: 300));
+      await _flushLocalDatabase(tester);
+      await tester.pump();
+      await tester.tap(find.text('Berita'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Peringatan fixture BMKG'),
+        160,
+        scrollable: _newsScrollable().first,
+      );
+      await tester.drag(_newsScrollable().first, const Offset(0, -150));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Peringatan fixture BMKG'));
+      await tester.pumpAndSettle();
 
-    expect(
-      find.text('Berlaku sejak: ${_formatFixtureDateTime(eventAt)}'),
-      findsOneWidget,
-    );
-    final expirationLabel = find.text(
-      'Berakhir: ${_formatFixtureDateTime(expiresAt)}',
-    );
-    await tester.scrollUntilVisible(
-      expirationLabel,
-      180,
-      scrollable: _detailScrollable().first,
-    );
-    expect(expirationLabel, findsOneWidget);
-    expect(find.text('Wilayah: Kota Padang'), findsOneWidget);
-    expect(
-      find.text('Data diambil: ${_formatFixtureDateTime(retrievedAt)}'),
-      findsOneWidget,
-    );
-    final sourceButton = find.text('Sumber resmi: BMKG');
-    await tester.scrollUntilVisible(
-      sourceButton,
-      180,
-      scrollable: _detailScrollable().first,
-    );
-    await tester.drag(
-      find.byKey(const PageStorageKey('news-detail-scroll')),
-      const Offset(0, -220),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(sourceButton);
-    await tester.pumpAndSettle();
-
-    expect(launched, hasLength(1));
-    expect(launched.single.method, 'launch');
-    expect(
-      (launched.single.arguments as Map)['url'],
-      'https://www.bmkg.go.id/alerts/nowcast/id/fixture.xml',
-    );
-    expect(tester.takeException(), isNull);
-  });
+      expect(
+        find.text('Berlaku sejak: ${_formatFixtureDateTime(eventAt)}'),
+        findsOneWidget,
+      );
+      final expirationLabel = find.text(
+        'Berakhir: ${_formatFixtureDateTime(expiresAt)}',
+      );
+      await tester.scrollUntilVisible(
+        expirationLabel,
+        180,
+        scrollable: _detailScrollable().first,
+      );
+      expect(expirationLabel, findsOneWidget);
+      expect(find.text('Wilayah: Kota Padang'), findsOneWidget);
+      expect(
+        find.text('Data diambil: ${_formatFixtureDateTime(retrievedAt)}'),
+        findsOneWidget,
+      );
+      final source = find.text('Sumber: BMKG');
+      await tester.ensureVisible(source);
+      expect(source, findsOneWidget);
+      expect(launched, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('news update notice floats and disappears after five seconds', (
     tester,

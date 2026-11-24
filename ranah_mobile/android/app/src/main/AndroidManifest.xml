@@ -4,7 +4,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
-        android:label="ranah_mobile"
+        android:label="RANAH"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -1,3 +1,5 @@
+import 'package:ranah_accessibility/ranah_accessibility.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -82,7 +84,7 @@ void main() {
     expect(areaRequests, 1);
     expect(hazard.calls, 1);
     expect(gunungRequests, 1);
-    expect(osmRequests, 1);
+    expect(osmRequests, 0);
 
     await tester.tap(find.byKey(const ValueKey('ranah-nav-news')));
     await tester.pumpAndSettle();
@@ -99,13 +101,13 @@ void main() {
           .data,
       'Sumatera Barat',
     );
-    expect(find.text('Potensi Bencana di Lokasi'), findsOneWidget);
+    expect(find.byType(SiagaMapCard), findsOneWidget);
     expect(locationRequests, 1);
     expect(areaRequests, 1);
     expect(hazard.calls, 1);
     expect(gunungRequests, 1);
     expect(newsRequests, 1);
-    expect(osmRequests, 1);
+    expect(osmRequests, 0);
     expect(tester.takeException(), isNull);
   });
 
@@ -243,9 +245,7 @@ Future<void> _tapLocationButton(WidgetTester tester) async {
   await tester.ensureVisible(button);
   await tester.tap(button);
   await tester.pumpAndSettle();
-  final accept = find.byKey(
-    const ValueKey('accept-location-and-route'),
-  );
+  final accept = find.byKey(const ValueKey('accept-location-and-route'));
   if (accept.evaluate().isNotEmpty) {
     await tester.tap(accept);
     await tester.pumpAndSettle();

@@ -113,14 +113,6 @@ class _MitigationLearningPageState extends State<MitigationLearningPage> {
                     ),
                     _text(source.locator, size: 14),
                     _text('Diakses ${GuideSource.checkedAt}', size: 13),
-                    SelectableText(
-                      source.url,
-                      style: const TextStyle(
-                        color: Color(0xFFA3DAE6),
-                        fontSize: 13,
-                        height: 1.5,
-                      ),
-                    ),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton.icon(
@@ -246,7 +238,11 @@ class _MitigationLearningPageState extends State<MitigationLearningPage> {
       size: 14,
     ),
     const SizedBox(height: 18),
-    _sources([bnpbPreparation, healthGuide, bnpbMessages, bpbdRecovery]),
+    _sources(
+      mitigationLessons.expand(
+        (lesson) => lesson.steps.map((step) => step.source),
+      ),
+    ),
   ];
 
   Widget _action(MitigationLesson lesson, IllustratedGuideStep step) => Column(
@@ -437,6 +433,7 @@ class _MitigationLearningPageState extends State<MitigationLearningPage> {
               onPressed: _step > 0 ? () => _move(-1) : null,
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.white,
+                disabledForegroundColor: const Color(0xFF9CB2C2),
                 minimumSize: const Size(48, 52),
                 side: const BorderSide(color: Color(0xFF7193AB)),
               ),

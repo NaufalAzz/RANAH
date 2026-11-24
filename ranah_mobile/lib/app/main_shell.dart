@@ -218,8 +218,7 @@ class _MainShellState extends State<MainShell> {
         .scale(AppTypography.label.fontSize!);
     final bottomNavigationHeight =
         scaledNavigationLabelSize + AppSizes.bottomNavigationLabelClearance;
-    final responsiveNavigationHeight =
-        bottomNavigationHeight < 82
+    final responsiveNavigationHeight = bottomNavigationHeight < 82
         ? 82.0
         : bottomNavigationHeight;
 
@@ -312,7 +311,9 @@ class _MainShellState extends State<MainShell> {
                                 child: IgnorePointer(
                                   ignoring: index != _selectedIndex,
                                   child: Offstage(
-                                    offstage: index != _selectedIndex,
+                                    offstage:
+                                        index != _selectedIndex ||
+                                        _showingNotifications,
                                     child: ExcludeSemantics(
                                       excluding: index != _selectedIndex,
                                       child: AnimatedOpacity(
@@ -327,7 +328,12 @@ class _MainShellState extends State<MainShell> {
                                               : const Offset(0.025, 0),
                                           duration: transitionDuration,
                                           curve: Curves.easeOutCubic,
-                                          child: pages[index],
+                                          child: TickerMode(
+                                            enabled:
+                                                index == _selectedIndex &&
+                                                !_showingNotifications,
+                                            child: pages[index],
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -351,8 +357,12 @@ class _MainShellState extends State<MainShell> {
                                             : const Offset(0, -0.025),
                                         duration: transitionDuration,
                                         curve: Curves.easeOutCubic,
-                                        child: NotificationsPage(
-                                          repository: _notificationsRepository,
+                                        child: TickerMode(
+                                          enabled: _showingNotifications,
+                                          child: NotificationsPage(
+                                            repository:
+                                                _notificationsRepository,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -447,99 +457,26 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-/// Raised microphone accent while retaining the NavigationDestination tap target with a fluid pulse halo.
-class _VoiceNavigationIcon extends StatefulWidget {
+class _VoiceNavigationIcon extends StatelessWidget {
   const _VoiceNavigationIcon();
 
   @override
-  State<_VoiceNavigationIcon> createState() => _VoiceNavigationIconState();
-}
-
-class _VoiceNavigationIconState extends State<_VoiceNavigationIcon>
-    with SingleTickerProviderStateMixin {
-  AnimationController? _controller;
-
-  bool get _isTesting =>
-      WidgetsBinding.instance.runtimeType.toString().contains('Test');
-
-  @override
-  void initState() {
-    super.initState();
-    if (!_isTesting) {
-      _controller = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 2200),
-      )..repeat();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final child = Container(
+  Widget build(BuildContext context) => Transform.translate(
+    offset: const Offset(0, -5),
+    child: Container(
       key: const ValueKey('voice-navigation-circle'),
       width: 48,
       height: 48,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: const LinearGradient(
-          colors: [Color(0xFF6B3CE8), Color(0xFF2F0B86)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
+          colors: [Color(0xFF385D7B), Color(0xFF343461)],
         ),
-        border: Border.all(color: Colors.white, width: 2.5),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x664C1DBF),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: const Color(0xFF92BFCB), width: 1.5),
       ),
-      child: const Icon(
-        Icons.mic_rounded,
-        color: Colors.white,
-        size: 26,
-      ),
-    );
-
-    if (MediaQuery.of(context).disableAnimations ||
-        _isTesting ||
-        _controller == null) {
-      return Transform.translate(
-        offset: const Offset(0, -6),
-        child: child,
-      );
-    }
-
-    return Transform.translate(
-      offset: const Offset(0, -6),
-      child: AnimatedBuilder(
-        animation: _controller!,
-        builder: (context, _) {
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 48 + (_controller!.value * 12),
-                height: 48 + (_controller!.value * 12),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF7C4DFF).withValues(
-                    alpha: (1.0 - _controller!.value) * 0.35,
-                  ),
-                ),
-              ),
-              child,
-            ],
-          );
-        },
-      ),
-    );
-  }
+      child: const Icon(Icons.mic_rounded, color: Colors.white, size: 26),
+    ),
+  );
 }

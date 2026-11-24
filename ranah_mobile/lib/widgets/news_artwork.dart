@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ranah_accessibility/ranah_accessibility.dart'
+    show RanahNewsCover;
 
 import '../models/news_item.dart';
 import '../theme/app_theme.dart';
@@ -16,12 +18,13 @@ class NewsArtwork extends StatelessWidget {
       featured ? AppRadii.image : AppRadii.control,
     );
 
+    final cover = RanahNewsCover(category: item.category);
     return Container(
       height: featured ? 188 : 86,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(borderRadius: radius),
       child: imageUrl == null
-          ? const _NeutralPlaceholder()
+          ? cover
           : Stack(
               fit: StackFit.expand,
               children: [
@@ -29,9 +32,8 @@ class NewsArtwork extends StatelessWidget {
                   imageUrl,
                   fit: BoxFit.cover,
                   loadingBuilder: (context, child, progress) =>
-                      progress == null ? child : const _NeutralPlaceholder(),
-                  errorBuilder: (context, error, stackTrace) =>
-                      const _NeutralPlaceholder(),
+                      progress == null ? child : cover,
+                  errorBuilder: (context, error, stackTrace) => cover,
                 ),
                 const DecoratedBox(
                   decoration: BoxDecoration(
@@ -50,26 +52,4 @@ class NewsArtwork extends StatelessWidget {
             ),
     );
   }
-}
-
-class _NeutralPlaceholder extends StatelessWidget {
-  const _NeutralPlaceholder();
-
-  @override
-  Widget build(BuildContext context) => const DecoratedBox(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [Color(0xFF26384A), Color(0xFF172536)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-    ),
-    child: Center(
-      child: Icon(
-        Icons.photo_outlined,
-        size: 34,
-        color: Color(0xFFB8C3CF),
-      ),
-    ),
-  );
 }

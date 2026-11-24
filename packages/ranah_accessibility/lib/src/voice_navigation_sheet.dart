@@ -208,7 +208,7 @@ class _VoiceNavigationSheetState extends State<VoiceNavigationSheet>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1B104A), Color(0xFF0C2B45), Color(0xFF123D5B)],
+          colors: [Color(0xFF192B48), Color(0xFF102E46), Color(0xFF153D58)],
         ),
       ),
       child: SingleChildScrollView(
@@ -269,7 +269,9 @@ class _VoiceNavigationSheetState extends State<VoiceNavigationSheet>
             const SizedBox(height: 26),
             Center(
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 180),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
@@ -287,7 +289,7 @@ class _VoiceNavigationSheetState extends State<VoiceNavigationSheet>
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
-                      colors: [Color(0xFF442280), Color(0xFF21005E)],
+                      colors: [Color(0xFF32687C), Color(0xFF253A62)],
                     ),
                   ),
                   child: Icon(

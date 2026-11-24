@@ -420,28 +420,31 @@ class _ErrorState extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: RanahPalette.deep,
+      border: Border.all(color: RanahPalette.line),
       borderRadius: BorderRadius.circular(15),
     ),
     child: Column(
       children: [
         const Icon(
           Icons.cloud_off_outlined,
-          color: AppColors.primary,
+          color: RanahPalette.highlight,
           size: 32,
         ),
         const SizedBox(height: 8),
         const Text(
           'Notifikasi belum dapat dimuat dari server.',
+          style: TextStyle(color: RanahPalette.text),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
         Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Color(0xFF68717E), fontSize: 12),
+          style: const TextStyle(color: RanahPalette.secondary, fontSize: 12),
         ),
         TextButton.icon(
+          style: TextButton.styleFrom(foregroundColor: RanahPalette.highlight),
           onPressed: onRetry,
           icon: const Icon(Icons.refresh),
           label: const Text('Coba lagi'),
@@ -458,13 +461,14 @@ class _EmptyNotifications extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: RanahPalette.deep,
+      border: Border.all(color: RanahPalette.line),
       borderRadius: BorderRadius.circular(15),
     ),
     child: const Text(
       'Belum ada notifikasi dari sumber yang terhubung.',
       textAlign: TextAlign.center,
-      style: TextStyle(color: Color(0xFF68717E), fontSize: 14),
+      style: TextStyle(color: RanahPalette.secondary, fontSize: 14),
     ),
   );
 }
@@ -516,14 +520,18 @@ class _WeatherForecastSection extends StatelessWidget {
             const SizedBox(height: 6),
             const Text(
               'Prakiraan BMKG untuk lokasi Anda, bukan pengamatan cuaca langsung.',
-              style: TextStyle(color: Color(0xFF68717E), fontSize: 12),
+              style: TextStyle(color: RanahPalette.secondary, fontSize: 12),
             ),
             const SizedBox(height: 12),
             if (snapshot.connectionState == ConnectionState.waiting ||
                 locationLoading)
               const Padding(
                 padding: EdgeInsets.all(12),
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: RanahPalette.highlight,
+                  ),
+                ),
               )
             else if (areasError != null)
               _WeatherError(
@@ -547,7 +555,11 @@ class _WeatherForecastSection extends StatelessWidget {
               if (loading)
                 const Padding(
                   padding: EdgeInsets.all(12),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: RanahPalette.highlight,
+                    ),
+                  ),
                 ),
               if (error != null)
                 _WeatherError(
@@ -558,7 +570,7 @@ class _WeatherForecastSection extends StatelessWidget {
                 if (forecast!.isStale || forecast!.status == 'data_lama')
                   const Text(
                     'Data prakiraan terakhir sudah lama; periksa waktu pembuatan sebelum digunakan.',
-                    style: TextStyle(color: Color(0xFF9A5E00)),
+                    style: TextStyle(color: Color(0xFFFFD995)),
                   ),
                 if (forecast!.status == 'belum_tersedia')
                   const Text(
@@ -569,14 +581,14 @@ class _WeatherForecastSection extends StatelessWidget {
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFDDEFFA),
+                      color: const Color(0xFF204B65),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
                         const Icon(
                           Icons.cloud_outlined,
-                          color: Color(0xFF176D9A),
+                          color: RanahPalette.highlight,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -587,13 +599,13 @@ class _WeatherForecastSection extends StatelessWidget {
                                 interval.condition,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w800,
-                                  color: Color(0xFF153D5B),
+                                  color: RanahPalette.text,
                                 ),
                               ),
                               Text(
                                 '${_formatDateTime(interval.localTime)}${interval.temperature == null ? '' : ' · ${interval.temperature!.round()}°C'}${interval.humidity == null ? '' : ' · RH ${interval.humidity}%'}${interval.windSpeed == null ? '' : ' · Angin ${interval.windSpeed!.toStringAsFixed(1)} km/jam'}',
                                 style: const TextStyle(
-                                  color: Color(0xFF34556D),
+                                  color: RanahPalette.secondary,
                                   fontSize: 12,
                                 ),
                               ),
@@ -612,7 +624,7 @@ class _WeatherForecastSection extends StatelessWidget {
                   Text(
                     'Data dibuat ${_formatDateTime(forecast!.analysisAt!)} · Sumber: BMKG',
                     style: const TextStyle(
-                      color: Color(0xFF68717E),
+                      color: RanahPalette.secondary,
                       fontSize: 12,
                     ),
                   ),
@@ -620,7 +632,7 @@ class _WeatherForecastSection extends StatelessWidget {
                   Text(
                     'Diambil server ${_formatDateTime(forecast!.retrievedAt!)}',
                     style: const TextStyle(
-                      color: Color(0xFF68717E),
+                      color: RanahPalette.secondary,
                       fontSize: 12,
                     ),
                   ),
@@ -641,8 +653,9 @@ class _WeatherError extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      Text(message, style: const TextStyle(color: Color(0xFF9A5E00))),
+      Text(message, style: const TextStyle(color: Color(0xFFFFD995))),
       TextButton.icon(
+        style: TextButton.styleFrom(foregroundColor: RanahPalette.highlight),
         onPressed: onRetry,
         icon: const Icon(Icons.refresh),
         label: const Text('Coba lagi'),
@@ -654,11 +667,15 @@ class _WeatherError extends StatelessWidget {
 class _NotificationCard extends StatelessWidget {
   const _NotificationCard({required this.item});
   final NotificationItem item;
+  Color get accent =>
+      item.status == 'aktif' && item.kind == NotificationKind.latestNews
+      ? RanahPalette.warning
+      : RanahPalette.highlight;
 
   @override
   Widget build(BuildContext context) => AppCardSurface(
     variant: AppCardVariant.notification,
-    padding: const EdgeInsets.all(AppSpacing.sm),
+    padding: const EdgeInsets.all(14),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -666,10 +683,10 @@ class _NotificationCard extends StatelessWidget {
           width: AppSizes.minimumTapTarget,
           height: AppSizes.minimumTapTarget,
           decoration: BoxDecoration(
-            color: item.accent.withValues(alpha: 0.09),
+            color: accent.withValues(alpha: 0.09),
             borderRadius: BorderRadius.circular(AppRadii.card),
           ),
-          child: Icon(item.icon, color: item.accent, size: 25),
+          child: Icon(item.icon, color: accent, size: 25),
         ),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
@@ -682,7 +699,7 @@ class _NotificationCard extends StatelessWidget {
                     child: Text(
                       (item.category ?? item.kindLabel).toUpperCase(),
                       style: TextStyle(
-                        color: item.accent,
+                        color: accent,
                         fontSize: 13,
                         letterSpacing: 0.35,
                         fontWeight: FontWeight.w800,
@@ -694,8 +711,8 @@ class _NotificationCard extends StatelessWidget {
                       _statusLabel(item.status!),
                       style: TextStyle(
                         color: item.status == 'aktif'
-                            ? item.accent
-                            : const Color(0xFF68717E),
+                            ? accent
+                            : RanahPalette.secondary,
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                       ),
@@ -706,7 +723,7 @@ class _NotificationCard extends StatelessWidget {
               Text(
                 item.title,
                 style: const TextStyle(
-                  color: Color(0xFF202733),
+                  color: RanahPalette.text,
                   fontSize: 18,
                   height: 1.25,
                   fontWeight: FontWeight.w800,
@@ -716,7 +733,7 @@ class _NotificationCard extends StatelessWidget {
               Text(
                 item.summary,
                 style: const TextStyle(
-                  color: Color(0xFF68717E),
+                  color: RanahPalette.secondary,
                   fontSize: 13,
                   height: 1.45,
                 ),
@@ -753,6 +770,9 @@ class _NotificationCard extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: TextButton.icon(
+                    style: TextButton.styleFrom(
+                      foregroundColor: RanahPalette.highlight,
+                    ),
                     onPressed: () async {
                       final uri = Uri.parse(item.sourceUrl!);
                       final opened = await launchUrl(
@@ -789,7 +809,7 @@ class _MetadataLine extends StatelessWidget {
     padding: const EdgeInsets.only(top: 4),
     child: Text(
       '$label: $value',
-      style: const TextStyle(color: Color(0xFF68717E), fontSize: 12),
+      style: const TextStyle(color: RanahPalette.secondary, fontSize: 12),
     ),
   );
 }

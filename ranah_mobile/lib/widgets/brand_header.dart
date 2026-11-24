@@ -82,9 +82,7 @@ class BrandHeader extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFF09213D).withValues(alpha: 0.72),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.08),
-                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
               alignment: Alignment.centerLeft,
               child: const Column(
@@ -122,14 +120,12 @@ class BrandHeader extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.07),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.08),
-                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _LivePulseIndicator(isOnline: isOnline),
+                  _ConnectionIndicator(isOnline: isOnline),
                   const SizedBox(width: 5),
                   Icon(
                     isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
@@ -177,90 +173,22 @@ class BrandHeader extends StatelessWidget {
   }
 }
 
-class _LivePulseIndicator extends StatefulWidget {
-  const _LivePulseIndicator({required this.isOnline});
-
+class _ConnectionIndicator extends StatelessWidget {
+  const _ConnectionIndicator({required this.isOnline});
   final bool isOnline;
 
   @override
-  State<_LivePulseIndicator> createState() => _LivePulseIndicatorState();
-}
-
-class _LivePulseIndicatorState extends State<_LivePulseIndicator>
-    with SingleTickerProviderStateMixin {
-  AnimationController? _controller;
-
-  bool get _isTesting =>
-      WidgetsBinding.instance.runtimeType.toString().contains('Test');
-
-  @override
-  void initState() {
-    super.initState();
-    if (!_isTesting) {
-      _controller = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 1800),
-      )..repeat();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (MediaQuery.of(context).disableAnimations ||
-        !widget.isOnline ||
-        _isTesting ||
-        _controller == null) {
-      return Container(
-        width: 9,
-        height: 9,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: widget.isOnline ? const Color(0xFF4ADE80) : AppColors.danger,
-        ),
-      );
-    }
-
-    return AnimatedBuilder(
-      animation: _controller!,
-      builder: (context, child) {
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 9 + (_controller!.value * 7),
-              height: 9 + (_controller!.value * 7),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF4ADE80).withValues(
-                  alpha: (1.0 - _controller!.value) * 0.45,
-                ),
-              ),
-            ),
-            Container(
-              width: 9,
-              height: 9,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFF4ADE80),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x664ADE80),
-                    blurRadius: 4,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) => AnimatedContainer(
+    duration: MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 180),
+    width: 9,
+    height: 9,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: isOnline ? const Color(0xFF74D8AE) : AppColors.danger,
+    ),
+  );
 }
 
 class _NotificationBadge extends StatelessWidget {
@@ -301,10 +229,7 @@ class _NotificationBadge extends StatelessWidget {
         ],
       ),
       alignment: Alignment.center,
-      child: Text(
-        label,
-        style: AppTypography.badge.copyWith(fontSize: 10.5),
-      ),
+      child: Text(label, style: AppTypography.badge.copyWith(fontSize: 10.5)),
     );
   }
 }

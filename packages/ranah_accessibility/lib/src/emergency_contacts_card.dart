@@ -152,36 +152,6 @@ class EmergencyContactsCard extends StatelessWidget {
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD9363D),
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x44D9363D),
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.shield_rounded, color: Colors.white, size: 11),
-                  SizedBox(width: 3),
-                  Text(
-                    'SOS RESMI',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
         const SizedBox(height: 10),
@@ -231,123 +201,90 @@ class EmergencyContactsCard extends StatelessWidget {
                         horizontal: 12,
                         vertical: 9,
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFE53935), Color(0xFFC62828)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
+                      child: LayoutBuilder(
+                        builder: (context, box) {
+                          final compact =
+                              box.maxWidth <
+                              MediaQuery.textScalerOf(context).scale(360);
+                          final label = Row(
+                            children: [
+                              Icon(
+                                contact.icon,
+                                color: const Color(0xFFFFB9B4),
+                                size: 22,
                               ),
-                              shape: BoxShape.circle,
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x44E53935),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              contact.icon,
-                              color: Colors.white,
-                              size: 19,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        contact.name,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                    ),
-                                    if (contact.verified) ...[
-                                      const SizedBox(width: 4),
-                                      const Icon(
-                                        Icons.check_circle_rounded,
-                                        size: 13,
-                                        color: Color(0xFF4ADE80),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  contact.verified
-                                      ? 'Layanan bantuan'
-                                      : 'Nomor belum terverifikasi',
-                                  style: const TextStyle(
-                                    color: Color(0xFFE3C4CC),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF7A2538),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: const Color(0xFFFF8E98).withValues(
-                                  alpha: 0.35,
-                                ),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      contact.numbers.join(' / '),
+                                      contact.name,
                                       style: const TextStyle(
-                                        color: Color(0xFFFFE3E6),
-                                        fontSize: 16.5,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 0.5,
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                        height: 1.3,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
-                                    const SizedBox(width: 4),
-                                    const Icon(
-                                      Icons.call_rounded,
-                                      size: 13,
-                                      color: Color(0xFFFFABB2),
+                                    Text(
+                                      contact.verified
+                                          ? 'Layanan bantuan'
+                                          : 'Nomor belum terverifikasi',
+                                      style: const TextStyle(
+                                        color: Color(0xFFE7C5CD),
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ],
                                 ),
-                                const Text(
-                                  'Telepon',
-                                  style: TextStyle(
-                                    color: Color(0xFFFFB8C0),
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                              ),
+                            ],
+                          );
+                          final number = Wrap(
+                            spacing: 6,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.call_outlined,
+                                size: 16,
+                                color: Color(0xFFFFBCC2),
+                              ),
+                              Text(
+                                contact.numbers.join(' / '),
+                                style: const TextStyle(
+                                  color: Color(0xFFFFE3E6),
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          );
+                          if (compact)
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                label,
+                                const SizedBox(height: 7),
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 32),
+                                  child: number,
                                 ),
                               ],
-                            ),
-                          ),
-                        ],
+                            );
+                          return Row(
+                            children: [
+                              Expanded(child: label),
+                              const SizedBox(width: 12),
+                              Flexible(
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: number,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ),
                   ),

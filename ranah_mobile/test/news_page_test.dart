@@ -148,17 +148,29 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('news-region-filter')));
     await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextField),
+      ),
+      'Agam',
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Agam').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('news-date-start')));
+    await tester.tap(find.byKey(const ValueKey('news-date-range')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('06/05/2026').last);
+    await tester.tap(find.byIcon(Icons.edit_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('news-date-end')));
+    final dateInputs = find.descendant(
+      of: find.byType(DateRangePickerDialog),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(dateInputs.first, '06/05/2026');
+    await tester.enterText(dateInputs.last, '08/05/2026');
+    await tester.tap(find.text('Terapkan').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('06/05/2026').last);
-    await tester.pumpAndSettle();
-
+    expect(find.text('06/05/2026 – 08/05/2026'), findsOneWidget);
     expect(find.text('Banjir Agam 6 Mei'), findsOneWidget);
     expect(find.text('Banjir Padang 5 Mei'), findsNothing);
     expect(find.text('Longsor Agam 5 Mei'), findsNothing);
