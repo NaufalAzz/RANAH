@@ -7,6 +7,7 @@ import '../widgets/app_background.dart';
 import '../widgets/app_card_surface.dart';
 import '../widgets/app_page_banner.dart';
 import '../widgets/news_artwork.dart';
+import '../widgets/page_motion.dart';
 
 class NewsPage extends StatefulWidget {
   const NewsPage({
@@ -127,20 +128,8 @@ class _NewsPageState extends State<NewsPage> {
             child: _NewsBackgroundRing(size: 330),
           ),
           Positioned.fill(
-            child: AnimatedSwitcher(
-              duration: MediaQuery.of(context).disableAnimations
-                  ? Duration.zero
-                  : const Duration(milliseconds: 240),
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0.025, 0),
-                    end: Offset.zero,
-                  ).animate(animation),
-                  child: child,
-                ),
-              ),
+            child: RanahPageSwitcher(
+              rootPageKey: const ValueKey('news-list'),
               child: _selectedItem == null
                   ? _NewsListContent(
                       key: const ValueKey('news-list'),

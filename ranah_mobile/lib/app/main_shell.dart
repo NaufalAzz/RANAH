@@ -26,6 +26,7 @@ import '../services/internet_status_monitor.dart';
 import '../widgets/news_feed_notice.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_header.dart';
+import '../widgets/page_motion.dart';
 import '../widgets/ranah_page_route.dart';
 
 class MainShell extends StatefulWidget {
@@ -210,10 +211,6 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    final animationsDisabled = MediaQuery.of(context).disableAnimations;
-    final transitionDuration = animationsDisabled
-        ? Duration.zero
-        : const Duration(milliseconds: 240);
     final scaledNavigationLabelSize = MediaQuery.textScalerOf(context)
         .scale(AppTypography.label.fontSize!);
     final bottomNavigationHeight =
@@ -302,73 +299,14 @@ class _MainShellState extends State<MainShell> {
                         ),
                       ),
                       Expanded(
-                        child: Stack(
-                          fit: StackFit.expand,
+                        child: RanahTabStack(
+                          index: _showingNotifications
+                              ? pages.length
+                              : _selectedIndex,
                           children: [
-                            for (var index = 0; index < pages.length; index++)
-                              Positioned.fill(
-                                key: ValueKey('main-tab-$index'),
-                                child: IgnorePointer(
-                                  ignoring: index != _selectedIndex,
-                                  child: Offstage(
-                                    offstage:
-                                        index != _selectedIndex ||
-                                        _showingNotifications,
-                                    child: ExcludeSemantics(
-                                      excluding: index != _selectedIndex,
-                                      child: AnimatedOpacity(
-                                        opacity: index == _selectedIndex
-                                            ? 1
-                                            : 0,
-                                        duration: transitionDuration,
-                                        curve: Curves.easeOutCubic,
-                                        child: AnimatedSlide(
-                                          offset: index == _selectedIndex
-                                              ? Offset.zero
-                                              : const Offset(0.025, 0),
-                                          duration: transitionDuration,
-                                          curve: Curves.easeOutCubic,
-                                          child: TickerMode(
-                                            enabled:
-                                                index == _selectedIndex &&
-                                                !_showingNotifications,
-                                            child: pages[index],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            Positioned.fill(
-                              child: IgnorePointer(
-                                ignoring: !_showingNotifications,
-                                child: Offstage(
-                                  offstage: !_showingNotifications,
-                                  child: ExcludeSemantics(
-                                    excluding: !_showingNotifications,
-                                    child: AnimatedOpacity(
-                                      opacity: _showingNotifications ? 1 : 0,
-                                      duration: transitionDuration,
-                                      curve: Curves.easeOutCubic,
-                                      child: AnimatedSlide(
-                                        offset: _showingNotifications
-                                            ? Offset.zero
-                                            : const Offset(0, -0.025),
-                                        duration: transitionDuration,
-                                        curve: Curves.easeOutCubic,
-                                        child: TickerMode(
-                                          enabled: _showingNotifications,
-                                          child: NotificationsPage(
-                                            repository:
-                                                _notificationsRepository,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
+                            ...pages,
+                            NotificationsPage(
+                              repository: _notificationsRepository,
                             ),
                           ],
                         ),

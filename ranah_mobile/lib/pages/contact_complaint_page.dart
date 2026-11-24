@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/app_card_surface.dart';
 import '../widgets/app_page_banner.dart';
+import '../widgets/page_motion.dart';
 
 class ContactComplaintPage extends StatefulWidget {
   const ContactComplaintPage({
@@ -277,45 +278,31 @@ class _ContactComplaintPageState extends State<ContactComplaintPage> {
               ),
               const SizedBox(height: AppSpacing.sm),
               Expanded(
-                child: AnimatedSwitcher(
-                  duration: MediaQuery.of(context).disableAnimations
-                      ? Duration.zero
-                      : const Duration(milliseconds: 220),
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0.02, 0),
-                        end: Offset.zero,
-                      ).animate(animation),
-                      child: child,
+                child: RanahTabStack(
+                  index: _selectedTab,
+                  children: [
+                    _EmergencyContactList(onContactTap: _handleContactTap),
+                    _ComplaintForm(
+                      formKey: _formKey,
+                      nameController: _nameController,
+                      phoneController: _phoneController,
+                      locationController: _locationController,
+                      descriptionController: _descriptionController,
+                      attachments: _attachments,
+                      onPickAttachments: _pickAttachments,
+                      onRemoveAttachment: _removeAttachment,
+                      isPickingMedia: _isPickingMedia,
+                      selectedCategory: _selectedCategory,
+                      onCategoryChanged: (category) =>
+                          setState(() => _selectedCategory = category),
+                      consented: _consented,
+                      onConsentChanged: (value) =>
+                          setState(() => _consented = value),
+                      submissionCount: _submissionCount,
+                      isSubmitting: _isSubmitting,
+                      onSubmit: _submitComplaint,
                     ),
-                  ),
-                  child: KeyedSubtree(
-                    key: ValueKey('contact-tab-$_selectedTab'),
-                    child: _selectedTab == 0
-                        ? _EmergencyContactList(onContactTap: _handleContactTap)
-                        : _ComplaintForm(
-                            formKey: _formKey,
-                            nameController: _nameController,
-                            phoneController: _phoneController,
-                            locationController: _locationController,
-                            descriptionController: _descriptionController,
-                            attachments: _attachments,
-                            onPickAttachments: _pickAttachments,
-                            onRemoveAttachment: _removeAttachment,
-                            isPickingMedia: _isPickingMedia,
-                            selectedCategory: _selectedCategory,
-                            onCategoryChanged: (category) =>
-                                setState(() => _selectedCategory = category),
-                            consented: _consented,
-                            onConsentChanged: (value) =>
-                                setState(() => _consented = value),
-                            submissionCount: _submissionCount,
-                            isSubmitting: _isSubmitting,
-                            onSubmit: _submitComplaint,
-                          ),
-                  ),
+                  ],
                 ),
               ),
             ],
