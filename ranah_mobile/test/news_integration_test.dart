@@ -146,7 +146,7 @@ void main() {
     await _flushLocalDatabase(tester);
     await tester.pump();
     await tester.tap(find.text('Berita'));
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('Berita uji server'),
       160,

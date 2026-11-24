@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'page_motion.dart';
+
 class RanahPageRoute<T> extends PageRouteBuilder<T> {
   RanahPageRoute({
     required BuildContext context,
@@ -13,21 +15,14 @@ class RanahPageRoute<T> extends PageRouteBuilder<T> {
            final curvedAnimation = animation.drive(
              CurveTween(curve: Curves.easeOutCubic),
            );
-           return FadeTransition(
-             opacity: curvedAnimation,
-             child: SlideTransition(
-               position: Tween<Offset>(
-                 begin: const Offset(0.025, 0),
-                 end: Offset.zero,
-               ).animate(curvedAnimation),
-               child: child,
-             ),
-           );
+           return MediaQuery.disableAnimationsOf(context)
+               ? child
+               : slidePage(child, curvedAnimation);
          },
        );
 
   static Duration _transitionDuration(BuildContext context) =>
       MediaQuery.of(context).disableAnimations
       ? Duration.zero
-      : const Duration(milliseconds: 240);
+      : pageTransitionDuration;
 }

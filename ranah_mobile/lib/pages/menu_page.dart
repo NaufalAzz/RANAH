@@ -8,6 +8,7 @@ import '../services/complaint_media_picker.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
 import '../widgets/app_card_surface.dart';
+import '../widgets/page_motion.dart';
 
 enum _MenuSection { home, mitigation, contacts, volcanicActivity }
 
@@ -45,20 +46,8 @@ class _MenuPageState extends State<MenuPage> {
       ),
     };
 
-    return AnimatedSwitcher(
-      duration: MediaQuery.of(context).disableAnimations
-          ? Duration.zero
-          : const Duration(milliseconds: 240),
-      transitionBuilder: (child, animation) => FadeTransition(
-        opacity: animation,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0.025, 0),
-            end: Offset.zero,
-          ).animate(animation),
-          child: child,
-        ),
-      ),
+    return RanahPageSwitcher(
+      rootPageKey: const ValueKey(_MenuSection.home),
       child: KeyedSubtree(key: ValueKey(_section), child: page),
     );
   }
