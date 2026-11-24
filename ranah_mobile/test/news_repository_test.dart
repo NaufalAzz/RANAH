@@ -105,6 +105,7 @@ void main() {
     );
     expect(result.items.single.body, contains('2026-05-05'));
     expect(result.items.single.eventAt, isNull);
+    expect(result.items.single.timeLabel, 'Kejadian: 05/05/2026');
   });
 
   test('parses BMKG alert metadata and keeps source URL HTTPS-only', () async {

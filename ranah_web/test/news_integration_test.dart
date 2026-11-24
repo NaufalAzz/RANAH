@@ -109,10 +109,19 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('web-news-clear-filters')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('web-news-date-start')));
+    await tester.tap(find.byKey(const ValueKey('web-news-date-range')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('25/10/2026').last);
+    await tester.tap(find.byIcon(Icons.edit_outlined));
     await tester.pumpAndSettle();
+    final dateInputs = find.descendant(
+      of: find.byType(DateRangePickerDialog),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(dateInputs.first, '25/10/2026');
+    await tester.enterText(dateInputs.last, '27/10/2026');
+    await tester.tap(find.text('Terapkan').last);
+    await tester.pumpAndSettle();
+    expect(find.text('25/10/2026 – 27/10/2026'), findsOneWidget);
     expect(find.text('Penanganan longsor'), findsOneWidget);
     expect(find.text('Kabar banjir Padang'), findsNothing);
 
@@ -138,6 +147,14 @@ void main() {
         ),
       );
       await tester.tap(find.byKey(const ValueKey('web-news-region-filter')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(TextField),
+        ),
+        'Kota Padang',
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Kota Padang').last);
       await tester.pumpAndSettle();

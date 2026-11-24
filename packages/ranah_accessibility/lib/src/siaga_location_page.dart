@@ -1,3 +1,4 @@
+import 'ranah_visuals.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'emergency_contacts_card.dart';
@@ -232,7 +233,8 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF102F49),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF17003E),
+        backgroundColor: const Color(0xFF172D49),
+        flexibleSpace: const CustomPaint(painter: RanahContours()),
         foregroundColor: Colors.white,
         toolbarHeight: MediaQuery.textScalerOf(
           context,
@@ -406,7 +408,7 @@ class _SiagaLocationPageState extends State<SiagaLocationPage> {
                         child: ExpansionTile(
                           title: const Text('Langkah umum saat erupsi'),
                           subtitle: const Text(
-                            'Materi BNPB dan Kementerian Kesehatan',
+                            'Langkah perlindungan diri dan rujukan tiap tindakan',
                           ),
                           children: [
                             for (final step

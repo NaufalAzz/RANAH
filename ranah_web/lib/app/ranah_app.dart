@@ -302,32 +302,39 @@ class _RanahShellState extends State<RanahShell> {
     }
   }
 
-  RanahDestination get _selectedDestination {
+  RanahDestination? get _selectedDestination {
+    if (_menuOpen) return RanahDestination.menu;
+    if (_page == _Page.notifications) return null;
     if (_page == _Page.home ||
         (_page == _Page.story && _storyReturnPage == _Page.home)) {
       return RanahDestination.home;
     }
     if (_page == _Page.map ||
         _page == _Page.activity ||
-        _page == _Page.volcanoReport) {
+        _page == _Page.volcanoReport ||
+        _page == _Page.evacuationRoute) {
       return RanahDestination.map;
     }
     if (_page == _Page.news || _page == _Page.story) {
       return RanahDestination.news;
     }
-    return RanahDestination.home;
+    return RanahDestination.menu;
   }
 
   @override
   Widget build(BuildContext context) {
     if (_page == _Page.adminLogin) {
-      return AdminLoginPage(
-        onBack: () => _navigate(_Page.home),
-        onPreview: () => _navigate(_Page.adminPreview),
+      return RanahPageReveal(
+        child: AdminLoginPage(
+          onBack: () => _navigate(_Page.home),
+          onPreview: () => _navigate(_Page.adminPreview),
+        ),
       );
     }
     if (_page == _Page.adminPreview) {
-      return AdminPanelPage(onExit: () => _navigate(_Page.adminLogin));
+      return RanahPageReveal(
+        child: AdminPanelPage(onExit: () => _navigate(_Page.adminLogin)),
+      );
     }
     return Scaffold(
       body: LayoutBuilder(
@@ -343,6 +350,7 @@ class _RanahShellState extends State<RanahShell> {
                     onSelect: _onDestination,
                     onNotifications: _openNotifications,
                     notificationCount: _earthquakeCount,
+                    notificationsOpen: _page == _Page.notifications,
                   ),
                   Expanded(
                     child: RanahBackground(
@@ -353,11 +361,34 @@ class _RanahShellState extends State<RanahShell> {
                             Positioned.fill(
                               child: Offstage(
                                 offstage: _page != _Page.map,
-                                child: _buildMapPage(),
+                                child: TickerMode(
+                                  enabled: _page == _Page.map,
+                                  child: _buildMapPage(),
+                                ),
                               ),
                             ),
-                          if (_page != _Page.map)
-                            Positioned.fill(child: _buildOtherPage()),
+                          if (_page == _Page.news ||
+                              (_page == _Page.story &&
+                                  _storyReturnPage == _Page.news))
+                            Positioned.fill(
+                              key: const ValueKey('news-layer'),
+                              child: Offstage(
+                                offstage: _page != _Page.news,
+                                child: TickerMode(
+                                  enabled: _page == _Page.news,
+                                  child: RanahPageReveal(
+                                    child: _buildNewsPage(),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          if (_page != _Page.map && _page != _Page.news)
+                            Positioned.fill(
+                              child: RanahPageReveal(
+                                key: ValueKey(_page),
+                                child: _buildOtherPage(),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -381,10 +412,12 @@ class _RanahShellState extends State<RanahShell> {
                   top: compact ? null : 48,
                   bottom: compact ? 80 : null,
                   right: 16,
-                  child: _MenuPopup(
-                    onActivity: () => _openActivity(_page),
-                    onContact: _openContacts,
-                    onMitigation: _openMitigationGuide,
+                  child: RanahPageReveal(
+                    child: _MenuPopup(
+                      onActivity: () => _openActivity(_page),
+                      onContact: _openContacts,
+                      onMitigation: _openMitigationGuide,
+                    ),
                   ),
                 ),
               ],
@@ -416,6 +449,14 @@ class _RanahShellState extends State<RanahShell> {
     reportLoader: _gunungRepository.loadDetail,
     onOpenReport: (volcano) => _openVolcanoReport(volcano, _Page.map),
     onOpenEvacuation: () => _navigate(_Page.evacuationRoute),
+  );
+
+  Widget _buildNewsPage() => NewsPage(
+    stories: _newsStories,
+    isLoading: _newsLoading,
+    error: _newsError,
+    onRetry: _loadNews,
+    onStoryTap: (story) => _openStory(story, _Page.news),
   );
 
   Widget _buildOtherPage() {
@@ -452,15 +493,6 @@ class _RanahShellState extends State<RanahShell> {
         repository: _gunungRepository,
         tilesEnabled: widget.volcanoMapTilesEnabled,
         onBack: () => _navigate(_reportReturnPage),
-      );
-    }
-    if (_page == _Page.news) {
-      return NewsPage(
-        stories: _newsStories,
-        isLoading: _newsLoading,
-        error: _newsError,
-        onRetry: _loadNews,
-        onStoryTap: (story) => _openStory(story, _Page.news),
       );
     }
     if (_page == _Page.story && _selectedStory != null) {

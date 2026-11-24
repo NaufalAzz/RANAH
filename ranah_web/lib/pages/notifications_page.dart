@@ -227,9 +227,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final width = constraints.maxWidth > RanahLayout.maxContentWidth
-          ? RanahLayout.maxContentWidth
-          : constraints.maxWidth;
+      final width = constraints.maxWidth > 1060 ? 1060.0 : constraints.maxWidth;
       final horizontal = width < 600 ? 20.0 : 36.0;
       final feed = _feed;
       final visibleItems = (feed?.items ?? const <BmkgNotification>[])
@@ -559,7 +557,7 @@ class _NotificationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final danger = notification.isWarning;
-    final accent = danger ? RanahColors.eruption : const Color(0xFF176D9A);
+    final accent = danger ? RanahPalette.warning : RanahPalette.highlight;
     final itemTime = notification.eventAt ?? notification.publishedAt;
 
     return Material(
@@ -570,9 +568,9 @@ class _NotificationCard extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 84),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFFF0F7FC),
+          color: RanahPalette.panel,
           borderRadius: BorderRadius.circular(RanahRadii.md),
-          border: Border.all(color: const Color(0xFFA6C8DC)),
+          border: Border.all(color: RanahPalette.line),
           boxShadow: const [
             BoxShadow(
               color: Color(0x22000000),
@@ -582,7 +580,7 @@ class _NotificationCard extends StatelessWidget {
           ],
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               width: 52,
@@ -590,8 +588,8 @@ class _NotificationCard extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: danger
-                    ? const Color(0xFFFFECEC)
-                    : const Color(0xFFDDEFFA),
+                    ? const Color(0xFF503444)
+                    : const Color(0xFF20536B),
                 borderRadius: BorderRadius.circular(13),
               ),
               child: Icon(
@@ -633,7 +631,7 @@ class _NotificationCard extends StatelessWidget {
                                   ? 'Terbit'
                                   : 'Kejadian'} ${_formatTime(itemTime)}',
                         style: const TextStyle(
-                          color: RanahColors.muted,
+                          color: RanahPalette.secondary,
                           fontSize: 12,
                         ),
                       ),
@@ -642,32 +640,27 @@ class _NotificationCard extends StatelessWidget {
                   const SizedBox(height: RanahSpacing.xs),
                   Text(
                     notification.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: Color(0xFF1D2636),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
+                      color: RanahPalette.text,
+                      fontSize: 18,
+                      height: 1.32,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: RanahSpacing.xs),
                   Text(
                     notification.summary,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: RanahColors.muted,
+                      color: RanahPalette.secondary,
                       fontSize: 16,
-                      height: 1.15,
+                      height: 1.45,
                     ),
                   ),
                   const SizedBox(height: RanahSpacing.xs),
                   Text(
                     notification.region ?? 'Wilayah dari sumber tidak tersedia',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: RanahColors.muted,
+                      color: RanahPalette.secondary,
                       fontSize: 12,
                       height: 1.1,
                     ),
@@ -675,10 +668,8 @@ class _NotificationCard extends StatelessWidget {
                   const SizedBox(height: RanahSpacing.xs),
                   Text(
                     notification.source ?? 'Sumber tidak tersedia',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: RanahColors.muted,
+                      color: RanahPalette.secondary,
                       fontSize: 12,
                       height: 1.1,
                     ),
@@ -687,10 +678,8 @@ class _NotificationCard extends StatelessWidget {
                     const SizedBox(height: RanahSpacing.xs),
                     Text(
                       'Data diambil ${_formatTime(notification.retrievedAt!)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: RanahColors.muted,
+                        color: RanahPalette.secondary,
                         fontSize: 11,
                         height: 1.1,
                       ),
@@ -979,7 +968,11 @@ class _InlineRetry extends StatelessWidget {
       Expanded(
         child: Text(message, style: const TextStyle(color: Color(0xFFFFE0A6))),
       ),
-      TextButton(onPressed: onPressed, child: const Text('Coba lagi')),
+      TextButton(
+        style: TextButton.styleFrom(foregroundColor: RanahPalette.highlight),
+        onPressed: onPressed,
+        child: const Text('Coba lagi'),
+      ),
     ],
   );
 }
@@ -1041,17 +1034,21 @@ class _EmptyFeed extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(22),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: RanahPalette.deep,
+      border: Border.all(color: RanahPalette.line),
       borderRadius: BorderRadius.circular(RanahRadii.sm),
     ),
     child: Column(
       children: [
-        Icon(Icons.notifications_none, size: 34, color: RanahColors.muted),
+        Icon(Icons.notifications_none, size: 34, color: RanahPalette.highlight),
         SizedBox(height: RanahSpacing.sm),
         Text(
           message,
           textAlign: TextAlign.center,
-          style: TextStyle(color: RanahColors.ink, fontWeight: FontWeight.w700),
+          style: TextStyle(
+            color: RanahPalette.text,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ],
     ),

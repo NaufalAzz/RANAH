@@ -33,7 +33,7 @@ class NewsDetailPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
-              color: const Color(0xFFDCE4EF),
+              color: RanahColors.backgroundMiddle,
               padding: const EdgeInsets.symmetric(
                 horizontal: RanahSpacing.lg,
                 vertical: RanahSpacing.sm,
@@ -55,9 +55,16 @@ class NewsDetailPage extends StatelessWidget {
               ),
             Center(
               child: Container(
-                constraints: const BoxConstraints(maxWidth: 1080),
+                constraints: const BoxConstraints(maxWidth: 860),
                 width: double.infinity,
-                color: const Color(0xFFE3EAF3),
+                margin: EdgeInsets.symmetric(
+                  horizontal: mobile ? 8 : 22,
+                  vertical: mobile ? 10 : 22,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F5F8),
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 padding: EdgeInsets.fromLTRB(
                   horizontal,
                   mobile ? RanahSpacing.lg : RanahSpacing.xl,
@@ -82,8 +89,8 @@ class NewsDetailPage extends StatelessWidget {
                       story.title,
                       style: TextStyle(
                         color: RanahColors.ink,
-                        fontSize: mobile ? 16 : 21,
-                        height: 1.15,
+                        fontSize: mobile ? 21 : 28,
+                        height: 1.24,
                         fontWeight: FontWeight.w700,
                       ),
                     ),

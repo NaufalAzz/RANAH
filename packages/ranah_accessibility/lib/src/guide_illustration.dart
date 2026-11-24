@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'mitigation_content.dart';
 
-/// Original vector illustrations. Motion is finite, can be paused/replayed,
+/// Original vector illustrations. Motion loops while visible, can be paused,
 /// and is disabled when the device requests reduced animation.
 class GuideIllustration extends StatefulWidget {
   const GuideIllustration({
@@ -20,31 +20,42 @@ class _GuideIllustrationState extends State<GuideIllustration>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 2600),
+    duration: const Duration(milliseconds: 4400),
   );
-  bool _initialized = false;
+  bool _paused = false;
+  bool _reduceMotion = false;
+  bool _visible = true;
+  bool _foreground = true;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    final state = WidgetsBinding.instance.lifecycleState;
+    _foreground = state == null || state == AppLifecycleState.resumed;
+  }
+
+  void _syncMotion() {
+    if (_reduceMotion || !_visible || !_foreground || _paused) {
+      _controller.stop();
+      if (_reduceMotion) _controller.value = .8;
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context) ||
-        !TickerMode.valuesOf(context).enabled) {
-      _controller.stop();
-      _controller.value = 1;
-    } else if (!_initialized) {
-      _controller.forward();
-    }
-    _initialized = true;
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
+    _visible = TickerMode.valuesOf(context).enabled;
+    _syncMotion();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) _controller.stop();
+    _foreground = state == AppLifecycleState.resumed;
+    _syncMotion();
   }
 
   @override
@@ -66,82 +77,54 @@ class _GuideIllustrationState extends State<GuideIllustration>
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'LIHAT & PAHAMI',
-              style: TextStyle(
-                color: Color(0xFFC0D8E7),
-                fontSize: 12,
-                letterSpacing: 1.4,
-                fontWeight: FontWeight.w700,
+          RepaintBoundary(
+            child: SizedBox(
+              height: 178,
+              width: double.infinity,
+              child: ExcludeSemantics(
+                child: CustomPaint(
+                  painter: _ScenePainter(
+                    widget.step.scene,
+                    _controller,
+                    widget.accent,
+                  ),
+                ),
               ),
             ),
           ),
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) => Column(
-              children: [
-                SizedBox(
-                  height: 174,
-                  width: double.infinity,
-                  child: ExcludeSemantics(
-                    child: CustomPaint(
-                      painter: _ScenePainter(
-                        widget.step.scene,
-                        _controller.value,
-                        widget.accent,
-                      ),
-                    ),
-                  ),
-                ),
-                Text(
-                  widget.step.caption,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                if (reduced)
-                  const Text(
-                    'Ilustrasi statis · animasi dikurangi sesuai pengaturan perangkat',
-                    style: TextStyle(color: Color(0xFFB5CDDE), fontSize: 12),
-                    textAlign: TextAlign.center,
-                  )
-                else
-                  TextButton.icon(
-                    key: const ValueKey('guide-animation-toggle'),
-                    onPressed: () {
-                      if (_controller.isAnimating) {
-                        _controller.stop();
-                        setState(() {});
-                      } else {
-                        _controller.forward(
-                          from: _controller.isCompleted ? 0 : _controller.value,
-                        );
-                      }
-                    },
-                    style: TextButton.styleFrom(
-                      foregroundColor: widget.accent,
-                      minimumSize: const Size(48, 48),
-                    ),
-                    icon: Icon(
-                      _controller.isAnimating
-                          ? Icons.pause_rounded
-                          : Icons.replay_rounded,
-                    ),
-                    label: Text(
-                      _controller.isAnimating
-                          ? 'Jeda animasi'
-                          : 'Putar ilustrasi',
-                    ),
-                  ),
-              ],
+          const SizedBox(height: 8),
+          Text(
+            widget.step.caption,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              height: 1.4,
             ),
           ),
+          const SizedBox(height: 8),
+          if (reduced)
+            const Text(
+              'Ilustrasi statis · animasi dikurangi sesuai pengaturan perangkat',
+              style: TextStyle(color: Color(0xFFB5CDDE), fontSize: 12),
+              textAlign: TextAlign.center,
+            )
+          else
+            TextButton.icon(
+              key: const ValueKey('guide-animation-toggle'),
+              onPressed: () {
+                setState(() => _paused = !_paused);
+                _syncMotion();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: widget.accent,
+                minimumSize: const Size(48, 48),
+              ),
+              icon: Icon(
+                !_paused ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              ),
+              label: Text(!_paused ? 'Jeda animasi' : 'Lanjutkan animasi'),
+            ),
         ],
       ),
     );
@@ -149,9 +132,10 @@ class _GuideIllustrationState extends State<GuideIllustration>
 }
 
 class _ScenePainter extends CustomPainter {
-  const _ScenePainter(this.scene, this.progress, this.accent);
+  _ScenePainter(this.scene, this.clock, this.accent) : super(repaint: clock);
   final GuideScene scene;
-  final double progress;
+  final Animation<double> clock;
+  double get progress => ((clock.value - .07) / .65).clamp(0.0, 1.0);
   final Color accent;
   void _line(Canvas c, Offset a, Offset b, Color color, [double width = 4]) =>
       c.drawLine(
@@ -205,11 +189,165 @@ class _ScenePainter extends CustomPainter {
     );
     canvas.scale(scale);
     final p = Curves.easeInOut.transform(progress);
+    // A quiet landscape anchors the action. Fade only the drawing at the
+    // seam so every demonstration repeats in the intended direction.
+    final horizon = Path()
+      ..moveTo(0, 130)
+      ..quadraticBezierTo(42, 93, 79, 101)
+      ..lineTo(128, 57)
+      ..quadraticBezierTo(138, 50, 150, 63)
+      ..lineTo(197, 101)
+      ..quadraticBezierTo(228, 83, 249, 89)
+      ..lineTo(304, 49)
+      ..lineTo(340, 74)
+      ..lineTo(340, 146)
+      ..lineTo(0, 146)
+      ..close();
+    canvas.drawPath(
+      horizon,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            accent.withValues(alpha: .15),
+            accent.withValues(alpha: .025),
+          ],
+        ).createShader(const Rect.fromLTWH(0, 45, 340, 101)),
+    );
+    final opacity = math.min(
+      1.0,
+      math.min(clock.value / .06, (1 - clock.value) / .09),
+    );
+    final fade = opacity < 1;
+    if (fade)
+      canvas.saveLayer(
+        const Rect.fromLTWH(-4, -5, 348, 185),
+        Paint()
+          ..color = Colors.white.withValues(alpha: opacity.clamp(0.0, 1.0)),
+      );
     canvas.drawOval(
       const Rect.fromLTWH(40, 144, 260, 14),
       Paint()..color = const Color(0xFF0B2A41),
     );
     switch (scene) {
+      case GuideScene.window:
+        _rect(
+          canvas,
+          const Rect.fromLTWH(102, 30, 136, 112),
+          const Color(0xFF93B5C5),
+          6,
+        );
+        _rect(
+          canvas,
+          const Rect.fromLTWH(109, 37, 122, 98),
+          const Color(0xFF23475B),
+          3,
+        );
+        for (var i = 0; i < 12; i++) {
+          final x = 113.0 + (i * 19) % 112;
+          canvas.drawCircle(
+            Offset(x, 45 + (i * 23 + progress * 50) % 81),
+            2,
+            Paint()..color = const Color(0xFFC7CED3),
+          );
+        }
+        for (final x in [109.0, 170.0]) {
+          final inset = (1 - p) * 23;
+          _rect(
+            canvas,
+            Rect.fromLTWH(x + (x == 109 ? 0 : inset), 37, 60 - inset, 98),
+            accent.withValues(alpha: .85),
+            2,
+          );
+          _line(
+            canvas,
+            Offset(x + 12, 71),
+            Offset(x + 26, 54),
+            Colors.white54,
+            2,
+          );
+        }
+        _rect(
+          canvas,
+          const Rect.fromLTWH(94, 140, 152, 7),
+          const Color(0xFF496F86),
+          3,
+        );
+      case GuideScene.water:
+        for (final x in [110.0, 174.0]) {
+          _rect(
+            canvas,
+            Rect.fromLTWH(x, 55, 46, 82),
+            const Color(0xFFC2E4ED),
+            10,
+          );
+          final level = 26 + 38 * p;
+          _rect(
+            canvas,
+            Rect.fromLTWH(x + 4, 133 - level, 38, level),
+            const Color(0xFF429DAC),
+            7,
+          );
+          _rect(
+            canvas,
+            Rect.fromLTWH(x + 11, 45, 24, 12),
+            const Color(0xFF72A6B5),
+            2,
+          );
+          _rect(canvas, Rect.fromLTWH(x + 9, 26 + p * 14, 28, 11), accent, 3);
+        }
+      case GuideScene.meeting:
+        _person(
+          canvas,
+          Offset(105 + 17 * p, 97),
+          const Color(0xFF71B7C2),
+          walk: true,
+        );
+        _person(canvas, const Offset(173, 85), accent);
+        _person(
+          canvas,
+          Offset(238 - 17 * p, 101),
+          const Color(0xFF86A8D8),
+          walk: true,
+        );
+      case GuideScene.vehicle:
+        _line(
+          canvas,
+          const Offset(48, 141),
+          const Offset(291, 141),
+          const Color(0xFF568093),
+          2,
+        );
+        canvas.save();
+        canvas.translate(30 * p - 15, 0);
+        _rect(canvas, const Rect.fromLTWH(91, 64, 141, 62), accent, 12);
+        _rect(
+          canvas,
+          const Rect.fromLTWH(98, 72, 79, 24),
+          const Color(0xFF20455F),
+          4,
+        );
+        _line(canvas, const Offset(137, 72), const Offset(137, 96), accent, 3);
+        _rect(
+          canvas,
+          const Rect.fromLTWH(185, 72, 38, 24),
+          const Color(0xFFB9DAE3),
+          4,
+        );
+        for (final x in [117.0, 208.0]) {
+          canvas.drawCircle(
+            Offset(x, 125),
+            13,
+            Paint()..color = const Color(0xFF0D263A),
+          );
+          canvas.drawCircle(
+            Offset(x, 125),
+            6,
+            Paint()..color = const Color(0xFFA4C4CF),
+          );
+        }
+        canvas.restore();
       case GuideScene.radio:
         _rect(
           canvas,
@@ -499,12 +637,13 @@ class _ScenePainter extends CustomPainter {
           Paint()..color = const Color(0xFF71BDDE),
         );
     }
+    if (fade) canvas.restore();
     canvas.restore();
   }
 
   @override
   bool shouldRepaint(covariant _ScenePainter oldDelegate) =>
-      oldDelegate.progress != progress ||
+      oldDelegate.clock != clock ||
       oldDelegate.scene != scene ||
       oldDelegate.accent != accent;
 }

@@ -121,16 +121,15 @@ class _HomePageState extends State<HomePage> {
                         color: const Color(0xFF00C6FF),
                         borderRadius: BorderRadius.circular(4),
                         boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x6600C6FF),
-                            blurRadius: 6,
-                          ),
+                          BoxShadow(color: Color(0x6600C6FF), blurRadius: 6),
                         ],
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      widget.isFromCache ? 'Berita Tersimpan' : 'Berita Terbaru',
+                      widget.isFromCache
+                          ? 'Berita Tersimpan'
+                          : 'Berita Terbaru',
                       style: AppTypography.sectionTitle.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
@@ -448,7 +447,10 @@ class _FeaturedNewsCard extends StatelessWidget {
                 ],
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 child: Text(
                   leadLabel,
                   style: const TextStyle(
@@ -611,7 +613,7 @@ class _LatestNewsCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        item.publishedAt,
+                        item.timeLabel ?? 'Tanggal kejadian belum tersedia',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontSize: 12,
                           color: AppColors.muted,

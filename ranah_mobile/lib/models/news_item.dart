@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ranah_accessibility/ranah_accessibility.dart'
+    show newsDayRangeLabel;
 
 class NewsItem {
   const NewsItem({
@@ -18,6 +20,7 @@ class NewsItem {
     this.region,
     this.imageUrl,
     this.eventAt,
+    this.bulletinDays,
     this.expiresAt,
     this.retrievedAt,
   });
@@ -38,12 +41,16 @@ class NewsItem {
   final String? region;
   final String? imageUrl;
   final DateTime? eventAt;
+  final DateTimeRange? bulletinDays;
   final DateTime? expiresAt;
   final DateTime? retrievedAt;
 
   String? get timeLabel {
     if (contentType == 'peringatan' && eventAt != null) {
       return 'Berlaku sejak: ${_formatDateTime(eventAt!)}';
+    }
+    if (bulletinDays case final days?) {
+      return 'Kejadian: ${newsDayRangeLabel(days)}';
     }
     if (eventAt != null) return 'Kejadian: ${_formatDate(eventAt!)}';
     if (source?.toUpperCase().contains('BNPB') ?? false) return null;

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ranah_accessibility/ranah_accessibility.dart'
+    show bnpbBulletinDays;
 
 import '../models/news_item.dart';
 import '../theme/app_theme.dart';
@@ -184,6 +186,7 @@ class NewsRepository {
       sourceUrl: _validHttpsUrl(json['url_sumber']),
       region: _optionalString(json['wilayah']),
       imageUrl: imageUrl,
+      bulletinDays: bnpbBulletinDays(source, body),
       eventAt: DateTime.tryParse(json['waktu_kejadian']?.toString() ?? ''),
       expiresAt: expiresAt,
       retrievedAt: DateTime.tryParse(

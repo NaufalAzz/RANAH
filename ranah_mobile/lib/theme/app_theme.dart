@@ -6,10 +6,10 @@ abstract final class AppColors {
   static const muted = Color(0xFF65748A);
   static const primary = Color(0xFF24106B);
   static const primarySoft = Color(0xFFEAE6F7);
-  static const primaryDark = Color(0xFF160747);
+  static const primaryDark = Color(0xFF131D39);
   static const headerStart = Color(0xFF10052E);
-  static const bannerStart = Color(0xFF21085F);
-  static const bannerEnd = Color(0xFF100525);
+  static const bannerStart = Color(0xFF192B4C);
+  static const bannerEnd = Color(0xFF133B50);
   static const brandTile = Color(0xFF0A2C4A);
   static const brandLabelPanel = Color(0xFF061B3B);
   static const teal = Color(0xFF087F83);
@@ -22,20 +22,20 @@ abstract final class AppColors {
   static const watch = Color(0xFFF07831);
   static const normal = Color(0xFF38A65B);
   static const onDark = Colors.white;
-  static const mutedOnDark = Color(0xFFD0C9E7);
-  static const bannerEyebrow = Color(0xFF82C7FF);
+  static const mutedOnDark = Color(0xFFC5D7E4);
+  static const bannerEyebrow = Color(0xFFA0DCD9);
   static const darkPanel = Color(0xFF123D5B);
   static const darkPanelBorder = Color(0xFF1D5778);
   static const emergencySurface = Color(0xFF702A39);
   static const emergencyBorder = Color(0xFFB03C4A);
-  static const navigationIndicator = Color(0xFF392477);
+  static const navigationIndicator = Color(0xFF265467);
   static const cardShadow = Color(0x26000A18);
   static const white = Colors.white;
 }
 
 abstract final class AppGradients {
   static const brandHeader = LinearGradient(
-    colors: [Color(0xFF13063A), Color(0xFF250D69), Color(0xFF110433)],
+    colors: [Color(0xFF131B36), Color(0xFF1B2F4B), Color(0xFF111E36)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -47,7 +47,7 @@ abstract final class AppGradients {
   );
 
   static const sectionBanner = LinearGradient(
-    colors: [Color(0xFF29107C), Color(0xFF18064A)],
+    colors: [Color(0xFF192D4D), Color(0xFF1B4657)],
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
   );

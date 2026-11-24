@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart' show DateTimeRange;
+
 class HomeStory {
   const HomeStory({
     required this.id,
@@ -19,6 +21,7 @@ class HomeStory {
     this.contentType,
     this.publishedAt,
     this.eventAt,
+    this.bulletinDays,
     this.expiresAt,
     this.retrievedAt,
     this.importance,
@@ -45,6 +48,7 @@ class HomeStory {
   final String? contentType;
   final DateTime? publishedAt;
   final DateTime? eventAt;
+  final DateTimeRange? bulletinDays;
   final DateTime? expiresAt;
   final DateTime? retrievedAt;
   final String? importance;

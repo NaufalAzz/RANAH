@@ -175,7 +175,9 @@ class _GunungReportPageState extends State<GunungReportPage> {
             onOpenDetail: _openMapDetail,
             tilesEnabled: widget.showMapTiles,
           ),
-          OfficialKrbMapButton(name: gunung['nama']?.toString() ?? 'Gunung api'),
+          OfficialKrbMapButton(
+            name: gunung['nama']?.toString() ?? 'Gunung api',
+          ),
           const SizedBox(height: 10),
           _StatusBadge(
             status: _text(gunung['status_aktivitas'], 'Belum diverifikasi'),
@@ -443,7 +445,7 @@ class _ReportHeading extends StatelessWidget {
       fontWeight: FontWeight.w800,
       letterSpacing: 0.8,
     ),
-    gradient: LinearGradient(colors: [Color(0xE8200B59), Color(0xE5101736)]),
+    gradient: AppGradients.sectionBanner,
     borderRadius: BorderRadius.all(Radius.circular(AppRadii.compact)),
   );
 }

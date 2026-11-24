@@ -7,7 +7,7 @@ void main() {
   Future<void> open(
     WidgetTester tester, {
     VoidCallback? back,
-    bool reduced = false,
+    bool reduced = true,
     double scale = 1,
   }) async {
     await tester.pumpWidget(
@@ -107,23 +107,26 @@ void main() {
     },
   );
   testWidgets(
-    'illustration can be replayed and paused without an endless ticker',
+    'illustration keeps looping until paused and resumes on request',
     (tester) async {
-      await open(tester);
-      await tap(
-        tester,
+      await open(tester, reduced: false);
+      await tester.tap(
         find.byKey(const ValueKey('guide-category-before-eruption')),
       );
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('guide-animation-toggle')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('guide-animation-toggle')));
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 10));
+      expect(tester.binding.transientCallbackCount, greaterThan(0));
+      final toggle = find.byKey(const ValueKey('guide-animation-toggle'));
+      await tester.ensureVisible(toggle);
       expect(find.text('Jeda animasi'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('guide-animation-toggle')));
+      await tester.tap(toggle);
       await tester.pumpAndSettle();
-      expect(find.text('Putar ilustrasi'), findsOneWidget);
+      expect(find.text('Lanjutkan animasi'), findsOneWidget);
+      expect(tester.binding.transientCallbackCount, 0);
+      await tester.tap(toggle);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 10));
+      expect(tester.binding.transientCallbackCount, greaterThan(0));
     },
   );
   testWidgets('guide fits phones with enlarged text and desktop widths', (

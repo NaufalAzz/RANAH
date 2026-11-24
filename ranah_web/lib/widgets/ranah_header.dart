@@ -60,13 +60,15 @@ class RanahHeader extends StatelessWidget {
     required this.onSelect,
     required this.onNotifications,
     this.notificationCount = 0,
+    this.notificationsOpen = false,
     super.key,
   });
 
-  final RanahDestination selected;
+  final RanahDestination? selected;
   final ValueChanged<RanahDestination> onSelect;
   final VoidCallback onNotifications;
   final int notificationCount;
+  final bool notificationsOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -117,6 +119,7 @@ class RanahHeader extends StatelessWidget {
               child: _NotificationButton(
                 onPressed: onNotifications,
                 count: notificationCount,
+                selected: notificationsOpen,
               ),
             ),
           ],
@@ -157,6 +160,7 @@ class RanahHeader extends StatelessWidget {
                   child: _NotificationButton(
                     onPressed: onNotifications,
                     count: notificationCount,
+                    selected: notificationsOpen,
                     compact: true,
                   ),
                 ),
@@ -176,7 +180,7 @@ class RanahBottomNavigation extends StatelessWidget {
     super.key,
   });
 
-  final RanahDestination selected;
+  final RanahDestination? selected;
   final ValueChanged<RanahDestination> onSelect;
 
   @override
@@ -329,42 +333,48 @@ class _NavigationButton extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    icon,
-                    size: compact ? 18 : 20,
-                    color: selected ? Colors.white : RanahColors.headerMuted,
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: selected ? Colors.white : RanahColors.headerMuted,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                    ),
-                  ),
-                ],
-              ),
-              if (selected)
-                Positioned(
-                  top: compact ? 0 : null,
-                  bottom: compact ? null : 0,
-                  left: 7,
-                  right: 7,
-                  child: const DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.all(Radius.circular(2)),
-                    ),
-                    child: SizedBox(height: 3),
-                  ),
+              AnimatedContainer(
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 180),
+                padding: EdgeInsets.symmetric(
+                  horizontal: compact ? 2 : 7,
+                  vertical: 6,
                 ),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? const Color(0xFF254457)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      icon,
+                      size: compact ? 18 : 20,
+                      color: selected
+                          ? const Color(0xFFAFE8E3)
+                          : RanahColors.headerMuted,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: selected
+                            ? Colors.white
+                            : RanahColors.headerMuted,
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -377,17 +387,24 @@ class _NotificationButton extends StatelessWidget {
   const _NotificationButton({
     required this.onPressed,
     required this.count,
+    required this.selected,
     this.compact = false,
   });
 
   final VoidCallback onPressed;
   final int count;
+  final bool selected;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return IconButton(
       onPressed: onPressed,
+      isSelected: selected,
+      style: IconButton.styleFrom(
+        backgroundColor: selected ? const Color(0xFF254457) : null,
+        foregroundColor: selected ? const Color(0xFFAFE8E3) : Colors.white,
+      ),
       tooltip: count == 0
           ? 'Notifikasi gempa'
           : '$count informasi gempa terbaru',
