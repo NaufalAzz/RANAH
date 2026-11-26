@@ -19,6 +19,7 @@ dev_dependencies:
 
 flutter:
   assets:
+    - assets/geojson/ranah_krb_big_terverifikasi.geojson
     - assets/volcano-atlas.webp
     - assets/volcano-atlas-1.webp
     - assets/volcano-atlas-2.webp

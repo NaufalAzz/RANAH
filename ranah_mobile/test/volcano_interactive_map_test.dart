@@ -16,7 +16,7 @@ void main() {
       'assets/geojson/ranah_krb_simulasi.geojson',
     );
     officialGeoJson = await rootBundle.loadString(
-      'assets/geojson/ranah_krb_big_terverifikasi.geojson',
+      'packages/ranah_accessibility/assets/geojson/ranah_krb_big_terverifikasi.geojson',
     );
     simulationPolygons = parseSimulatedKrbGeoJson(simulationGeoJson);
     officialPolygons = parseOfficialKrbGeoJson(officialGeoJson);

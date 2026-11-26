@@ -17,7 +17,7 @@ void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     final source = await rootBundle.loadString(
-      'assets/geojson/ranah_krb_big_terverifikasi.geojson',
+      'packages/ranah_accessibility/assets/geojson/ranah_krb_big_terverifikasi.geojson',
     );
     dataset = parseVerifiedKrbGeoJson(source);
   });

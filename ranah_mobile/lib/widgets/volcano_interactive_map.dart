@@ -382,7 +382,7 @@ class _VolcanoInteractiveMapState extends State<VolcanoInteractiveMap> {
   Future<List<VolcanoSimulationPolygon>> _loadOfficialPolygons() async {
     final sources = await Future.wait([
       rootBundle.loadString(
-        'assets/geojson/ranah_krb_big_terverifikasi.geojson',
+        'packages/ranah_accessibility/assets/geojson/ranah_krb_big_terverifikasi.geojson',
       ),
       rootBundle.loadString(
         'assets/geojson/ranah_krb_big_name_matched.geojson',

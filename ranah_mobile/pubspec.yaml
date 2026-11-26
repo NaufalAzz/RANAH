@@ -33,9 +33,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
   flutter_map: ^8.3.2
   geolocator: ^14.0.2
   http: ^1.6.0
@@ -72,7 +69,6 @@ flutter:
     - assets/images/App.png
     - assets/images/brand_mark.png
     - assets/geojson/ranah_krb_simulasi.geojson
-    - assets/geojson/ranah_krb_big_terverifikasi.geojson
     - assets/geojson/ranah_krb_big_name_matched.geojson
 
   # To add assets to your application, add an assets section, like this:

@@ -22,7 +22,8 @@ const _krbColors = <String, Color>{
   'III': Color(0xFFE85D9E),
 };
 
-const _krbAssetPath = 'assets/geojson/ranah_krb_big_terverifikasi.geojson';
+const _krbAssetPath =
+    'packages/ranah_accessibility/assets/geojson/ranah_krb_big_terverifikasi.geojson';
 const _openStreetMapTiles = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 Future<VerifiedKrbDataset>? _cachedKrbDataset;
